@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 interface WalletSessionInput {
   address: string;
@@ -30,20 +31,42 @@ const initialState = {
   walletName: 'TITAN Wallet',
 };
 
-export const useWalletStore = create<WalletStore>((set) => ({
-  ...initialState,
-  connect: (wallet) =>
-    set({
-      address: wallet.address,
-      isConnected: true,
-      mnemonic: wallet.mnemonic,
-      privateKey: wallet.privateKey,
-      walletName: wallet.walletName?.trim() || 'TITAN Wallet',
+export const useWalletStore = create<WalletStore>()(
+  persist(
+    (set) => ({
+      ...initialState,
+      connect: (wallet) =>
+        set({
+          address: wallet.address,
+          isConnected: true,
+          mnemonic: wallet.mnemonic,
+          privateKey: wallet.privateKey,
+          walletName: wallet.walletName?.trim() || 'TITAN Wallet',
+        }),
+      disconnect: () => set(initialState),
+      setBalance: (eth, usd) =>
+        set({
+          balanceETH: eth,
+          balanceUSD: usd,
+        }),
     }),
-  disconnect: () => set(initialState),
-  setBalance: (eth, usd) =>
-    set({
-      balanceETH: eth,
-      balanceUSD: usd,
-    }),
-}));
+    {
+      name: 'titan-wallet-session-store',
+      version: 1,
+      storage: createJSONStorage(() => window.sessionStorage),
+      partialize: (state) => ({
+        address: state.address,
+        isConnected: state.isConnected,
+        mnemonic: state.mnemonic,
+        privateKey: state.privateKey,
+        walletName: state.walletName,
+        balanceETH: state.balanceETH,
+        balanceUSD: state.balanceUSD,
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...((persistedState || {}) as Partial<WalletStore>),
+      }),
+    },
+  ),
+);

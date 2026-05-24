@@ -126,7 +126,7 @@ const GeneralSettings: React.FC = () => {
             <h2 className="text-lg font-bold text-white">Wallet Secrets</h2>
             <p className="text-sm text-titan-subtext">Session-only recovery controls appear only after a wallet is imported or created in this browser.</p>
           </div>
-          <Badge variant="warning" size="sm">Memory only</Badge>
+          <Badge variant="warning" size="sm">Tab session</Badge>
         </div>
 
         {hasWalletSession ? (
@@ -140,7 +140,7 @@ const GeneralSettings: React.FC = () => {
                     {walletName} · {formatAddress(walletAddress || '')}
                   </p>
                   <p className="mt-1 text-xs text-titan-subtext">
-                    TITAN keeps secrets in memory only, so export them before refreshing if you need to re-import later.
+                    TITAN now restores this wallet after a page refresh in the same tab. Export the secrets before you close the tab if you need a fresh import later.
                   </p>
                 </div>
               </div>
@@ -177,7 +177,7 @@ const GeneralSettings: React.FC = () => {
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-white">Private key</p>
-                    <p className="text-xs text-titan-subtext">Available for imported wallets and newly-created wallets while this browser session stays open.</p>
+                    <p className="text-xs text-titan-subtext">Available for imported wallets and newly-created wallets while this browser tab session stays open.</p>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="secondary" size="sm" onClick={() => void revealSecret('privateKey')} disabled={!privateKey}>

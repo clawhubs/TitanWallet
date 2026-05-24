@@ -202,7 +202,7 @@ const CreateWalletPage: React.FC = () => {
           {isImportMode && step === 1 && (
             <div>
               <h1 className="text-lg font-bold text-titan-text mb-1">Import your wallet</h1>
-              <p className="text-sm text-titan-subtext mb-6">Paste a 12-word recovery phrase or a raw private key to restore an existing wallet into this browser session.</p>
+              <p className="text-sm text-titan-subtext mb-6">Paste a 12-word recovery phrase or a raw private key to restore an existing wallet into this browser tab session.</p>
               <div className="space-y-4">
                 <div>
                   <label className="titan-label block mb-2">Wallet name</label>
@@ -396,8 +396,8 @@ const CreateWalletPage: React.FC = () => {
               <h1 className="text-xl font-bold text-titan-text mb-2">{isImportMode ? 'Wallet imported.' : 'Wallet created.'}</h1>
               <p className="text-sm text-titan-subtext mb-2">
                 {isImportMode
-                  ? 'Your wallet is ready in this browser session. You can reveal the recovery phrase or private key from Settings while the session stays open.'
-                  : 'Your TITAN Wallet is ready. The wallet security rails are active for this session.'}
+                  ? 'Your wallet is ready in this browser tab session. You can reveal the recovery phrase or private key from Settings while the tab stays open.'
+                  : 'Your TITAN Wallet is ready. The wallet security rails are active for this tab session.'}
               </p>
               <Badge variant="success" dot className="mb-6">Wallet rails ready</Badge>
               {creationProofStatus === 'sealed' ? (
