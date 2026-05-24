@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-titan-bg text-titan-text font-sans antialiased;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-titan-bg;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-titan-muted rounded-full border border-titan-bg;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-titan-subtext;
+  }
+
+  ::selection {
+    @apply bg-titan-accent/20 text-titan-accent;
+  }
+}
+
+@layer components {
+  .titan-card {
+    @apply bg-titan-surface border border-titan-border rounded-2xl shadow-card transition-all duration-200;
+  }
+
+  .titan-glass {
+    background: rgba(12, 16, 23, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    @apply border border-titan-border/60;
+  }
+
+  .titan-btn-primary {
+    @apply bg-titan-accent text-titan-bg font-semibold px-5 py-2.5 rounded-xl
+           hover:brightness-110 transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-titan-accent/40
+           disabled:opacity-40 disabled:cursor-not-allowed
+           active:scale-[0.97];
+  }
+
+  .titan-btn-secondary {
+    @apply bg-titan-surface text-titan-text border border-titan-border font-medium px-5 py-2.5 rounded-xl
+           hover:border-titan-accent/30 hover:bg-[#182030] transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-titan-accent/20
+           active:scale-[0.97];
+  }
+
+  .titan-btn-ghost {
+    @apply text-titan-subtext font-medium px-4 py-2 rounded-xl
+           hover:text-titan-text hover:bg-[#182030] transition-all duration-150
+           active:scale-[0.97];
+  }
+
+  .titan-input {
+    @apply w-full bg-titan-surface border border-titan-border rounded-xl px-4 py-3
+           text-titan-text placeholder:text-[#3D4A5C]
+           focus:outline-none focus:border-titan-accent/60 focus:ring-1 focus:ring-titan-accent/20
+           transition-all duration-200 font-mono text-sm;
+  }
+
+  .titan-label {
+    @apply text-titan-subtext text-[11px] font-medium uppercase tracking-[0.06em];
+  }
+}
+
+@layer utilities {
+  .text-gradient-accent {
+    background: linear-gradient(135deg, #4ECDC4 0%, #3AA89F 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-glow {
+    box-shadow: 0 0 0 1px rgba(78, 205, 196, 0.3), 0 0 20px rgba(78, 205, 196, 0.05);
+  }
+}
+
+/* Animations */
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+.animate-delay-500 { animation-delay: 500ms; }
+
+.opacity-0-start {
+  opacity: 0;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  background: rgba(6, 8, 12, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
