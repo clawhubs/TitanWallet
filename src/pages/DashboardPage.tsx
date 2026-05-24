@@ -18,10 +18,13 @@ import { listRecords } from '../services/integrity';
 import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRecordsToProofs } from '../utils/integrity';
 import SendTransactionModal from '../components/modals/SendTransactionModal';
 import ReceiveModal from '../components/modals/ReceiveModal';
-import { TITAN_SECURITY_LAYERS } from '../data/titanLayers';
 import { hasTitanSecurityAccess } from '../config/api';
 import ConnectAppModal from '../components/modals/ConnectAppModal';
 import SignMessageModal from '../components/modals/SignMessageModal';
+import { WALLET_SECURITY_LAYER_NAMES } from '../data/walletActionLayers';
+import { runMilitaryGradeOperation } from '../services/militaryGrade';
+
+const WALLET_LAYER_NAME_SET = new Set<string>(WALLET_SECURITY_LAYER_NAMES);
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -79,8 +82,34 @@ const DashboardPage: React.FC = () => {
           return;
         }
 
-        const liveLayers = buildTitanSecurityLayersFromApi(health);
-        setActiveLayerCount(countActiveTitanLayers(liveLayers));
+        const liveLayers = buildTitanSecurityLayersFromApi(health).filter((layer) => WALLET_LAYER_NAME_SET.has(layer.name));
+        let nextActiveLayerCount = countActiveTitanLayers(liveLayers);
+
+        try {
+          const rail = await runMilitaryGradeOperation({
+            action: 'dashboard-status',
+            walletAddress,
+            network: activeNetwork.name,
+            chainId: activeNetwork.chainId,
+            intent: 'Read the live TITAN wallet rail status for the dashboard balance card.',
+            metadata: {
+              page: 'dashboard',
+              wallet_layer_count: WALLET_SECURITY_LAYER_NAMES.length,
+            },
+          });
+          const verifiedWalletRails = (rail.selected_layers || []).filter(
+            (layer) =>
+              WALLET_LAYER_NAME_SET.has(layer.label) &&
+              !/fail|error|blocked|denied/i.test(layer.status),
+          );
+          if (verifiedWalletRails.length) {
+            nextActiveLayerCount = verifiedWalletRails.length;
+          }
+        } catch {
+          // Health status remains the fallback if the military-grade rail is temporarily unavailable.
+        }
+
+        setActiveLayerCount(nextActiveLayerCount);
       } catch {
         if (!disposed) {
           setActiveLayerCount(null);
@@ -163,7 +192,7 @@ const DashboardPage: React.FC = () => {
                   {displayedBalance}
                 </h1>
                 <span className="text-[14px] font-semibold text-titan-success bg-titan-success/10 px-2.5 py-1 rounded-md flex items-center gap-1">
-                  <ArrowUpRight size={14} strokeWidth={2.5} /> {activeLayerCount === null ? 'Live status unavailable' : `${activeLayerCount}/${TITAN_SECURITY_LAYERS.length}`}
+                  <ArrowUpRight size={14} strokeWidth={2.5} /> {activeLayerCount === null ? 'Live status unavailable' : `${activeLayerCount}/${WALLET_SECURITY_LAYER_NAMES.length}`}
                 </span>
               </div>
               <p className="mt-3 text-[13px] text-titan-subtext">
