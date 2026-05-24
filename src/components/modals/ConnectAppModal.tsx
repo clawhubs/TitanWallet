@@ -11,6 +11,8 @@ import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import { formatAddress } from '../../utils/cn';
 import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
+import { runMilitaryGradeOperation } from '../../services/militaryGrade';
+import { hasTitanSecurityAccess } from '../../config/api';
 
 interface ConnectAppRequest {
   appName: string;
@@ -51,36 +53,55 @@ const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClose, requ
   const handleConnect = async () => {
     try {
       setIsSubmitting(true);
-      setStatus('Auditing the dApp connection payload...');
-      await auditEvaluate({
-        plaintext: [
-          `wallet=${walletAddress || 'disconnected'}`,
-          `app=${payload.appName}`,
-          `origin=${payload.appUrl}`,
-          `network=${activeNetwork.name}`,
-          `permissions=${(payload.permissions || []).join(', ')}`,
-        ].join(' | '),
+      const connectionSummary = [
+        `wallet=${walletAddress || 'disconnected'}`,
+        `app=${payload.appName}`,
+        `origin=${payload.appUrl}`,
+        `network=${activeNetwork.name}`,
+        `permissions=${(payload.permissions || []).join(', ')}`,
+      ].join(' | ');
+
+      setStatus('Auditing the dApp connection payload through the TITAN wallet rail...');
+      await runMilitaryGradeOperation({
+        action: 'connect-dapp',
+        walletAddress,
+        network: activeNetwork.name,
+        chainId: activeNetwork.chainId,
+        intent: 'Protect a dApp connection approval inside the TITAN wallet rail.',
         metadata: {
-          action: 'connect-dapp',
           app: payload.appName,
           origin: payload.appUrl,
-          network: activeNetwork.name,
           risk: payload.risk || 'low',
           permissions: payload.permissions || [],
+          summary: connectionSummary,
         },
       });
-      setStatus('Logging the app handshake with TITAN...');
-      await handshakeLog({
-        subjectId: payload.appUrl,
-        operation: 'wallet-connect',
-        walletAddress: walletAddress || undefined,
-        metadata: {
-          app: payload.appName,
-          risk: payload.risk || 'low',
-          permissions: payload.permissions || [],
-          network: activeNetwork.name,
-        },
-      });
+
+      if (hasTitanSecurityAccess()) {
+        await auditEvaluate({
+          plaintext: connectionSummary,
+          metadata: {
+            action: 'connect-dapp',
+            app: payload.appName,
+            origin: payload.appUrl,
+            network: activeNetwork.name,
+            risk: payload.risk || 'low',
+            permissions: payload.permissions || [],
+          },
+        });
+        setStatus('Logging the app handshake with TITAN...');
+        await handshakeLog({
+          subjectId: payload.appUrl,
+          operation: 'wallet-connect',
+          walletAddress: walletAddress || undefined,
+          metadata: {
+            app: payload.appName,
+            risk: payload.risk || 'low',
+            permissions: payload.permissions || [],
+            network: activeNetwork.name,
+          },
+        });
+      }
       setStatus('Handshake recorded successfully.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Handshake logging failed, but you can still continue.');

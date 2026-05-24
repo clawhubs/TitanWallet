@@ -57,9 +57,6 @@ async function militaryGradeRequest<T>(
   options: RequestInit,
 ): Promise<T> {
   const apiKey = getTitanApiKey();
-  if (!apiKey) {
-    throw new Error('A YieldBoost developer API key is required for the TITAN military-grade rail.');
-  }
 
   const response = await fetch(
     `${TITAN_MILITARY_GRADE_BASE_URL.replace(/\/$/, '')}/api/dev/store/military-grade`,
@@ -67,7 +64,7 @@ async function militaryGradeRequest<T>(
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         ...(options.headers || {}),
       },
     },

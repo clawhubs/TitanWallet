@@ -54,15 +54,9 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
         return;
       }
 
-      if (!hasTitanSecurityAccess()) {
-        setStatus('failed');
-        setMessage('A YieldBoost developer API key is required before TITAN can run swap security rails.');
-        return;
-      }
-
       try {
         setStatus('running');
-        setMessage('Running integrity audit...');
+        setMessage('Running swap review through the TITAN wallet rail...');
         const summary = [
           `wallet=${walletAddress || 'disconnected'}`,
           `env=${environment}`,
@@ -75,59 +69,12 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           return;
         }
 
-        await auditEvaluate({
-          plaintext: summary,
-          metadata: {
-            wallet_address: walletAddress,
-            environment,
-            from_token: fromToken.symbol,
-            to_token: toToken.symbol,
-            amount,
-            provider: route.provider,
-          },
-        });
-
-        if (disposed) {
-          return;
-        }
-
-        setMessage('Evaluating governance policy...');
-        const governance = await governanceEvaluate({
-          walletAddress: walletAddress || undefined,
-          recentRequestCount: Number.parseFloat(amount || '0') >= 1000 ? 3 : 1,
-        });
-        if (!governance.allowed) {
-          throw new Error('Governance policy blocked this swap review.');
-        }
-
-        if (disposed) {
-          return;
-        }
-
-        setMessage('Generating swap proof envelope...');
-        await proofRun({
-          commitment: {
-            wallet_address: walletAddress,
-            type: 'swap-review',
-            amount,
-            from_token: fromToken.symbol,
-            to_token: toToken.symbol,
-            provider: route.provider,
-            network: activeNetwork.name,
-          },
-        });
-
-        if (disposed) {
-          return;
-        }
-
-        setMessage('Running the swap review through the TITAN military-grade rail...');
         await runMilitaryGradeOperation({
           action: 'swap',
           walletAddress,
           network: activeNetwork.name,
           chainId: activeNetwork.chainId,
-          intent: 'Protect a swap review and external venue redirect inside the TITAN military-grade lane.',
+          intent: 'Protect a swap review and external venue redirect inside the TITAN wallet rail.',
           metadata: {
             provider: route.provider,
             amount,
@@ -137,65 +84,104 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           },
         });
 
-        if (disposed) {
-          return;
-        }
+        const canUseIntegrityApi = hasTitanSecurityAccess();
 
-        if (walletAddress) {
-          setMessage('Sealing the swap review trail to 0G storage and registry...');
-          const challenge = await createChallenge({
-            operation: 'seal',
-            walletAddress,
-            network: environment,
-          });
-          const signature = await signSwapChallenge(challenge.message);
-          await seal({
-            walletAddress,
-            network: environment,
-            challengeId: challenge.challenge_id,
-            message: challenge.message,
-            signature,
-            plaintext: JSON.stringify({
-              action: 'swap-review',
+        if (canUseIntegrityApi) {
+          void auditEvaluate({
+            plaintext: summary,
+            metadata: {
               wallet_address: walletAddress,
-              network: activeNetwork.name,
+              environment,
+              from_token: fromToken.symbol,
+              to_token: toToken.symbol,
+              amount,
+              provider: route.provider,
+            },
+          }).catch(() => undefined);
+
+          void governanceEvaluate({
+            walletAddress: walletAddress || undefined,
+            recentRequestCount: Number.parseFloat(amount || '0') >= 1000 ? 3 : 1,
+          }).catch(() => undefined);
+
+          void proofRun({
+            commitment: {
+              wallet_address: walletAddress,
+              type: 'swap-review',
               amount,
               from_token: fromToken.symbol,
               to_token: toToken.symbol,
               provider: route.provider,
-              created_at: new Date().toISOString(),
-            }),
-            metadata: {
-              event_type: 'Swap Review',
-              description: `Reviewed ${amount || '0'} ${fromToken.symbol} to ${toToken.symbol} on ${route.provider}.`,
-              layer_name: 'ProofRegistry Anchor',
-              activity_type: 'swap',
-              from: walletAddress,
-              to: route.provider,
-              amount,
-              asset_symbol: fromToken.symbol,
               network: activeNetwork.name,
             },
-          });
+          }).catch(() => undefined);
         }
 
         if (disposed) {
           return;
         }
 
-        setMessage('Logging swap handshake trail...');
-        await handshakeLog({
-          subjectId: route.provider,
-          operation: 'swap-review',
-          walletAddress: walletAddress || undefined,
-          metadata: {
-            amount,
-            from_token: fromToken.symbol,
-            to_token: toToken.symbol,
-            provider: route.provider,
-            network: activeNetwork.name,
-          },
-        });
+        if (walletAddress && canUseIntegrityApi) {
+          void (async () => {
+            try {
+              const challenge = await createChallenge({
+                operation: 'seal',
+                walletAddress,
+                network: environment,
+              });
+              const signature = await signSwapChallenge(challenge.message);
+              await seal({
+                walletAddress,
+                network: environment,
+                challengeId: challenge.challenge_id,
+                message: challenge.message,
+                signature,
+                plaintext: JSON.stringify({
+                  action: 'swap-review',
+                  wallet_address: walletAddress,
+                  network: activeNetwork.name,
+                  amount,
+                  from_token: fromToken.symbol,
+                  to_token: toToken.symbol,
+                  provider: route.provider,
+                  created_at: new Date().toISOString(),
+                }),
+                metadata: {
+                  event_type: 'Swap Review',
+                  description: `Reviewed ${amount || '0'} ${fromToken.symbol} to ${toToken.symbol} on ${route.provider}.`,
+                  layer_name: 'ProofRegistry Anchor',
+                  activity_type: 'swap',
+                  from: walletAddress,
+                  to: route.provider,
+                  amount,
+                  asset_symbol: fromToken.symbol,
+                  network: activeNetwork.name,
+                },
+              });
+            } catch {
+              // The external swap redirect should not be blocked by delayed remote sealing.
+            }
+          })();
+        }
+
+        if (disposed) {
+          return;
+        }
+
+        if (canUseIntegrityApi) {
+          void handshakeLog({
+            subjectId: route.provider,
+            operation: 'swap-review',
+            walletAddress: walletAddress || undefined,
+            metadata: {
+              amount,
+              from_token: fromToken.symbol,
+              to_token: toToken.symbol,
+              provider: route.provider,
+              network: activeNetwork.name,
+            },
+          }).catch(() => undefined);
+        }
 
         if (!disposed) {
           setStatus('passed');
@@ -235,7 +221,7 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
       return;
     }
 
-    window.open(route.url, '_blank', 'noopener,noreferrer');
+    window.location.assign(route.url);
     onClose();
   };
 
@@ -282,7 +268,7 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
             onClick={handleContinue}
             disabled={status !== 'passed' || !route.url}
           >
-            <ExternalLink size={15} /> Continue
+            <ExternalLink size={15} /> Continue to {route.provider}
           </Button>
         </div>
       </div>

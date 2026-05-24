@@ -10,6 +10,7 @@ import { useWallet } from '../../hooks/useWallet';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
+import { hasTitanSecurityAccess } from '../../config/api';
 
 interface SignMessageRequest {
   appName: string;
@@ -86,29 +87,31 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, re
       if (address) {
         await signTextMessage(signatureMessage);
       }
-      setStatus('Logging sign request proof with TITAN...');
-      await Promise.allSettled([
-        proofRun({
-          commitment: {
-            wallet_address: address,
-            type: 'message-signature',
-            app: payload.appName,
-            origin: payload.appUrl,
-            network: activeNetwork.name,
-            message_preview: signatureMessage.slice(0, 140),
-          },
-        }),
-        handshakeLog({
-          subjectId: payload.appUrl,
-          operation: 'message-sign',
-          walletAddress: address || undefined,
-          metadata: {
-            app: payload.appName,
-            network: activeNetwork.name,
-            message_preview: signatureMessage.slice(0, 140),
-          },
-        }),
-      ]);
+      if (hasTitanSecurityAccess()) {
+        setStatus('Logging sign request proof with TITAN...');
+        await Promise.allSettled([
+          proofRun({
+            commitment: {
+              wallet_address: address,
+              type: 'message-signature',
+              app: payload.appName,
+              origin: payload.appUrl,
+              network: activeNetwork.name,
+              message_preview: signatureMessage.slice(0, 140),
+            },
+          }),
+          handshakeLog({
+            subjectId: payload.appUrl,
+            operation: 'message-sign',
+            walletAddress: address || undefined,
+            metadata: {
+              app: payload.appName,
+              network: activeNetwork.name,
+              message_preview: signatureMessage.slice(0, 140),
+            },
+          }),
+        ]);
+      }
       setStatus('Signature completed and logged through TITAN.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to sign the requested payload.');

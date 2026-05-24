@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import SecurityPage from './pages/SecurityPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
+import RequireWallet from './components/routing/RequireWallet';
 
 const App: React.FC = () => {
   return (
@@ -15,9 +16,10 @@ const App: React.FC = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/create-wallet" element={<CreateWalletPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/security" element={<SecurityPage />} />
-        <Route path="/activity" element={<ActivityPage />} />
+        <Route path="/dashboard" element={<RequireWallet><DashboardPage /></RequireWallet>} />
+        <Route path="/security" element={<RequireWallet><SecurityPage /></RequireWallet>} />
+        <Route path="/securitycenter" element={<RequireWallet><SecurityPage /></RequireWallet>} />
+        <Route path="/activity" element={<RequireWallet><ActivityPage /></RequireWallet>} />
         <Route path="/settings" element={<SettingsPage />} />
         {/* Catch-all redirect */}
         <Route path="*" element={<LandingPage />} />

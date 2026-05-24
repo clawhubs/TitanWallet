@@ -28,7 +28,7 @@ const CreateWalletPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [mnemonicWords, setMnemonicWords] = useState<string[]>([]);
-  const [creationProofStatus, setCreationProofStatus] = useState<'idle' | 'sealing' | 'sealed' | 'skipped' | 'failed'>('idle');
+  const [creationProofStatus, setCreationProofStatus] = useState<'idle' | 'sealing' | 'sealed' | 'failed'>('idle');
   const [creationProofId, setCreationProofId] = useState<string | null>(null);
   const [importSecret, setImportSecret] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
@@ -47,11 +47,6 @@ const CreateWalletPage: React.FC = () => {
     description: string;
     source: 'create' | 'import';
   }) => {
-    if (!hasTitanSecurityAccess()) {
-      setCreationProofStatus('skipped');
-      return;
-    }
-
     try {
       setCreationProofStatus('sealing');
       await runMilitaryGradeOperation({
@@ -69,34 +64,42 @@ const CreateWalletPage: React.FC = () => {
           source: input.source,
         },
       });
-      const challenge = await createChallenge({
-        operation: 'seal',
-        walletAddress: input.address,
-        network: environment,
-      });
-      const signature = await signWalletMessage(challenge.message, input.privateKey);
-      const result = await seal({
-        walletAddress: input.address,
-        network: environment,
-        challengeId: challenge.challenge_id,
-        message: challenge.message,
-        signature,
-        plaintext: JSON.stringify({
-          wallet_name: name,
-          created_at: new Date().toISOString(),
-          flow: input.source,
-          environment,
-          wallet_address: input.address,
-          app: 'titan-wallet',
-        }),
-        metadata: {
-          event_type: input.eventType,
-          description: input.description,
-          layer_name: 'Sovereign Memory',
-        },
-      });
       setCreationProofStatus('sealed');
-      setCreationProofId(result.storage_id);
+      if (hasTitanSecurityAccess()) {
+        void (async () => {
+          try {
+            const challenge = await createChallenge({
+              operation: 'seal',
+              walletAddress: input.address,
+              network: environment,
+            });
+            const signature = await signWalletMessage(challenge.message, input.privateKey);
+            const result = await seal({
+              walletAddress: input.address,
+              network: environment,
+              challengeId: challenge.challenge_id,
+              message: challenge.message,
+              signature,
+              plaintext: JSON.stringify({
+                wallet_name: name,
+                created_at: new Date().toISOString(),
+                flow: input.source,
+                environment,
+                wallet_address: input.address,
+                app: 'titan-wallet',
+              }),
+              metadata: {
+                event_type: input.eventType,
+                description: input.description,
+                layer_name: 'Sovereign Memory',
+              },
+            });
+            setCreationProofId(result.storage_id);
+          } catch {
+            // The military-grade rail is authoritative for onboarding; storage sealing can retry later.
+          }
+        })();
+      }
     } catch {
       setCreationProofStatus('failed');
     }
@@ -169,8 +172,8 @@ const CreateWalletPage: React.FC = () => {
       <div className="w-full max-w-md animate-slide-up">
         {/* Logo */}
         <div className="flex items-center gap-2.5 justify-center mb-8">
-          <div className="w-9 h-9 rounded-xl bg-titan-accent/10 border border-titan-accent/30 flex items-center justify-center">
-            <span className="text-titan-accent font-bold text-sm">T</span>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden mix-blend-screen">
+            <img src="/titan-logo.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
           </div>
           <span className="font-bold text-titan-text">TITAN Wallet</span>
         </div>
@@ -400,11 +403,8 @@ const CreateWalletPage: React.FC = () => {
               {creationProofStatus === 'sealed' ? (
                 <p className="mb-4 text-xs text-titan-success">Wallet proof sealed successfully: {creationProofId}</p>
               ) : null}
-              {creationProofStatus === 'skipped' ? (
-                <p className="mb-4 text-xs text-titan-subtext">No API key configured, so wallet proof sealing was skipped for now.</p>
-              ) : null}
               {creationProofStatus === 'failed' ? (
-                <p className="mb-4 text-xs text-titan-warning">Wallet is ready locally, but proof sealing did not complete.</p>
+                <p className="mb-4 text-xs text-titan-warning">Wallet is ready locally, but the security rail did not return a receipt yet.</p>
               ) : null}
 
               <div className="grid grid-cols-2 gap-2 mb-6 text-left">

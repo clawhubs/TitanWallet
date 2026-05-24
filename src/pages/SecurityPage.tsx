@@ -7,12 +7,54 @@ import { formatTimeAgo } from '../utils/cn';
 import { ShieldCheck, AlertCircle, Clock } from 'lucide-react';
 import { getHealth, getLayerStatus } from '../services/security';
 import { listRecords } from '../services/integrity';
+import { runMilitaryGradeOperation, type MilitaryGradeLayerReceipt } from '../services/militaryGrade';
 import { useWalletStore } from '../store/useWalletStore';
 import { useNetworkStore } from '../store/useNetworkStore';
 import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRecordsToProofs } from '../utils/integrity';
-import type { SecurityLayer } from '../types';
-import { TITAN_SECURITY_LAYERS } from '../data/titanLayers';
+import type { SecurityLayer, TitanLayer } from '../types';
+import { WALLET_SECURITY_LAYER_NAMES } from '../data/walletActionLayers';
 import { hasTitanSecurityAccess } from '../config/api';
+
+const WALLET_LAYER_SET = new Set<TitanLayer>(WALLET_SECURITY_LAYER_NAMES);
+
+function filterWalletSecurityLayers(layers: SecurityLayer[]) {
+  return WALLET_SECURITY_LAYER_NAMES
+    .map((name) => layers.find((layer) => layer.name === name))
+    .filter((layer): layer is SecurityLayer => Boolean(layer));
+}
+
+function applyMilitaryGradeReceipts(
+  layers: SecurityLayer[],
+  receipts?: MilitaryGradeLayerReceipt[] | null,
+) {
+  if (!receipts?.length) {
+    return layers;
+  }
+
+  const receiptByName = new Map(
+    receipts
+      .filter((receipt) => WALLET_LAYER_SET.has(receipt.label as TitanLayer))
+      .map((receipt) => [receipt.label, receipt]),
+  );
+
+  return layers.map((layer) => {
+    const receipt = receiptByName.get(layer.name);
+    if (!receipt) {
+      return layer;
+    }
+
+    const status = /fail|error|blocked|denied/i.test(receipt.status) ? 'alert' : 'active';
+
+    return {
+      ...layer,
+      status,
+      shortDesc: receipt.proof || layer.shortDesc,
+      description: receipt.proof || layer.description,
+      lastCheck: new Date(),
+      eventsCount: Math.max(layer.eventsCount, 1),
+    } satisfies SecurityLayer;
+  });
+}
 
 const SecurityPage: React.FC = () => {
   const walletAddress = useWalletStore((state) => state.address);
@@ -28,16 +70,54 @@ const SecurityPage: React.FC = () => {
     const hydrate = async () => {
       try {
         const status = hasTitanSecurityAccess() ? await getLayerStatus() : await getHealth();
+        let nextLayers = filterWalletSecurityLayers(buildTitanSecurityLayersFromApi(status));
+
+        try {
+          const rail = await runMilitaryGradeOperation({
+            action: 'security-center',
+            walletAddress,
+            network: activeNetwork.name,
+            chainId: activeNetwork.chainId,
+            intent: 'Read the live TITAN wallet security rail status for the Security Center.',
+            metadata: {
+              page: 'security-center',
+              wallet_layer_count: WALLET_SECURITY_LAYER_NAMES.length,
+            },
+          });
+          nextLayers = applyMilitaryGradeReceipts(nextLayers, rail.selected_layers);
+        } catch {
+          // The health endpoint still keeps the page useful if the server proxy is temporarily unavailable.
+        }
+
         if (disposed) {
           return;
         }
 
-        setLayers(buildTitanSecurityLayersFromApi(status));
+        setLayers(nextLayers);
         setLiveMode(true);
       } catch {
-        if (!disposed) {
-          setLayers([]);
-          setLiveMode(false);
+        try {
+          const rail = await runMilitaryGradeOperation({
+            action: 'security-center',
+            walletAddress,
+            network: activeNetwork.name,
+            chainId: activeNetwork.chainId,
+            intent: 'Read the live TITAN wallet security rail status for the Security Center.',
+            metadata: {
+              page: 'security-center',
+              wallet_layer_count: WALLET_SECURITY_LAYER_NAMES.length,
+            },
+          });
+
+          if (!disposed) {
+            setLayers(applyMilitaryGradeReceipts(filterWalletSecurityLayers(buildTitanSecurityLayersFromApi(null)), rail.selected_layers));
+            setLiveMode(true);
+          }
+        } catch {
+          if (!disposed) {
+            setLayers([]);
+            setLiveMode(false);
+          }
         }
       }
 
@@ -88,13 +168,12 @@ const SecurityPage: React.FC = () => {
             </p>
           </div>
           <Badge variant={liveMode ? 'success' : 'neutral'} dot size="md">
-            {liveMode ? `${activeLayerCount} / ${TITAN_SECURITY_LAYERS.length} Layers Active` : 'Layer status unavailable'}
+            {liveMode ? `${activeLayerCount} / ${WALLET_SECURITY_LAYER_NAMES.length} Wallet Rails Active` : 'Layer status unavailable'}
           </Badge>
         </div>
 
-        {/* 6 layers grid */}
         <div>
-          <h2 className="text-sm font-semibold text-titan-text mb-3">TITAN Security Architecture</h2>
+          <h2 className="text-sm font-semibold text-titan-text mb-3">TITAN Wallet Security Rails</h2>
           {layers.length ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {layers.map((layer) => (

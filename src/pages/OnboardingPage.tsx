@@ -29,21 +29,22 @@ const OnboardingPage: React.FC = () => {
       icon: Fingerprint,
       title: 'Continue with Passkey',
       desc: 'Use your device biometrics for seamless login.',
-      badge: 'Beta',
+      badge: 'Soon',
+      disabled: true,
     },
     {
       id: 'email' as OnboardingOption,
       icon: Mail,
       title: 'Continue with Email',
       desc: 'Simple email-based wallet with MPC key management.',
-      badge: 'Beta',
+      badge: 'Soon',
+      disabled: true,
     },
   ];
 
   const handleContinue = () => {
     if (selected === 'create') navigate('/create-wallet');
     else if (selected === 'import') navigate('/create-wallet?mode=import');
-    else navigate('/dashboard');
   };
 
   return (
@@ -56,8 +57,8 @@ const OnboardingPage: React.FC = () => {
       <div className="w-full max-w-md animate-slide-up">
         {/* Logo */}
         <div className="flex items-center gap-2.5 justify-center mb-10">
-          <div className="w-10 h-10 rounded-xl bg-titan-accent/10 border border-titan-accent/30 flex items-center justify-center">
-            <span className="text-titan-accent font-bold">T</span>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden mix-blend-screen">
+            <img src="/titan-logo.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
           </div>
           <span className="font-bold text-titan-text text-lg">TITAN Wallet</span>
         </div>
@@ -81,12 +82,21 @@ const OnboardingPage: React.FC = () => {
             {options.map((opt) => {
               const Icon = opt.icon;
               const isSelected = selected === opt.id;
+              const isDisabled = Boolean(opt.disabled);
               return (
                 <button
                   key={opt.id}
-                  onClick={() => setSelected(opt.id)}
+                  type="button"
+                  onClick={() => {
+                    if (!isDisabled) {
+                      setSelected(opt.id);
+                    }
+                  }}
+                  disabled={isDisabled}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-150 ${
-                    isSelected
+                    isDisabled
+                      ? 'border-titan-border/70 bg-titan-surface/70 opacity-60 cursor-not-allowed'
+                      : isSelected
                       ? 'border-titan-accent/50 bg-titan-accent/5 shadow-titan'
                       : 'border-titan-border bg-titan-surface hover:border-titan-border/80 hover:bg-titan-muted/20'
                   }`}
@@ -100,7 +110,7 @@ const OnboardingPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-titan-text">{opt.title}</span>
                       {opt.recommended && <Badge variant="accent" size="sm">Recommended</Badge>}
-                      {opt.badge && <Badge variant="neutral" size="sm">{opt.badge}</Badge>}
+                      {opt.badge && <Badge variant={isDisabled ? 'warning' : 'neutral'} size="sm">{opt.badge}</Badge>}
                     </div>
                     <p className="text-xs text-titan-subtext mt-0.5">{opt.desc}</p>
                   </div>
@@ -128,7 +138,7 @@ const OnboardingPage: React.FC = () => {
         {/* Security note */}
         <div className="flex items-center justify-center gap-2 mt-5">
           <Shield size={12} className="text-titan-success" />
-          <p className="text-xs text-titan-subtext">6-layer security active from the first second</p>
+          <p className="text-xs text-titan-subtext">9 wallet security rails ready from the first second</p>
         </div>
       </div>
     </div>

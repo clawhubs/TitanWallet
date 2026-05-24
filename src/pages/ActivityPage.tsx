@@ -10,6 +10,8 @@ import { listRecords } from '../services/integrity';
 import { useNetworkStore } from '../store/useNetworkStore';
 import { useWalletStore } from '../store/useWalletStore';
 import { mapIntegrityRecordsToActivity, mapIntegrityRecordsToProofs } from '../utils/integrity';
+import { getLocalWalletEvents } from '../services/localActivity';
+import { hasTitanSecurityAccess } from '../config/api';
 
 type Tab = 'transactions' | 'proofs' | 'security';
 
@@ -48,35 +50,56 @@ const ActivityPage: React.FC = () => {
         return;
       }
 
+      const localEvents = getLocalWalletEvents(walletAddress, activeNetwork.name);
+
+      if (!hasTitanSecurityAccess()) {
+        setActivity(localEvents.activity);
+        setProofs(localEvents.proofs);
+        setSecurityEvents(localEvents.securityEvents);
+        return;
+      }
+
       try {
         const records = await listRecords({
           walletAddress,
           network: recordNetwork,
         });
         if (!disposed) {
-          const nextActivity = mapIntegrityRecordsToActivity(records.items);
-          const nextProofs = mapIntegrityRecordsToProofs(records.items);
+          const nextActivity = mergeByKey(
+            localEvents.activity,
+            mapIntegrityRecordsToActivity(records.items),
+            (item) => item.hash || item.id,
+          );
+          const nextProofs = mergeByKey(
+            localEvents.proofs,
+            mapIntegrityRecordsToProofs(records.items),
+            (item) => item.txHash || item.id,
+          );
           setActivity(nextActivity);
           setProofs(nextProofs);
           setSecurityEvents(
-            nextProofs.slice(0, 10).map((proof) => ({
-              type: proof.type,
-              desc: proof.description,
-              time: proof.timestamp,
-              level:
-                proof.status === 'verified'
-                  ? 'success'
-                  : proof.status === 'active'
-                    ? 'warning'
-                    : 'info',
-            })),
+            mergeByKey(
+              localEvents.securityEvents,
+              nextProofs.slice(0, 10).map((proof) => ({
+                type: proof.type,
+                desc: proof.description,
+                time: proof.timestamp,
+                level:
+                  proof.status === 'verified'
+                    ? 'success'
+                    : proof.status === 'active'
+                      ? 'warning'
+                      : 'info',
+              })),
+              (item) => `${item.type}:${item.time.toISOString()}`,
+            ),
           );
         }
       } catch {
         if (!disposed) {
-          setActivity([]);
-          setProofs([]);
-          setSecurityEvents([]);
+          setActivity(localEvents.activity);
+          setProofs(localEvents.proofs);
+          setSecurityEvents(localEvents.securityEvents);
         }
       }
     };
@@ -90,7 +113,7 @@ const ActivityPage: React.FC = () => {
       disposed = true;
       window.clearInterval(interval);
     };
-  }, [recordNetwork, walletAddress]);
+  }, [activeNetwork.name, recordNetwork, walletAddress]);
 
   const filteredActivity = filter === 'all' ? activity : activity.filter((item) => item.type === filter);
 
@@ -245,5 +268,22 @@ const ActivityPage: React.FC = () => {
     </div>
   );
 };
+
+function mergeByKey<T>(primary: T[], secondary: T[], getKey: (item: T) => string) {
+  const seen = new Set<string>();
+  const merged: T[] = [];
+
+  [...primary, ...secondary].forEach((item) => {
+    const key = getKey(item);
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    merged.push(item);
+  });
+
+  return merged;
+}
 
 export default ActivityPage;

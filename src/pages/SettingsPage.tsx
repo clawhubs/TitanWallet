@@ -26,9 +26,9 @@ const SettingsPage: React.FC = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">Settings</h1>
-            <p className="mt-1 text-sm text-titan-subtext">Wallet runtime, network routing, and token behavior all live here now.</p>
+            <p className="mt-1 text-sm text-titan-subtext">Wallet session, network routing, and token behavior.</p>
           </div>
-          <Badge variant="success" dot size="md">Chunk 4-5 Ready</Badge>
+          <Badge variant="success" dot size="md">Wallet Settings</Badge>
         </div>
 
         <div className="mb-6 flex flex-wrap gap-2">

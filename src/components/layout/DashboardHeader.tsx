@@ -47,21 +47,23 @@ const DashboardHeader: React.FC = () => {
         </Link>
 
         {/* Nav */}
-        <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map(link => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                location.pathname === link.to
-                  ? 'text-titan-text bg-titan-muted/40'
-                  : 'text-titan-subtext hover:text-titan-text hover:bg-titan-muted/20'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        {isConnected ? (
+          <nav className="hidden md:flex items-center gap-1">
+            {navLinks.map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  location.pathname === link.to || (link.to === '/security' && location.pathname === '/securitycenter')
+                    ? 'text-titan-text bg-titan-muted/40'
+                    : 'text-titan-subtext hover:text-titan-text hover:bg-titan-muted/20'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
 
         {/* Right controls */}
         <div className="flex items-center gap-2">

@@ -10,6 +10,18 @@ export type WalletActionKey =
   | 'swap'
   | 'export-secret';
 
+export const WALLET_SECURITY_LAYER_NAMES: TitanLayer[] = [
+  'Integrity Auditor',
+  'Secure Compute / TEE',
+  'Sovereign Memory',
+  '0G Storage Proof Layer',
+  'Zero-Knowledge Proof Layer',
+  'ProofRegistry Anchor',
+  'Programmable Governance',
+  'Cross-Agent Neural Handshake',
+  'AWS Nitro Enclaves',
+];
+
 export const WALLET_ACTION_LAYERS: Record<WalletActionKey, TitanLayer[]> = {
   'create-wallet': [
     'Secure Compute / TEE',

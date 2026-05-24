@@ -1,7 +1,7 @@
 import type { Network, Token } from '../types';
 
 export interface SwapRoute {
-  provider: 'Uniswap' | 'Oku Trade' | 'Camelot';
+  provider: 'Uniswap' | 'Oku Trade' | 'Camelot' | 'Euclid Testnet';
   supported: boolean;
   url: string | null;
   reason?: string;
@@ -45,11 +45,17 @@ export function buildSwapUrl(input: {
   }
 
   if (input.network.id === '0g-galileo') {
+    const url = new URL('https://testnet.euclidswap.io/swap');
+    if (input.amount) {
+      url.searchParams.set('amount', input.amount);
+    }
+    url.searchParams.set('from', input.fromToken.contractAddress || input.fromToken.symbol);
+    url.searchParams.set('to', input.toToken.contractAddress || input.toToken.symbol);
+
     return {
-      provider: 'Oku Trade',
-      supported: false,
-      url: null,
-      reason: 'Galileo testnet does not have a clean verified swap venue yet. TITAN keeps swap blocked here instead of redirecting you into a broken external flow.',
+      provider: 'Euclid Testnet',
+      supported: true,
+      url: url.toString(),
     };
   }
 
