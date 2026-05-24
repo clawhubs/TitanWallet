@@ -1,5 +1,5 @@
-import { mockProofs, mockSecurityLayers } from '../data/mockProofs';
-import type { ProofEvent, SecurityLayer, TitanLayer } from '../types';
+import { mockSecurityLayers } from '../data/mockProofs';
+import type { Activity, ActivityType, ProofEvent, SecurityLayer, TitanLayer } from '../types';
 import type {
   ComponentHealth,
   YieldBoostHealthResponse,
@@ -78,7 +78,7 @@ export function countActiveTitanLayers(layers: SecurityLayer[]) {
 
 export function mapIntegrityRecordsToProofs(items?: YieldBoostVaultListItem[] | null): ProofEvent[] {
   if (!items?.length) {
-    return mockProofs;
+    return [];
   }
 
   return items.map((item) => {
@@ -106,6 +106,60 @@ export function mapIntegrityRecordsToProofs(items?: YieldBoostVaultListItem[] | 
   });
 }
 
+export function mapIntegrityRecordsToActivity(items?: YieldBoostVaultListItem[] | null): Activity[] {
+  if (!items?.length) {
+    return [];
+  }
+
+  return items.map((item) => {
+    const metadata = item.metadata || {};
+    const eventLabel =
+      typeof metadata.event_type === 'string'
+        ? metadata.event_type
+        : item.file_name || 'Integrity event';
+    const type = inferActivityType(eventLabel, metadata);
+    const symbol =
+      typeof metadata.asset_symbol === 'string'
+        ? metadata.asset_symbol
+        : item.network === 'mainnet'
+          ? '0G'
+          : 'TEST';
+    const amount =
+      typeof metadata.amount === 'string'
+        ? metadata.amount
+        : typeof metadata.value === 'string'
+          ? metadata.value
+          : eventLabel;
+    const amountUSD =
+      typeof metadata.amount_usd === 'number'
+        ? metadata.amount_usd
+        : typeof metadata.value_usd === 'number'
+          ? metadata.value_usd
+          : 0;
+    const counterparty =
+      typeof metadata.to === 'string'
+        ? metadata.to
+        : typeof metadata.target_address === 'string'
+          ? metadata.target_address
+          : item.wallet_address;
+
+    return {
+      id: item.storage_id,
+      type,
+      status: item.anchor_tx_hash || item.storage_tx_hash || item.transaction_hash ? 'confirmed' : 'pending',
+      amount,
+      symbol,
+      amountUSD,
+      from: item.wallet_address,
+      to: counterparty,
+      hash: item.transaction_hash || item.anchor_tx_hash || item.storage_tx_hash || item.integrity_hash,
+      timestamp: new Date(item.created_at),
+      network: item.network,
+      fee: typeof metadata.fee === 'string' ? metadata.fee : '0',
+    };
+  });
+}
+
 function isTitanLayer(value: string | null): value is TitanLayer {
   return (
     value === 'Integrity Auditor' ||
@@ -115,4 +169,25 @@ function isTitanLayer(value: string | null): value is TitanLayer {
     value === 'Proof Anchor' ||
     value === 'Sovereign Memory'
   );
+}
+
+function inferActivityType(eventLabel: string, metadata: Record<string, unknown>): ActivityType {
+  const typeHint =
+    typeof metadata.activity_type === 'string'
+      ? metadata.activity_type.toLowerCase()
+      : eventLabel.toLowerCase();
+
+  if (typeHint.includes('swap')) {
+    return 'swap';
+  }
+  if (typeHint.includes('receive') || typeHint.includes('deposit')) {
+    return 'receive';
+  }
+  if (typeHint.includes('approve')) {
+    return 'approve';
+  }
+  if (typeHint.includes('stake')) {
+    return 'stake';
+  }
+  return 'send';
 }

@@ -36,11 +36,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop animate-fade-in"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 modal-backdrop animate-fade-in sm:items-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className={cn(
-        'relative w-full titan-card shadow-titan animate-slide-up',
+        'relative my-auto w-full max-h-[calc(100vh-2rem)] overflow-hidden titan-card shadow-titan animate-slide-up',
         sizes[size],
         className
       )}>
@@ -55,7 +55,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
             </button>
           </div>
         )}
-        <div className={cn(!title && 'relative')}>
+        <div className={cn('max-h-[calc(100vh-2rem)] overflow-y-auto', !title && 'relative')}>
           {!title && (
             <button
               onClick={onClose}

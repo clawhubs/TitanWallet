@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Token } from '../types';
-import { mockTokens } from '../data/mockTokens';
 import { detectTokens } from '../services/tokens';
 import { useNetworkStore } from './useNetworkStore';
 import { useWalletStore } from './useWalletStore';
@@ -20,7 +19,7 @@ interface TokenStore {
 export const useTokenStore = create<TokenStore>()(
   persist(
     (set, get) => ({
-      tokens: mockTokens,
+      tokens: [],
       customTokens: [],
       isDetecting: false,
       addCustomToken: (token) =>
@@ -50,16 +49,31 @@ export const useTokenStore = create<TokenStore>()(
             tokens: [...detected, ...customTokens],
           });
         } catch {
-          set({ isDetecting: false });
+          set({
+            isDetecting: false,
+            tokens: [...get().customTokens],
+          });
         }
       },
     }),
     {
       name: 'titan-wallet-token-store',
+      version: 2,
       partialize: (state) => ({
         tokens: state.tokens,
         customTokens: state.customTokens,
       }),
+      merge: (persistedState, currentState) => {
+        const typedState = (persistedState || {}) as Partial<TokenStore>;
+        const customTokens = typedState.customTokens || [];
+
+        return {
+          ...currentState,
+          ...typedState,
+          tokens: customTokens,
+          customTokens,
+        };
+      },
     },
   ),
 );

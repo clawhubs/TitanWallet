@@ -4,8 +4,10 @@ import {
   createNewWallet,
   getWalletFromPrivateKey,
   importFromSecret,
+  sendNativeTransaction,
   signMessage,
   signTransaction,
+  waitForTransactionReceipt,
 } from '../services/wallet';
 
 export function useWallet() {
@@ -64,6 +66,27 @@ export function useWallet() {
     return signTransaction(transaction, privateKey, activeNetwork.rpcUrl);
   }
 
+  async function sendNativeAsset(input: { to: string; amount: string }) {
+    if (!privateKey) {
+      throw new Error('No in-memory wallet is connected.');
+    }
+
+    return sendNativeTransaction({
+      to: input.to,
+      amount: input.amount,
+      privateKey,
+      rpcUrl: activeNetwork.rpcUrl,
+    });
+  }
+
+  async function waitForTxReceipt(hash: string, timeoutMs?: number) {
+    return waitForTransactionReceipt({
+      hash,
+      rpcUrl: activeNetwork.rpcUrl,
+      timeoutMs,
+    });
+  }
+
   return {
     address,
     isConnected,
@@ -77,5 +100,7 @@ export function useWallet() {
     getSigner,
     signTextMessage,
     signTransaction: signTx,
+    sendNativeAsset,
+    waitForTxReceipt,
   };
 }

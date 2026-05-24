@@ -1,36 +1,76 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import SecurityBadge from '../ui/SecurityBadge';
 import { ShieldCheck } from 'lucide-react';
-import { mockSecurityLayers } from '../../data/mockProofs';
 import { handshakeLog } from '../../services/security';
+import { useTitanSecurity } from '../../hooks/useTitanSecurity';
+import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
+import { formatAddress } from '../../utils/cn';
+
+interface ConnectAppRequest {
+  appName: string;
+  appUrl: string;
+  appIcon?: string;
+  permissions?: string[];
+  risk?: 'low' | 'medium' | 'high';
+}
 
 interface ConnectAppModalProps {
   isOpen: boolean;
   onClose: () => void;
+  request?: ConnectAppRequest;
 }
 
-const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClose }) => {
+const defaultRequest: ConnectAppRequest = {
+  appName: 'Uniswap',
+  appUrl: 'https://app.uniswap.org',
+  appIcon: '🦄',
+  permissions: ['View your wallet address', 'Request transaction signatures'],
+  risk: 'low',
+};
+
+const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClose, request }) => {
   const navigate = useNavigate();
   const walletAddress = useWalletStore((state) => state.address);
+  const activeNetwork = useNetworkStore((state) => state.activeNetwork);
+  const { getLayer, liveMode } = useTitanSecurity(isOpen);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const payload = request || defaultRequest;
+
+  const activeLayers = useMemo(
+    () => [
+      getLayer('Integrity Auditor'),
+      getLayer('Programmable Governance'),
+      getLayer('Sovereign Memory'),
+    ],
+    [getLayer],
+  );
 
   const handleConnect = async () => {
     try {
+      setIsSubmitting(true);
+      setStatus('Logging the app handshake with TITAN...');
       await handshakeLog({
-        subjectId: 'app.uniswap.org',
+        subjectId: payload.appUrl,
         operation: 'wallet-connect',
         walletAddress: walletAddress || undefined,
         metadata: {
-          app: 'Uniswap',
-          risk: 'low',
+          app: payload.appName,
+          risk: payload.risk || 'low',
+          permissions: payload.permissions || [],
+          network: activeNetwork.name,
         },
       });
-    } catch {
-      // Keep connection UX unblocked even when the API key is missing.
+      setStatus('Handshake recorded successfully.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Handshake logging failed, but you can still continue.');
+    } finally {
+      setIsSubmitting(false);
     }
 
     onClose();
@@ -40,55 +80,82 @@ const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClose }) =>
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <div className="p-6">
-        {/* App info */}
-        <div className="flex flex-col items-center text-center mb-5">
-          <div className="w-14 h-14 rounded-2xl bg-titan-muted/40 flex items-center justify-center text-3xl mb-3">
-            🦄
+        <div className="mb-5 flex flex-col items-center text-center">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-titan-muted/40 text-3xl">
+            {payload.appIcon || '🌐'}
           </div>
-          <h2 className="text-base font-bold text-titan-text">Connect to Uniswap?</h2>
-          <p className="text-xs text-titan-subtext mt-1">app.uniswap.org</p>
+          <h2 className="text-base font-bold text-titan-text">Connect to {payload.appName}?</h2>
+          <p className="mt-1 text-xs text-titan-subtext">{payload.appUrl}</p>
         </div>
 
-        {/* Risk label */}
-        <div className="flex items-center justify-center mb-5">
-          <Badge variant="success" dot>Safe — Low Risk</Badge>
+        <div className="mb-5 flex items-center justify-center gap-2">
+          <Badge variant={payload.risk === 'high' ? 'danger' : payload.risk === 'medium' ? 'warning' : 'success'} dot>
+            {payload.risk || 'low'} risk
+          </Badge>
+          <Badge variant={liveMode ? 'success' : 'neutral'} size="sm">
+            {liveMode ? 'Live layer status' : 'Fallback layer status'}
+          </Badge>
         </div>
 
-        {/* Permissions */}
-        <div className="p-4 bg-titan-surface rounded-xl border border-titan-border mb-4">
-          <p className="text-xs font-semibold text-titan-subtext uppercase tracking-wider mb-3">This app will be able to:</p>
+        <div className="mb-4 rounded-xl border border-titan-border bg-titan-surface p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-titan-subtext">Connection payload</p>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-titan-subtext">Wallet</span>
+              <span className="font-mono text-white">
+                {walletAddress ? formatAddress(walletAddress, 10) : 'No wallet connected'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-titan-subtext">Network</span>
+              <span className="text-white">{activeNetwork.name}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-titan-subtext">Origin</span>
+              <span className="break-all font-mono text-white">{payload.appUrl}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-xl border border-titan-border bg-titan-surface p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-titan-subtext">This app will be able to</p>
           <div className="space-y-2">
-            {[
-              { icon: '✓', text: 'View your wallet address', safe: true },
-              { icon: '✓', text: 'Request transaction signatures', safe: true },
-              { icon: '✗', text: 'Move funds without approval', safe: false, blocked: true },
-            ].map((perm, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <span className={`text-xs font-bold ${perm.blocked ? 'text-titan-success' : 'text-titan-success'}`}>{perm.icon}</span>
-                <span className={`text-xs ${perm.blocked ? 'text-titan-subtext line-through' : 'text-titan-text'}`}>{perm.text}</span>
-                {perm.blocked && <Badge variant="success" size="sm">Blocked by TITAN</Badge>}
+            {(payload.permissions || []).map((permission) => (
+              <div key={permission} className="flex items-center gap-2.5">
+                <span className="text-xs font-bold text-titan-success">✓</span>
+                <span className="text-xs text-titan-text">{permission}</span>
               </div>
+            ))}
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-bold text-titan-success">✗</span>
+              <span className="text-xs text-titan-subtext line-through">Move funds without approval</span>
+              <Badge variant="success" size="sm">Blocked by TITAN</Badge>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-titan-subtext">
+            TITAN layers active for this connection
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {activeLayers.map((layer) => (
+              <SecurityBadge key={layer.id} layer={layer} compact />
             ))}
           </div>
         </div>
 
-        {/* Active layers */}
-        <div className="mb-5">
-          <p className="text-xs font-semibold text-titan-subtext uppercase tracking-wider mb-2">TITAN layers active for this connection:</p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {['Integrity Auditor', 'Programmable Governance', 'Sovereign Memory'].map(name => {
-              const layer = mockSecurityLayers.find(l => l.name === name)!;
-              return layer ? <SecurityBadge key={name} layer={layer} compact /> : null;
-            })}
+        {status ? (
+          <div className="mb-4 rounded-xl border border-titan-border bg-[#0A0D14] px-4 py-3 text-xs text-titan-subtext">
+            {status}
           </div>
-        </div>
+        ) : null}
 
-        {/* Actions */}
         <div className="flex gap-2">
           <Button variant="secondary" className="flex-1" onClick={onClose}>
             Reject
           </Button>
-          <Button variant="primary" className="flex-1" onClick={() => void handleConnect()}>
+          <Button variant="primary" className="flex-1" onClick={() => void handleConnect()} loading={isSubmitting}>
             <ShieldCheck size={15} /> Connect
           </Button>
         </div>

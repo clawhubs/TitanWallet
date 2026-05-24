@@ -8,7 +8,7 @@ import { useBalance } from '../hooks/useBalance';
 import { useTokenStore } from '../store/useTokenStore';
 import { useWalletStore } from '../store/useWalletStore';
 import { useNetworkStore } from '../store/useNetworkStore';
-import { formatUSD } from '../utils/cn';
+import { formatTimeAgo, formatUSD } from '../utils/cn';
 import TokenRow from '../components/ui/TokenRow';
 import TokenDetectionBanner from '../components/dashboard/TokenDetectionBanner';
 import AddTokenModal from '../components/dashboard/AddTokenModal';
@@ -27,10 +27,9 @@ const DashboardPage: React.FC = () => {
   const [showSwapPanel, setShowSwapPanel] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [proofEvents, setProofEvents] = useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
   const [proofFeed, setProofFeed] = useState([
-    { label: 'Integrity check passed', time: '2m ago' },
-    { label: 'ZK proof generated', time: '18m ago' },
-    { label: 'Proof anchored on-chain', time: '1h ago' },
+    { label: 'No integrity records yet', time: 'Create, sign, send, or swap to start a live trail.' },
   ]);
   const [activeLayerCount, setActiveLayerCount] = useState(6);
   const animatedBalance = useCountUp(24850.32, 1200);
@@ -42,19 +41,14 @@ const DashboardPage: React.FC = () => {
   const isDetecting = useTokenStore((state) => state.isDetecting);
   const runAutoDetect = useTokenStore((state) => state.runAutoDetect);
   const { balanceETH, balanceUSD, isLoading: balanceLoading } = useBalance();
-
-  const portfolioData = [
-    { symbol: 'ETH', percentage: 48, color: '#4ECDC4' },
-    { symbol: 'USDC', percentage: 32, color: '#3B82F6' },
-    { symbol: 'WBTC', percentage: 15, color: '#F59E0B' },
-    { symbol: 'ARB', percentage: 5, color: '#8B5CF6' },
-  ];
-
-  const recentActivity = [
-    { id: '1', type: 'receive', amount: '+$1,498', desc: 'Received ETH', time: '32m ago', icon: ArrowDownLeft, color: 'text-titan-success' },
-    { id: '2', type: 'send', amount: '-$200', desc: 'Sent USDC', time: '3h ago', icon: ArrowUpRight, color: 'text-titan-text' },
-    { id: '3', type: 'swap', amount: '$359', desc: 'Swapped ETH → USDC', time: '8h ago', icon: RefreshCw, color: 'text-titan-subtext' },
-  ];
+  const networkTokens = tokens.filter((token) => token.network === activeNetwork.name);
+  const displayedTokens = networkTokens;
+  const totalTokenValue = displayedTokens.reduce((sum, token) => sum + Math.max(token.balanceUSD, 0), 0);
+  const portfolioData = displayedTokens.map((token, index) => ({
+    symbol: token.symbol,
+    percentage: totalTokenValue > 0 ? Math.max(1, Math.round((token.balanceUSD / totalTokenValue) * 100)) : 100,
+    color: ['#4ECDC4', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'][index % 5],
+  }));
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -109,15 +103,18 @@ const DashboardPage: React.FC = () => {
             minute: '2-digit',
           }),
         }));
-        if (mapped.length) {
-          setProofFeed(mapped);
-        }
+        const liveProofs = mapIntegrityRecordsToProofs(records.items);
+        setProofEvents(liveProofs);
+        setProofFeed(
+          mapped.length
+            ? mapped
+            : [{ label: 'No integrity records yet', time: 'Your first protected action will appear here.' }],
+        );
       } catch {
         if (!disposed) {
+          setProofEvents([]);
           setProofFeed([
-            { label: 'Integrity check passed', time: '2m ago' },
-            { label: 'ZK proof generated', time: '18m ago' },
-            { label: 'Proof anchored on-chain', time: '1h ago' },
+            { label: 'Proof log unavailable', time: 'Check API key or network connectivity.' },
           ]);
         }
       }
@@ -137,7 +134,7 @@ const DashboardPage: React.FC = () => {
         ? `${Number.parseFloat(balanceETH || '0').toFixed(4)} ${activeNetwork.symbol}`
         : `$${animatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const detectedTokenCount = tokens.filter((token) => token.source === 'detected').length;
+  const detectedTokenCount = displayedTokens.filter((token) => token.source === 'detected').length;
 
   return (
     <div className="min-h-screen bg-titan-bg">
@@ -209,15 +206,21 @@ const DashboardPage: React.FC = () => {
                 <TokenDetectionBanner isDetecting={isDetecting} detectedCount={detectedTokenCount} />
               </div>
               <div className="bg-[#0A0D14] border border-titan-border rounded-2xl overflow-hidden shadow-card">
-                {tokens.map((token, i) => (
-                  <div 
-                    key={token.symbol} 
-                    className="border-b border-titan-border/40 last:border-0 hover:bg-[#0F1520] transition-colors duration-200 animate-stagger-up"
-                    style={{ animationDelay: `${i * 60 + 200}ms` }}
-                  >
-                    <TokenRow token={token} />
+                {displayedTokens.length ? (
+                  displayedTokens.map((token, i) => (
+                    <div
+                      key={token.id}
+                      className="border-b border-titan-border/40 last:border-0 hover:bg-[#0F1520] transition-colors duration-200 animate-stagger-up"
+                      style={{ animationDelay: `${i * 60 + 200}ms` }}
+                    >
+                      <TokenRow token={token} />
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-10 text-center text-sm text-titan-subtext">
+                    No assets detected on {activeNetwork.name} yet. Run a token scan or import a custom token.
                   </div>
-                ))}
+                )}
               </div>
               <div className="mt-4 flex gap-2">
                 <Button variant="secondary" size="sm" onClick={() => void runAutoDetect()} loading={isDetecting}>
@@ -237,28 +240,34 @@ const DashboardPage: React.FC = () => {
             {/* Activity */}
             <section>
               <div className="flex items-center justify-between mb-5 px-1">
-                <h2 className="text-[16px] font-bold text-white tracking-wide">Recent Activity</h2>
+                <h2 className="text-[16px] font-bold text-white tracking-wide">Recent Integrity Events</h2>
                 <button className="text-[12px] font-semibold text-titan-accent hover:text-white transition-colors duration-200">View all</button>
               </div>
               <div className="bg-[#0A0D14] border border-titan-border rounded-2xl overflow-hidden shadow-card animate-stagger-up" style={{ animationDelay: '400ms' }}>
-                {recentActivity.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-5 border-b border-titan-border/40 last:border-0 hover:bg-[#0F1520] transition-colors duration-200 cursor-pointer">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-[#131821] border border-[#1A2233] flex items-center justify-center">
-                        <item.icon size={16} className={item.color} />
+                {proofEvents.length ? (
+                  proofEvents.slice(0, 3).map((proof) => (
+                    <div key={proof.id} className="flex items-center justify-between p-5 border-b border-titan-border/40 last:border-0 hover:bg-[#0F1520] transition-colors duration-200 cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-[#131821] border border-[#1A2233] flex items-center justify-center">
+                          <ShieldCheck size={16} className="text-titan-accent" />
+                        </div>
+                        <div>
+                          <p className="text-[14px] font-semibold text-white leading-none mb-1">{proof.type}</p>
+                          <p className="text-[12px] text-titan-subtext flex items-center gap-1 font-medium">
+                            <Clock size={10} /> {formatTimeAgo(proof.timestamp)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[14px] font-semibold text-white leading-none mb-1">{item.desc}</p>
-                        <p className="text-[12px] text-titan-subtext flex items-center gap-1 font-medium">
-                          <Clock size={10} /> {item.time}
-                        </p>
+                      <div className="text-right">
+                        <p className="text-[12px] font-medium text-titan-subtext">{proof.layer}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`text-[14px] font-bold font-mono tracking-tight ${item.color}`}>{item.amount}</p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-10 text-center text-sm text-titan-subtext">
+                    No recorded wallet actions yet. Once you sign, send, or seal data, the feed will update here.
                   </div>
-                ))}
+                )}
               </div>
             </section>
 

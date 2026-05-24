@@ -1,4 +1,4 @@
-import { Contract, JsonRpcProvider, parseEther } from 'ethers';
+import { Contract, JsonRpcProvider, formatEther, formatUnits, parseEther } from 'ethers';
 import type { Network, Token } from '../types';
 
 const ERC20_METADATA_ABI = [
@@ -29,6 +29,40 @@ export async function estimateNativeTransferGas(input: {
     to: input.to,
     value: parseEther(input.valueEth || '0'),
   });
+}
+
+export async function getNativeTransferQuote(input: {
+  from: string;
+  to: string;
+  valueEth: string;
+  rpcUrl: string;
+}) {
+  const provider = getProvider(input.rpcUrl);
+  const value = parseEther(input.valueEth || '0');
+  const [gasLimit, feeData, network] = await Promise.all([
+    provider.estimateGas({
+      from: input.from,
+      to: input.to,
+      value,
+    }),
+    provider.getFeeData(),
+    provider.getNetwork(),
+  ]);
+
+  const unitPrice = feeData.maxFeePerGas ?? feeData.gasPrice ?? 0n;
+  const estimatedFeeWei = unitPrice > 0n ? gasLimit * unitPrice : 0n;
+
+  return {
+    chainId: Number(network.chainId),
+    gasLimit,
+    gasLimitLabel: gasLimit.toString(),
+    estimatedFeeNative: formatEther(estimatedFeeWei),
+    gasPriceGwei: feeData.gasPrice ? formatUnits(feeData.gasPrice, 'gwei') : null,
+    maxFeePerGasGwei: feeData.maxFeePerGas ? formatUnits(feeData.maxFeePerGas, 'gwei') : null,
+    maxPriorityFeePerGasGwei: feeData.maxPriorityFeePerGas
+      ? formatUnits(feeData.maxPriorityFeePerGas, 'gwei')
+      : null,
+  };
 }
 
 export async function getTokenMetadata(contractAddress: string, network: Network) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Copy, Check, ShieldCheck, RefreshCw } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -13,8 +13,10 @@ type Step = 1 | 2 | 3 | 4;
 
 const CreateWalletPage: React.FC = () => {
   const navigate = useNavigate();
-  const { createWallet } = useWallet();
+  const [searchParams] = useSearchParams();
+  const { createWallet, importWallet } = useWallet();
   const environment = useNetworkStore((state) => state.environment);
+  const isImportMode = searchParams.get('mode') === 'import';
   const [step, setStep] = useState<Step>(1);
   const [showSeed, setShowSeed] = useState(false);
   const [copiedSeed, setCopiedSeed] = useState(false);
@@ -26,6 +28,9 @@ const CreateWalletPage: React.FC = () => {
   const [mnemonicWords, setMnemonicWords] = useState<string[]>([]);
   const [creationProofStatus, setCreationProofStatus] = useState<'idle' | 'sealing' | 'sealed' | 'skipped' | 'failed'>('idle');
   const [creationProofId, setCreationProofId] = useState<string | null>(null);
+  const [importSecret, setImportSecret] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const copyMnemonic = () => {
     navigator.clipboard.writeText(mnemonicWords.join(' '));
@@ -33,14 +38,13 @@ const CreateWalletPage: React.FC = () => {
     setTimeout(() => setCopiedSeed(false), 2000);
   };
 
-  const handleCreateWallet = async () => {
-    const wallet = createWallet(name);
-    setMnemonicWords(wallet.mnemonic.split(' '));
-    setShowSeed(false);
-    setConfirmed(false);
-    setCreationProofId(null);
-    setStep(3);
-
+  const persistWalletProof = async (input: {
+    address: string;
+    privateKey: string;
+    eventType: string;
+    description: string;
+    source: 'create' | 'import';
+  }) => {
     if (!getTitanApiKey()) {
       setCreationProofStatus('skipped');
       return;
@@ -50,12 +54,12 @@ const CreateWalletPage: React.FC = () => {
       setCreationProofStatus('sealing');
       const challenge = await createChallenge({
         operation: 'seal',
-        walletAddress: wallet.address,
+        walletAddress: input.address,
         network: environment,
       });
-      const signature = await signWalletMessage(challenge.message, wallet.privateKey);
+      const signature = await signWalletMessage(challenge.message, input.privateKey);
       const result = await seal({
-        walletAddress: wallet.address,
+        walletAddress: input.address,
         network: environment,
         challengeId: challenge.challenge_id,
         message: challenge.message,
@@ -63,11 +67,14 @@ const CreateWalletPage: React.FC = () => {
         plaintext: JSON.stringify({
           wallet_name: name,
           created_at: new Date().toISOString(),
-          source: 'titan-wallet',
+          flow: input.source,
+          environment,
+          wallet_address: input.address,
+          app: 'titan-wallet',
         }),
         metadata: {
-          event_type: 'Wallet Creation Proof',
-          description: 'Wallet creation was sealed through the TITAN onboarding flow.',
+          event_type: input.eventType,
+          description: input.description,
           layer_name: 'Sovereign Memory',
         },
       });
@@ -78,7 +85,58 @@ const CreateWalletPage: React.FC = () => {
     }
   };
 
-  const steps = [
+  const handleCreateWallet = async () => {
+    try {
+      setIsSubmitting(true);
+      setCreationProofStatus('idle');
+      const wallet = createWallet(name);
+      setMnemonicWords(wallet.mnemonic.split(' '));
+      setShowSeed(false);
+      setConfirmed(false);
+      setCreationProofId(null);
+      setImportError(null);
+      setStep(3);
+      await persistWalletProof({
+        address: wallet.address,
+        privateKey: wallet.privateKey,
+        eventType: 'Wallet Creation Proof',
+        description: 'Wallet creation was sealed through the TITAN onboarding flow.',
+        source: 'create',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleImportWallet = async () => {
+    try {
+      setIsSubmitting(true);
+      setImportError(null);
+      setCreationProofStatus('idle');
+      setCreationProofId(null);
+      const wallet = importWallet(importSecret, name || 'Imported TITAN Wallet');
+      setMnemonicWords(wallet.mnemonic ? wallet.mnemonic.split(' ') : []);
+      setShowSeed(false);
+      setConfirmed(false);
+      setStep(4);
+      await persistWalletProof({
+        address: wallet.address,
+        privateKey: wallet.privateKey,
+        eventType: 'Wallet Import Proof',
+        description: 'Wallet import was sealed through the TITAN onboarding flow.',
+        source: 'import',
+      });
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Unable to import this wallet secret.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const steps = isImportMode ? [
+    { n: 1, label: 'Import' },
+    { n: 4, label: 'Done' },
+  ] : [
     { n: 1, label: 'Account' },
     { n: 2, label: 'Confirm' },
     { n: 3, label: 'Backup' },
@@ -87,7 +145,7 @@ const CreateWalletPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-titan-bg flex flex-col items-center justify-center p-4">
-      <button onClick={() => step === 1 ? navigate('/onboarding') : setStep((s) => (s - 1) as Step)} className="absolute top-6 left-6 flex items-center gap-2 text-sm text-titan-subtext hover:text-titan-text transition-colors">
+      <button onClick={() => step === 1 ? navigate('/onboarding') : isImportMode ? setStep(1) : setStep((s) => (s - 1) as Step)} className="absolute top-6 left-6 flex items-center gap-2 text-sm text-titan-subtext hover:text-titan-text transition-colors">
         ← Back
       </button>
 
@@ -121,7 +179,47 @@ const CreateWalletPage: React.FC = () => {
 
         <div className="titan-card p-6">
           {/* Step 1: Account Setup */}
-          {step === 1 && (
+          {isImportMode && step === 1 && (
+            <div>
+              <h1 className="text-lg font-bold text-titan-text mb-1">Import your wallet</h1>
+              <p className="text-sm text-titan-subtext mb-6">Paste a 12-word recovery phrase or a raw private key to restore an existing wallet into this browser session.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="titan-label block mb-2">Wallet name</label>
+                  <input
+                    className="titan-input font-sans"
+                    placeholder="Imported TITAN Wallet"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="titan-label block mb-2">Recovery phrase or private key</label>
+                  <textarea
+                    className="titan-input min-h-32 font-mono"
+                    placeholder="word1 word2 ... word12 OR 0xabc123..."
+                    value={importSecret}
+                    onChange={(e) => setImportSecret(e.target.value)}
+                  />
+                </div>
+                {importError ? (
+                  <p className="text-xs text-titan-danger">{importError}</p>
+                ) : null}
+              </div>
+              <Button
+                variant="primary"
+                className="w-full mt-6"
+                size="lg"
+                disabled={!importSecret.trim()}
+                loading={isSubmitting}
+                onClick={() => void handleImportWallet()}
+              >
+                Import Wallet <ArrowRight size={16} />
+              </Button>
+            </div>
+          )}
+
+          {!isImportMode && step === 1 && (
             <div>
               <h1 className="text-lg font-bold text-titan-text mb-1">Set up your account</h1>
               <p className="text-sm text-titan-subtext mb-6">Choose a name and password to protect your wallet locally.</p>
@@ -177,7 +275,7 @@ const CreateWalletPage: React.FC = () => {
           )}
 
           {/* Step 2: Confirm */}
-          {step === 2 && (
+          {!isImportMode && step === 2 && (
             <div>
               <h1 className="text-lg font-bold text-titan-text mb-1">Create your wallet</h1>
               <p className="text-sm text-titan-subtext mb-6">A new Ethereum-compatible wallet will be generated for you.</p>
@@ -206,14 +304,14 @@ const CreateWalletPage: React.FC = () => {
                 </div>
               </div>
 
-              <Button variant="primary" className="w-full" size="lg" onClick={() => void handleCreateWallet()}>
+              <Button variant="primary" className="w-full" size="lg" loading={isSubmitting} onClick={() => void handleCreateWallet()}>
                 Create Wallet <ArrowRight size={16} />
               </Button>
             </div>
           )}
 
           {/* Step 3: Backup */}
-          {step === 3 && (
+          {!isImportMode && step === 3 && (
             <div>
               <h1 className="text-lg font-bold text-titan-text mb-1">Back up your wallet</h1>
               <p className="text-sm text-titan-subtext mb-1">This is your <span className="text-titan-warning font-medium">secret recovery phrase</span>. Write it down and keep it offline.</p>
@@ -275,17 +373,21 @@ const CreateWalletPage: React.FC = () => {
               <div className="w-16 h-16 rounded-full bg-titan-success/10 border border-titan-success/30 flex items-center justify-center mx-auto mb-5">
                 <ShieldCheck size={32} className="text-titan-success" />
               </div>
-              <h1 className="text-xl font-bold text-titan-text mb-2">Wallet created.</h1>
-              <p className="text-sm text-titan-subtext mb-2">Your TITAN Wallet is ready. All 6 security layers are active.</p>
+              <h1 className="text-xl font-bold text-titan-text mb-2">{isImportMode ? 'Wallet imported.' : 'Wallet created.'}</h1>
+              <p className="text-sm text-titan-subtext mb-2">
+                {isImportMode
+                  ? 'Your wallet is ready in this browser session. You can reveal the recovery phrase or private key from Settings while the session stays open.'
+                  : 'Your TITAN Wallet is ready. All 6 security layers are active.'}
+              </p>
               <Badge variant="success" dot className="mb-6">6 / 6 Layers Active</Badge>
               {creationProofStatus === 'sealed' ? (
-                <p className="mb-4 text-xs text-titan-success">Creation proof sealed successfully: {creationProofId}</p>
+                <p className="mb-4 text-xs text-titan-success">Wallet proof sealed successfully: {creationProofId}</p>
               ) : null}
               {creationProofStatus === 'skipped' ? (
-                <p className="mb-4 text-xs text-titan-subtext">No API key configured, so wallet creation proof was skipped for now.</p>
+                <p className="mb-4 text-xs text-titan-subtext">No API key configured, so wallet proof sealing was skipped for now.</p>
               ) : null}
               {creationProofStatus === 'failed' ? (
-                <p className="mb-4 text-xs text-titan-warning">Wallet was created locally, but proof sealing did not complete.</p>
+                <p className="mb-4 text-xs text-titan-warning">Wallet is ready locally, but proof sealing did not complete.</p>
               ) : null}
 
               <div className="grid grid-cols-2 gap-2 mb-6 text-left">

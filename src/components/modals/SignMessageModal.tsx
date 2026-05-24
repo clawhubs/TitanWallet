@@ -1,36 +1,99 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import SecurityBadge from '../ui/SecurityBadge';
 import { ShieldCheck } from 'lucide-react';
-import { mockSecurityLayers } from '../../data/mockProofs';
-import { proofRun } from '../../services/security';
+import { proofRun, handshakeLog } from '../../services/security';
+import { useTitanSecurity } from '../../hooks/useTitanSecurity';
 import { useWallet } from '../../hooks/useWallet';
+import { useNetworkStore } from '../../store/useNetworkStore';
+
+interface SignMessageRequest {
+  appName: string;
+  appUrl: string;
+  appIcon?: string;
+  message?: string;
+}
 
 interface SignMessageModalProps {
   isOpen: boolean;
   onClose: () => void;
+  request?: SignMessageRequest;
 }
 
-const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose }) => {
+const defaultRequest: SignMessageRequest = {
+  appName: 'Aave',
+  appUrl: 'https://app.aave.com',
+  appIcon: '👻',
+};
+
+const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, request }) => {
   const { address, signTextMessage } = useWallet();
-  const mockMessage = `Welcome to Aave!\n\nClick to sign in and accept the Aave Terms of Service.\n\nThis request will not trigger a blockchain transaction.\n\nWallet address: 0x3fE2b97C1Fd336E750087D68B9b867997Fd64Ae\nNonce: 4a8f2c1d`;
+  const activeNetwork = useNetworkStore((state) => state.activeNetwork);
+  const { getLayer, liveMode } = useTitanSecurity(isOpen);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const payload = request || defaultRequest;
+
+  const signatureMessage = useMemo(() => {
+    if (payload.message) {
+      return payload.message;
+    }
+
+    return [
+      `TITAN Wallet sign-in request for ${payload.appName}`,
+      '',
+      'This request will not trigger a blockchain transaction.',
+      '',
+      `Wallet address: ${address || 'No wallet connected'}`,
+      `Network: ${activeNetwork.name}`,
+      `Issued at: ${new Date().toISOString()}`,
+      `Nonce: ${Math.random().toString(16).slice(2, 10)}`,
+    ].join('\n');
+  }, [activeNetwork.name, address, payload.appName, payload.message]);
+
+  const liveLayers = [
+    getLayer('Integrity Auditor'),
+    getLayer('ZK Layer'),
+    getLayer('Sovereign Memory'),
+  ];
 
   const handleSign = async () => {
     try {
+      setIsSubmitting(true);
+      setStatus('Signing message locally in the active wallet session...');
       if (address) {
-        await signTextMessage(mockMessage);
+        await signTextMessage(signatureMessage);
       }
-      await proofRun({
-        commitment: {
-          wallet_address: address,
-          type: 'message-signature',
-          message_preview: mockMessage.slice(0, 120),
-        },
-      });
-    } catch {
-      // Signing should still be closable when API key is not available.
+      setStatus('Logging sign request proof with TITAN...');
+      await Promise.allSettled([
+        proofRun({
+          commitment: {
+            wallet_address: address,
+            type: 'message-signature',
+            app: payload.appName,
+            origin: payload.appUrl,
+            network: activeNetwork.name,
+            message_preview: signatureMessage.slice(0, 140),
+          },
+        }),
+        handshakeLog({
+          subjectId: payload.appUrl,
+          operation: 'message-sign',
+          walletAddress: address || undefined,
+          metadata: {
+            app: payload.appName,
+            network: activeNetwork.name,
+            message_preview: signatureMessage.slice(0, 140),
+          },
+        }),
+      ]);
+      setStatus('Signature completed.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Unable to sign the requested payload.');
+    } finally {
+      setIsSubmitting(false);
     }
 
     onClose();
@@ -39,51 +102,60 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose }) 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-xl bg-titan-muted/40 flex items-center justify-center text-xl">
-            👻
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-titan-muted/40 text-xl">
+            {payload.appIcon || '✍'}
           </div>
           <div>
             <h2 className="text-base font-bold text-titan-text">Sign Message</h2>
-            <p className="text-xs text-titan-subtext">app.aave.com is requesting your signature</p>
+            <p className="text-xs text-titan-subtext">
+              {payload.appName} is requesting your signature from {payload.appUrl}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-4">
-          <Badge variant="success" dot>Safe — Signature Only</Badge>
-          <Badge variant="neutral" size="sm">No Gas Required</Badge>
+        <div className="mb-4 flex items-center gap-2">
+          <Badge variant="success" dot>Signature only</Badge>
+          <Badge variant="neutral" size="sm">{activeNetwork.name}</Badge>
+          <Badge variant={liveMode ? 'success' : 'neutral'} size="sm">
+            {liveMode ? 'Live layer status' : 'Fallback layer status'}
+          </Badge>
         </div>
 
-        {/* Message preview */}
         <div className="mb-4">
-          <p className="titan-label mb-2">Message content</p>
-          <div className="p-4 bg-titan-surface border border-titan-border rounded-xl">
-            <pre className="text-xs text-titan-subtext font-mono whitespace-pre-wrap leading-relaxed">{mockMessage}</pre>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-titan-subtext">Message content</p>
+          <div className="rounded-xl border border-titan-border bg-titan-surface p-4">
+            <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-titan-subtext">{signatureMessage}</pre>
           </div>
         </div>
 
-        {/* ZK Layer note */}
-        <div className="flex items-start gap-2.5 p-3 bg-titan-accent/5 border border-titan-accent/15 rounded-xl mb-4">
-          <ShieldCheck size={14} className="text-titan-accent mt-0.5 flex-shrink-0" />
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-titan-accent/15 bg-titan-accent/5 p-3">
+          <ShieldCheck size={14} className="mt-0.5 flex-shrink-0 text-titan-accent" />
           <p className="text-xs text-titan-subtext">
-            <span className="text-titan-text font-medium">ZK Layer is active.</span> A zero-knowledge proof will be generated for this signature, preserving your privacy.
+            <span className="font-medium text-titan-text">ZK Layer is active.</span> TITAN can prove this signature event happened without exposing the full secret state of your wallet.
           </p>
         </div>
 
-        {/* Active layers */}
         <div className="mb-5">
-          <p className="text-xs font-semibold text-titan-subtext uppercase tracking-wider mb-2">Active layers</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-titan-subtext">Active layers</p>
           <div className="grid grid-cols-2 gap-1.5">
-            {['Integrity Auditor', 'ZK Layer'].map(name => {
-              const layer = mockSecurityLayers.find(l => l.name === name)!;
-              return layer ? <SecurityBadge key={name} layer={layer} compact /> : null;
-            })}
+            {liveLayers.map((layer) => (
+              <SecurityBadge key={layer.id} layer={layer} compact />
+            ))}
           </div>
         </div>
 
+        {status ? (
+          <div className="mb-4 rounded-xl border border-titan-border bg-[#0A0D14] px-4 py-3 text-xs text-titan-subtext">
+            {status}
+          </div>
+        ) : null}
+
         <div className="flex gap-2">
-          <Button variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" className="flex-1" onClick={() => void handleSign()}>
+          <Button variant="secondary" className="flex-1" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" className="flex-1" onClick={() => void handleSign()} loading={isSubmitting}>
             <ShieldCheck size={15} /> Sign Message
           </Button>
         </div>

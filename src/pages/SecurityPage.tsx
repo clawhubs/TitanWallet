@@ -3,8 +3,7 @@ import DashboardHeader from '../components/layout/DashboardHeader';
 import Card, { CardHeader, CardTitle } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import SecurityBadge from '../components/ui/SecurityBadge';
-import { mockSecurityLayers, mockProofs } from '../data/mockProofs';
-import { mockTrustedApps } from '../data/mockApps';
+import { mockSecurityLayers } from '../data/mockProofs';
 import { formatTimeAgo } from '../utils/cn';
 import { ShieldCheck, AlertCircle, Clock } from 'lucide-react';
 import { getLayerStatus } from '../services/security';
@@ -17,7 +16,7 @@ const SecurityPage: React.FC = () => {
   const walletAddress = useWalletStore((state) => state.address);
   const environment = useNetworkStore((state) => state.environment);
   const [layers, setLayers] = React.useState(mockSecurityLayers);
-  const [proofs, setProofs] = React.useState(mockProofs);
+  const [proofs, setProofs] = React.useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
   const [liveMode, setLiveMode] = React.useState(false);
 
   React.useEffect(() => {
@@ -53,7 +52,7 @@ const SecurityPage: React.FC = () => {
         }
       } catch {
         if (!disposed) {
-          setProofs(mockProofs);
+          setProofs([]);
         }
       }
     };
@@ -104,7 +103,7 @@ const SecurityPage: React.FC = () => {
               </CardHeader>
             </div>
             <div className="p-4 space-y-1">
-              {proofs.map((proof, i) => (
+              {proofs.length ? proofs.map((proof, i) => (
                 <div key={proof.id} className="relative flex gap-4 pb-4 last:pb-0">
                   {/* Line */}
                   {i < proofs.length - 1 && (
@@ -134,7 +133,11 @@ const SecurityPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
+                  No proof timeline entries yet for this wallet.
+                </div>
+              )}
             </div>
           </Card>
 
@@ -169,19 +172,8 @@ const SecurityPage: React.FC = () => {
               <CardHeader>
                 <CardTitle>Sovereign Memory — Trusted Apps</CardTitle>
               </CardHeader>
-              <div className="space-y-3">
-                {mockTrustedApps.map(app => (
-                  <div key={app.id} className="flex items-center gap-3">
-                    <span className="text-lg">{app.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-titan-text">{app.name}</span>
-                        <Badge variant={app.risk === 'low' ? 'success' : 'warning'} size="sm">{app.risk}</Badge>
-                      </div>
-                      <p className="text-xs text-titan-subtext">Last used {formatTimeAgo(app.lastUsed)}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="rounded-xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
+                Trusted app memory will appear here after live app connection logs are available for reading.
               </div>
             </Card>
           </div>

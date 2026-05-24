@@ -16,6 +16,7 @@ const DashboardHeader: React.FC = () => {
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const networks = useNetworkStore((state) => state.networks);
   const setActiveNetwork = useNetworkStore((state) => state.setActiveNetwork);
+  const explorerHref = walletAddress ? `${activeNetwork.explorerUrl}/address/${walletAddress}` : activeNetwork.explorerUrl;
 
   const copyAddress = () => {
     if (!walletAddress) {
@@ -120,7 +121,7 @@ const DashboardHeader: React.FC = () => {
                 <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-titan-muted/30 text-sm text-titan-text transition-all">
                   <Settings size={14} className="text-titan-subtext" /> Settings
                 </Link>
-                <a href={activeNetwork.explorerUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-titan-muted/30 text-sm text-titan-text transition-all">
+                <a href={explorerHref} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-titan-muted/30 text-sm text-titan-text transition-all">
                   <ExternalLink size={14} className="text-titan-subtext" /> Explorer
                 </a>
                 <div className="border-t border-titan-border my-1" />

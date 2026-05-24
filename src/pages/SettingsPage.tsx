@@ -5,14 +5,18 @@ import NetworkSettings from '../components/settings/NetworkSettings';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { useTokenStore } from '../store/useTokenStore';
+import { useNetworkStore } from '../store/useNetworkStore';
 
 type SettingsTab = 'general' | 'networks' | 'tokens';
 
 const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const tokens = useTokenStore((state) => state.tokens);
   const customTokens = useTokenStore((state) => state.customTokens);
   const removeToken = useTokenStore((state) => state.removeToken);
+  const networkTokens = tokens.filter((token) => token.network === activeNetwork.name);
+  const networkCustomTokens = customTokens.filter((token) => token.network === activeNetwork.name);
 
   return (
     <div className="min-h-screen bg-titan-bg">
@@ -54,11 +58,11 @@ const SettingsPage: React.FC = () => {
                   <h2 className="text-lg font-bold text-white">Token Registry</h2>
                   <p className="text-sm text-titan-subtext">Auto-detected tokens stay separate from manual imports so the dashboard can explain where each asset came from.</p>
                 </div>
-                <Badge variant="accent" size="sm">{tokens.length} total</Badge>
+                <Badge variant="accent" size="sm">{networkTokens.length} on {activeNetwork.name}</Badge>
               </div>
 
               <div className="space-y-3">
-                {tokens.map((token) => (
+                {networkTokens.length ? networkTokens.map((token) => (
                   <div key={token.id} className="flex flex-col gap-3 rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
@@ -81,7 +85,11 @@ const SettingsPage: React.FC = () => {
                       </Button>
                     ) : null}
                   </div>
-                ))}
+                )) : (
+                  <div className="rounded-2xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
+                    No tokens are registered on {activeNetwork.name} yet.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -89,7 +97,7 @@ const SettingsPage: React.FC = () => {
               <h2 className="text-lg font-bold text-white">Custom Tokens</h2>
               <p className="mt-1 text-sm text-titan-subtext">Imported manually from the dashboard.</p>
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-sm text-white">{customTokens.length} custom token{customTokens.length === 1 ? '' : 's'}</span>
+                <span className="text-sm text-white">{networkCustomTokens.length} custom token{networkCustomTokens.length === 1 ? '' : 's'} on {activeNetwork.name}</span>
                 <Badge variant="neutral" size="sm">Dashboard import flow</Badge>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Network } from '../types';
-import { mockNetworks } from '../data/mockNetworks';
+import { builtInNetworkIds, mockNetworks } from '../data/mockNetworks';
 import { TITAN_DEFAULT_ENVIRONMENT, type YieldBoostEnvironment } from '../config/api';
 
 interface NetworkStore {
@@ -24,6 +24,18 @@ function normalizeNetworks(networks: Network[], activeId: string) {
     ...network,
     isActive: network.id === activeId,
   }));
+}
+
+function mergeNetworks(networks?: Network[]) {
+  const persistedById = new Map((networks || []).map((network) => [network.id, network]));
+  const mergedBuiltIns = mockNetworks.map((network) => ({
+    ...network,
+    isActive: persistedById.get(network.id)?.isActive ?? network.isActive,
+    isDefault: true,
+  }));
+  const customNetworks = (networks || []).filter((network) => !builtInNetworkIds.has(network.id));
+
+  return [...mergedBuiltIns, ...customNetworks];
 }
 
 export const useNetworkStore = create<NetworkStore>()(
@@ -76,11 +88,27 @@ export const useNetworkStore = create<NetworkStore>()(
     }),
     {
       name: 'titan-wallet-network-store',
+      version: 2,
       partialize: (state) => ({
         activeNetwork: state.activeNetwork,
         networks: state.networks,
         environment: state.environment,
       }),
+      merge: (persistedState, currentState) => {
+        const typedState = (persistedState || {}) as Partial<NetworkStore>;
+        const networks = mergeNetworks(typedState.networks);
+        const activeId = typedState.activeNetwork?.id || currentState.activeNetwork.id;
+        const activeNetwork =
+          networks.find((network) => network.id === activeId) || getDefaultActiveNetwork();
+
+        return {
+          ...currentState,
+          ...typedState,
+          environment: typedState.environment || currentState.environment,
+          activeNetwork,
+          networks: normalizeNetworks(networks, activeNetwork.id),
+        };
+      },
     },
   ),
 );

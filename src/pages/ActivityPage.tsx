@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardHeader from '../components/layout/DashboardHeader';
 import Card, { CardHeader, CardTitle } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import ActivityRow from '../components/ui/ActivityRow';
-import { mockActivity } from '../data/mockActivity';
-import { mockProofs } from '../data/mockProofs';
 import { ShieldCheck, AlertCircle, Clock, Filter } from 'lucide-react';
 import { formatTimeAgo } from '../utils/cn';
 import { cn } from '../utils/cn';
+import { listRecords } from '../services/integrity';
+import { useNetworkStore } from '../store/useNetworkStore';
+import { useWalletStore } from '../store/useWalletStore';
+import { mapIntegrityRecordsToActivity, mapIntegrityRecordsToProofs } from '../utils/integrity';
 
 type Tab = 'transactions' | 'proofs' | 'security';
 
 const ActivityPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('transactions');
   const [filter, setFilter] = useState<string>('all');
+  const walletAddress = useWalletStore((state) => state.address);
+  const environment = useNetworkStore((state) => state.environment);
+  const [activity, setActivity] = useState<ReturnType<typeof mapIntegrityRecordsToActivity>>([]);
+  const [proofs, setProofs] = useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
 
   const tabs: { id: Tab; label: string; count: number }[] = [
-    { id: 'transactions', label: 'Transactions', count: mockActivity.length },
-    { id: 'proofs', label: 'Proofs', count: mockProofs.length },
+    { id: 'transactions', label: 'Transactions', count: activity.length },
+    { id: 'proofs', label: 'Proofs', count: proofs.length },
     { id: 'security', label: 'Security Events', count: 3 },
   ];
 
@@ -29,7 +35,41 @@ const ActivityPage: React.FC = () => {
     { type: 'App Connected', desc: 'Uniswap connected with wallet', time: new Date(Date.now() - 1000 * 60 * 60 * 8), level: 'warning' },
   ];
 
-  const filteredActivity = filter === 'all' ? mockActivity : mockActivity.filter(a => a.type === filter);
+  useEffect(() => {
+    let disposed = false;
+
+    const hydrate = async () => {
+      if (!walletAddress) {
+        setActivity([]);
+        setProofs([]);
+        return;
+      }
+
+      try {
+        const records = await listRecords({
+          walletAddress,
+          network: environment,
+        });
+        if (!disposed) {
+          setActivity(mapIntegrityRecordsToActivity(records.items));
+          setProofs(mapIntegrityRecordsToProofs(records.items));
+        }
+      } catch {
+        if (!disposed) {
+          setActivity([]);
+          setProofs([]);
+        }
+      }
+    };
+
+    void hydrate();
+
+    return () => {
+      disposed = true;
+    };
+  }, [environment, walletAddress]);
+
+  const filteredActivity = filter === 'all' ? activity : activity.filter((item) => item.type === filter);
 
   return (
     <div className="min-h-screen bg-titan-bg">
@@ -87,7 +127,7 @@ const ActivityPage: React.FC = () => {
             </div>
             <div className="divide-y divide-titan-border/40">
               {filteredActivity.length === 0 ? (
-                <div className="py-10 text-center text-titan-subtext text-sm">No transactions found.</div>
+                <div className="py-10 text-center text-titan-subtext text-sm">No proof-backed wallet actions found yet.</div>
               ) : (
                 filteredActivity.map(act => (
                   <ActivityRow key={act.id} activity={act} />
@@ -106,7 +146,7 @@ const ActivityPage: React.FC = () => {
               </CardHeader>
             </div>
             <div className="p-4 space-y-3">
-              {mockProofs.map(proof => (
+              {proofs.length ? proofs.map(proof => (
                 <div key={proof.id} className="flex items-start gap-4 p-4 bg-titan-surface rounded-xl border border-titan-border hover:border-titan-border/80 transition-all">
                   <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
                     proof.status === 'verified' ? 'bg-titan-success/10' : proof.status === 'active' ? 'bg-titan-accent/10' : 'bg-titan-warning/10'
@@ -134,7 +174,11 @@ const ActivityPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
+                  No live proof records yet for this wallet.
+                </div>
+              )}
             </div>
           </Card>
         )}

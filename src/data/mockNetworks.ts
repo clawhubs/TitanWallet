@@ -2,50 +2,6 @@ import type { Network } from '../types';
 
 export const mockNetworks: Network[] = [
   {
-    id: 'ethereum',
-    name: 'Ethereum',
-    chainId: 1,
-    symbol: 'ETH',
-    rpcUrl: 'https://mainnet.infura.io',
-    explorerUrl: 'https://etherscan.io',
-    isTestnet: false,
-    isActive: true,
-    isDefault: true,
-  },
-  {
-    id: 'arbitrum',
-    name: 'Arbitrum One',
-    chainId: 42161,
-    symbol: 'ETH',
-    rpcUrl: 'https://arb1.arbitrum.io/rpc',
-    explorerUrl: 'https://arbiscan.io',
-    isTestnet: false,
-    isActive: false,
-    isDefault: true,
-  },
-  {
-    id: 'base',
-    name: 'Base',
-    chainId: 8453,
-    symbol: 'ETH',
-    rpcUrl: 'https://mainnet.base.org',
-    explorerUrl: 'https://basescan.org',
-    isTestnet: false,
-    isActive: false,
-    isDefault: true,
-  },
-  {
-    id: 'polygon',
-    name: 'Polygon',
-    chainId: 137,
-    symbol: 'POL',
-    rpcUrl: 'https://polygon-rpc.com',
-    explorerUrl: 'https://polygonscan.com',
-    isTestnet: false,
-    isActive: false,
-    isDefault: true,
-  },
-  {
     id: '0g-mainnet',
     name: '0G Mainnet',
     chainId: 16661,
@@ -53,7 +9,7 @@ export const mockNetworks: Network[] = [
     rpcUrl: 'https://evmrpc.0g.ai',
     explorerUrl: 'https://chainscan.0g.ai',
     isTestnet: false,
-    isActive: false,
+    isActive: true,
     isDefault: true,
   },
   {
@@ -69,11 +25,22 @@ export const mockNetworks: Network[] = [
   },
   {
     id: 'sepolia',
-    name: 'Sepolia',
+    name: 'Ethereum Sepolia',
     chainId: 11155111,
     symbol: 'ETH',
-    rpcUrl: 'https://rpc.sepolia.org',
+    rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
     explorerUrl: 'https://sepolia.etherscan.io',
+    isTestnet: true,
+    isActive: false,
+    isDefault: true,
+  },
+  {
+    id: 'arbitrum-sepolia',
+    name: 'Arbitrum Sepolia',
+    chainId: 421614,
+    symbol: 'ETH',
+    rpcUrl: 'https://arbitrum-sepolia-rpc.publicnode.com',
+    explorerUrl: 'https://sepolia.arbiscan.io',
     isTestnet: true,
     isActive: false,
     isDefault: true,
@@ -81,3 +48,4 @@ export const mockNetworks: Network[] = [
 ];
 
 export const activeNetwork = mockNetworks[0];
+export const builtInNetworkIds = new Set(mockNetworks.map((network) => network.id));

@@ -11,7 +11,7 @@ export const TITAN_DEV_PORTAL_URL =
 export const TITAN_DEFAULT_API_KEY = import.meta.env.VITE_TITAN_API_KEY?.trim() || '';
 
 export const TITAN_DEFAULT_ENVIRONMENT: YieldBoostEnvironment =
-  import.meta.env.VITE_TITAN_API_ENV === 'mainnet' ? 'mainnet' : 'testnet';
+  import.meta.env.VITE_TITAN_API_ENV === 'testnet' ? 'testnet' : 'mainnet';
 
 function canUseStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, KeyRound } from 'lucide-react';
+import { AlertTriangle, Copy, ExternalLink, Eye, EyeOff, KeyRound } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import {
@@ -9,12 +9,22 @@ import {
   setStoredTitanApiKey,
 } from '../../config/api';
 import { useNetworkStore } from '../../store/useNetworkStore';
+import { useWalletStore } from '../../store/useWalletStore';
+import { formatAddress } from '../../utils/cn';
 
 const GeneralSettings: React.FC = () => {
   const environment = useNetworkStore((state) => state.environment);
   const toggleEnvironment = useNetworkStore((state) => state.toggleEnvironment);
+  const activeNetwork = useNetworkStore((state) => state.activeNetwork);
+  const walletAddress = useWalletStore((state) => state.address);
+  const walletName = useWalletStore((state) => state.walletName);
+  const mnemonic = useWalletStore((state) => state.mnemonic);
+  const privateKey = useWalletStore((state) => state.privateKey);
   const [apiKey, setApiKey] = useState('');
   const [saved, setSaved] = useState(false);
+  const [showMnemonic, setShowMnemonic] = useState(false);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [copiedField, setCopiedField] = useState<'mnemonic' | 'privateKey' | null>(null);
 
   useEffect(() => {
     setApiKey(getTitanApiKey());
@@ -24,6 +34,16 @@ const GeneralSettings: React.FC = () => {
     setStoredTitanApiKey(apiKey);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2000);
+  };
+
+  const copySecret = async (field: 'mnemonic' | 'privateKey', value: string | null) => {
+    if (!value) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    window.setTimeout(() => setCopiedField(null), 2000);
   };
 
   return (
@@ -41,7 +61,7 @@ const GeneralSettings: React.FC = () => {
           <div className="flex items-center justify-between rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4">
             <div>
               <p className="text-sm font-semibold text-white">YieldBoost Environment</p>
-              <p className="text-xs text-titan-subtext">Current target: {environment}</p>
+              <p className="text-xs text-titan-subtext">Current target: {environment} · active chain: {activeNetwork.name}</p>
             </div>
             <Button variant="secondary" size="sm" onClick={toggleEnvironment}>
               Switch to {environment === 'mainnet' ? 'testnet' : 'mainnet'}
@@ -64,6 +84,85 @@ const GeneralSettings: React.FC = () => {
               <Button variant="primary" size="sm" onClick={saveApiKey}>
                 {saved ? 'Saved' : 'Save Key'}
               </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-white">Wallet Secrets</h2>
+            <p className="text-sm text-titan-subtext">Reveal or copy the active session's recovery phrase and private key before the browser session is lost.</p>
+          </div>
+          <Badge variant="warning" size="sm">Memory only</Badge>
+        </div>
+
+        <div className="mb-4 rounded-2xl border border-titan-warning/20 bg-titan-warning/10 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle size={16} className="mt-0.5 text-titan-warning" />
+            <div>
+              <p className="text-sm font-semibold text-white">Current session</p>
+              <p className="text-xs text-titan-subtext">
+                {walletAddress ? `${walletName} · ${formatAddress(walletAddress)}` : 'No wallet is connected right now.'}
+              </p>
+              <p className="mt-1 text-xs text-titan-subtext">
+                TITAN keeps secrets in memory only for the MVP, so export them before refreshing if you need to re-import later.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Recovery phrase</p>
+                <p className="text-xs text-titan-subtext">Shown only if this session was created from or imported with a mnemonic.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setShowMnemonic((value) => !value)} disabled={!mnemonic}>
+                  {showMnemonic ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {showMnemonic ? 'Hide' : 'Reveal'}
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => void copySecret('mnemonic', mnemonic)} disabled={!mnemonic}>
+                  <Copy size={14} />
+                  {copiedField === 'mnemonic' ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-xl border border-titan-border bg-titan-surface px-4 py-3 font-mono text-xs text-white">
+              {mnemonic
+                ? showMnemonic
+                  ? mnemonic
+                  : '•••••• •••••• •••••• •••••• •••••• •••••• •••••• •••••• •••••• •••••• •••••• ••••••'
+                : 'No recovery phrase is available in this session.'}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Private key</p>
+                <p className="text-xs text-titan-subtext">Available for imported wallets and newly-created wallets while this browser session stays open.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setShowPrivateKey((value) => !value)} disabled={!privateKey}>
+                  {showPrivateKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {showPrivateKey ? 'Hide' : 'Reveal'}
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => void copySecret('privateKey', privateKey)} disabled={!privateKey}>
+                  <Copy size={14} />
+                  {copiedField === 'privateKey' ? 'Copied' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-xl border border-titan-border bg-titan-surface px-4 py-3 font-mono text-xs text-white break-all">
+              {privateKey
+                ? showPrivateKey
+                  ? privateKey
+                  : '0x••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••'
+                : 'No private key is available in this session.'}
             </div>
           </div>
         </div>
