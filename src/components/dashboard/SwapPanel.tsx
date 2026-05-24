@@ -6,6 +6,7 @@ import { useTokenStore } from '../../store/useTokenStore';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { buildSwapUrl } from '../../services/swap';
 import SwapSecurityCheck from './SwapSecurityCheck';
+import { getSwapTokensForNetwork } from '../../data/swapTokens';
 
 interface SwapPanelProps {
   isOpen: boolean;
@@ -20,10 +21,10 @@ const SwapPanel: React.FC<SwapPanelProps> = ({ isOpen, onClose }) => {
   const [amount, setAmount] = useState('');
   const [showSecurityCheck, setShowSecurityCheck] = useState(false);
 
-  const networkTokens = useMemo(() => {
-    const filtered = tokens.filter((token) => token.network === activeNetwork.name);
-    return filtered.length ? filtered : tokens;
-  }, [activeNetwork.name, tokens]);
+  const networkTokens = useMemo(
+    () => getSwapTokensForNetwork(activeNetwork, tokens),
+    [activeNetwork, tokens],
+  );
 
   const fromToken =
     networkTokens.find((token) => token.id === fromId) ||
@@ -34,6 +35,10 @@ const SwapPanel: React.FC<SwapPanelProps> = ({ isOpen, onClose }) => {
     networkTokens.find((token) => token.id !== fromToken?.id) ||
     tokens.find((token) => token.id !== fromToken?.id) ||
     tokens[0];
+  const selectableToTokens = useMemo(
+    () => networkTokens.filter((token) => token.id !== fromToken?.id),
+    [fromToken?.id, networkTokens],
+  );
 
   const route = fromToken && toToken
     ? buildSwapUrl({
@@ -107,13 +112,17 @@ const SwapPanel: React.FC<SwapPanelProps> = ({ isOpen, onClose }) => {
                 value={toToken?.id || ''}
                 onChange={(event) => setToId(event.target.value)}
               >
-                {networkTokens
-                  .filter((token) => token.id !== fromToken?.id)
-                  .map((token) => (
+                {selectableToTokens.length ? (
+                  selectableToTokens.map((token) => (
                     <option key={token.id} value={token.id}>
                       {token.symbol}
                     </option>
-                  ))}
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    No second token available
+                  </option>
+                )}
               </select>
             </div>
           </div>

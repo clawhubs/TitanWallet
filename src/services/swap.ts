@@ -53,6 +53,15 @@ export function buildSwapUrl(input: {
     };
   }
 
+  if (input.network.id === 'arbitrum-sepolia') {
+    return {
+      provider: 'Uniswap',
+      supported: false,
+      url: null,
+      reason: 'Uniswap publicly supports Sepolia testnet, but not Arbitrum Sepolia in its web app, so TITAN blocks redirect instead of sending you to a dead route.',
+    };
+  }
+
   const chain = UNISWAP_CHAIN_MAP[input.network.id];
   if (!chain) {
     return {
