@@ -17,7 +17,7 @@ const ActivityPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('transactions');
   const [filter, setFilter] = useState<string>('all');
   const walletAddress = useWalletStore((state) => state.address);
-  const environment = useNetworkStore((state) => state.environment);
+  const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const [activity, setActivity] = useState<ReturnType<typeof mapIntegrityRecordsToActivity>>([]);
   const [proofs, setProofs] = useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
   const [securityEvents, setSecurityEvents] = useState<{
@@ -35,6 +35,8 @@ const ActivityPage: React.FC = () => {
 
   const txFilters = ['all', 'send', 'receive', 'swap', 'approve'];
 
+  const recordNetwork = activeNetwork.isTestnet ? 'testnet' : 'mainnet';
+
   useEffect(() => {
     let disposed = false;
 
@@ -49,7 +51,7 @@ const ActivityPage: React.FC = () => {
       try {
         const records = await listRecords({
           walletAddress,
-          network: environment,
+          network: recordNetwork,
         });
         if (!disposed) {
           const nextActivity = mapIntegrityRecordsToActivity(records.items);
@@ -80,11 +82,15 @@ const ActivityPage: React.FC = () => {
     };
 
     void hydrate();
+    const interval = window.setInterval(() => {
+      void hydrate();
+    }, 15000);
 
     return () => {
       disposed = true;
+      window.clearInterval(interval);
     };
-  }, [environment, walletAddress]);
+  }, [recordNetwork, walletAddress]);
 
   const filteredActivity = filter === 'all' ? activity : activity.filter((item) => item.type === filter);
 

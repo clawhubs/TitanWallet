@@ -40,7 +40,6 @@ const DashboardPage: React.FC = () => {
   const walletAddress = useWalletStore((state) => state.address);
   const isConnected = useWalletStore((state) => state.isConnected);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
-  const environment = useNetworkStore((state) => state.environment);
   const tokens = useTokenStore((state) => state.tokens);
   const isDetecting = useTokenStore((state) => state.isDetecting);
   const runAutoDetect = useTokenStore((state) => state.runAutoDetect);
@@ -53,6 +52,7 @@ const DashboardPage: React.FC = () => {
     percentage: totalTokenValue > 0 ? Math.max(1, Math.round((token.balanceUSD / totalTokenValue) * 100)) : 100,
     color: ['#4ECDC4', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'][index % 5],
   }));
+  const recordNetwork = activeNetwork.isTestnet ? 'testnet' : 'mainnet';
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -94,7 +94,7 @@ const DashboardPage: React.FC = () => {
       try {
         const records = await listRecords({
           walletAddress,
-          network: environment,
+          network: recordNetwork,
         });
         if (disposed) {
           return;
@@ -125,11 +125,15 @@ const DashboardPage: React.FC = () => {
     };
 
     void hydrateLiveData();
+    const interval = window.setInterval(() => {
+      void hydrateLiveData();
+    }, 15000);
 
     return () => {
       disposed = true;
+      window.clearInterval(interval);
     };
-  }, [environment, walletAddress]);
+  }, [recordNetwork, walletAddress]);
 
   const displayedBalance =
     isConnected && balanceUSD > 0

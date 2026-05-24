@@ -21,7 +21,7 @@ interface SendTransactionModalProps {
   onClose: () => void;
 }
 
-type CheckState = 'idle' | 'running' | 'passed' | 'warning' | 'blocked';
+type CheckState = 'idle' | 'running' | 'passed' | 'warning' | 'blocked' | 'skipped';
 
 interface SecurityCheckRow {
   label: string;
@@ -319,12 +319,12 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
         setCheckState('governance', 'passed', 'Governance policy approved the transfer.');
       } else {
         setChecks({
-          audit: 'warning',
-          nitro: 'warning',
-          governance: 'warning',
-          proof: 'warning',
-          seal: 'warning',
-          handshake: 'warning',
+          audit: 'skipped',
+          nitro: 'skipped',
+          governance: 'skipped',
+          proof: 'skipped',
+          seal: 'skipped',
+          handshake: 'skipped',
         });
         setProgressMessage('No YieldBoost API key is configured, so security services will be skipped and the wallet will send onchain only.');
       }
@@ -581,6 +581,8 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
                         ? 'danger'
                         : row.state === 'warning'
                           ? 'warning'
+                          : row.state === 'skipped'
+                            ? 'neutral'
                           : row.state === 'running'
                             ? 'accent'
                             : 'neutral'

@@ -16,10 +16,11 @@ import { getTitanApiKey } from '../config/api';
 
 const SecurityPage: React.FC = () => {
   const walletAddress = useWalletStore((state) => state.address);
-  const environment = useNetworkStore((state) => state.environment);
+  const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const [layers, setLayers] = React.useState<SecurityLayer[]>([]);
   const [proofs, setProofs] = React.useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
   const [liveMode, setLiveMode] = React.useState(false);
+  const recordNetwork = activeNetwork.isTestnet ? 'testnet' : 'mainnet';
 
   React.useEffect(() => {
     let disposed = false;
@@ -47,7 +48,7 @@ const SecurityPage: React.FC = () => {
       try {
         const records = await listRecords({
           walletAddress,
-          network: environment,
+          network: recordNetwork,
         });
         if (!disposed) {
           setProofs(mapIntegrityRecordsToProofs(records.items));
@@ -60,11 +61,15 @@ const SecurityPage: React.FC = () => {
     };
 
     void hydrate();
+    const interval = window.setInterval(() => {
+      void hydrate();
+    }, 15000);
 
     return () => {
       disposed = true;
+      window.clearInterval(interval);
     };
-  }, [environment, walletAddress]);
+  }, [recordNetwork, walletAddress]);
 
   const activeLayerCount = countActiveTitanLayers(layers);
 
