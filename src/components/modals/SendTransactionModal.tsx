@@ -88,7 +88,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     },
     {
       label: 'Seal',
-      description: 'Seals the transfer record into YieldBoost storage.',
+      description: 'Seals the transfer record into the TITAN proof vault.',
       state: checks.seal,
     },
     {
