@@ -18,7 +18,7 @@ interface StoredLocalEvent {
 const STORAGE_KEY = 'titan-wallet-local-activity';
 
 function canUseStorage() {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined';
 }
 
 function serializeEvent(event: StoredLocalEvent) {
@@ -64,7 +64,7 @@ export function addLocalWalletEvent(event: StoredLocalEvent) {
 
   const existing = getAllLocalWalletEvents();
   const withoutDuplicate = existing.filter((item) => item.activity.hash !== event.activity.hash);
-  window.localStorage.setItem(
+  window.sessionStorage.setItem(
     STORAGE_KEY,
     JSON.stringify([serializeEvent(event), ...withoutDuplicate.map(serializeEvent)].slice(0, 100)),
   );
@@ -99,7 +99,7 @@ function getAllLocalWalletEvents(): StoredLocalEvent[] {
   }
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) {
       return [];
     }
