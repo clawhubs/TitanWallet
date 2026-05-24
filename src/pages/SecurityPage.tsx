@@ -72,6 +72,7 @@ const SecurityPage: React.FC = () => {
   }, [recordNetwork, walletAddress]);
 
   const activeLayerCount = countActiveTitanLayers(layers);
+  const hasWalletSession = Boolean(walletAddress);
 
   return (
     <div className="min-h-screen bg-titan-bg">
@@ -150,7 +151,7 @@ const SecurityPage: React.FC = () => {
                 </div>
               )) : (
                 <div className="rounded-xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
-                  No proof timeline entries yet for this wallet.
+                  {hasWalletSession ? 'No proof timeline entries yet for this wallet.' : 'Connect or import a wallet to load proof timeline entries.'}
                 </div>
               )}
             </div>
@@ -162,24 +163,30 @@ const SecurityPage: React.FC = () => {
             <Card className="p-5">
               <CardHeader>
                 <CardTitle>Governance Policies</CardTitle>
-                <Badge variant="accent" size="sm">Active</Badge>
+                <Badge variant={hasWalletSession ? 'accent' : 'neutral'} size="sm">{hasWalletSession ? 'Session-ready' : 'No wallet'}</Badge>
               </CardHeader>
-              <div className="space-y-3">
-                {[
-                  { name: 'Daily Send Limit', value: '$10,000 / day', status: 'active' },
-                  { name: 'Contract Allowlist', value: '4 contracts', status: 'active' },
-                  { name: 'Multi-step Approval', value: 'Above $5,000', status: 'active' },
-                  { name: 'Time-lock', value: 'Disabled', status: 'standby' },
-                ].map(policy => (
-                  <div key={policy.name} className="flex items-center justify-between py-2 border-b border-titan-border/40 last:border-0">
-                    <span className="text-sm text-titan-text">{policy.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-titan-subtext">{policy.value}</span>
-                      <span className={`w-1.5 h-1.5 rounded-full ${policy.status === 'active' ? 'bg-titan-success' : 'bg-titan-subtext'}`} />
+              {hasWalletSession ? (
+                <div className="space-y-3">
+                  {[
+                    { name: 'Daily Send Limit', value: '$10,000 / day', status: 'active' },
+                    { name: 'Contract Allowlist', value: '4 contracts', status: 'active' },
+                    { name: 'Multi-step Approval', value: 'Above $5,000', status: 'active' },
+                    { name: 'Time-lock', value: 'Disabled', status: 'standby' },
+                  ].map(policy => (
+                    <div key={policy.name} className="flex items-center justify-between py-2 border-b border-titan-border/40 last:border-0">
+                      <span className="text-sm text-titan-text">{policy.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-titan-subtext">{policy.value}</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${policy.status === 'active' ? 'bg-titan-success' : 'bg-titan-subtext'}`} />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
+                  Governance policy rails only appear after a wallet session is active.
+                </div>
+              )}
             </Card>
 
             {/* Trusted App Memory */}
@@ -188,7 +195,9 @@ const SecurityPage: React.FC = () => {
                 <CardTitle>Sovereign Memory — Trusted Apps</CardTitle>
               </CardHeader>
               <div className="rounded-xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
-                Trusted app memory will appear here after live app connection logs are available for reading.
+                {hasWalletSession
+                  ? 'Trusted app memory will appear here after live app connection logs are available for reading.'
+                  : 'Trusted app memory is unavailable until a wallet session is connected.'}
               </div>
             </Card>
           </div>
