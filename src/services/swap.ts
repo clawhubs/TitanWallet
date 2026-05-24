@@ -1,7 +1,7 @@
 import type { Network, Token } from '../types';
 
 export interface SwapRoute {
-  provider: 'Uniswap' | 'Oku Trade' | 'Camelot' | 'Jaine';
+  provider: 'Uniswap' | 'Oku Trade' | 'Camelot';
   supported: boolean;
   url: string | null;
   reason?: string;
@@ -45,12 +45,11 @@ export function buildSwapUrl(input: {
   }
 
   if (input.network.id === '0g-galileo') {
-    const url = new URL('https://jaine.app/swap');
-
     return {
-      provider: 'Jaine',
-      supported: true,
-      url: url.toString(),
+      provider: 'Oku Trade',
+      supported: false,
+      url: null,
+      reason: 'Galileo testnet does not have a clean verified swap venue yet. TITAN keeps swap blocked here instead of redirecting you into a broken external flow.',
     };
   }
 
