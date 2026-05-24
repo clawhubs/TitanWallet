@@ -1,7 +1,7 @@
 import type { Network, Token } from '../types';
 
 export interface SwapRoute {
-  provider: 'Uniswap' | 'Oku Trade' | 'Camelot';
+  provider: 'Uniswap' | 'Oku Trade' | 'Camelot' | 'Jaine';
   supported: boolean;
   url: string | null;
   reason?: string;
@@ -45,11 +45,12 @@ export function buildSwapUrl(input: {
   }
 
   if (input.network.id === '0g-galileo') {
+    const url = new URL('https://jaine.app/swap');
+
     return {
-      provider: 'Oku Trade',
-      supported: false,
-      url: null,
-      reason: '0G Galileo has official docs, faucet, and explorers, but TITAN did not verify a public swap UI for Galileo testnet yet, so redirect stays blocked.',
+      provider: 'Jaine',
+      supported: true,
+      url: url.toString(),
     };
   }
 
