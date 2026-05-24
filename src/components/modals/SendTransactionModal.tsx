@@ -10,9 +10,11 @@ import { useTitanSecurity } from '../../hooks/useTitanSecurity';
 import { useWallet } from '../../hooks/useWallet';
 import { getNativeTransferQuote } from '../../services/blockchain';
 import { createChallenge, seal } from '../../services/integrity';
-import { proofRun, auditEvaluate, checkBlacklist, governanceEvaluate } from '../../services/security';
+import { proofRun, auditEvaluate, governanceEvaluate, handshakeLog } from '../../services/security';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { formatAddress } from '../../utils/cn';
+import { runNitroFortressOperation } from '../../services/nitro';
+import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 
 interface SendTransactionModalProps {
   isOpen: boolean;
@@ -27,12 +29,13 @@ interface SecurityCheckRow {
   state: CheckState;
 }
 
-const EMPTY_CHECKS: Record<'blacklist' | 'audit' | 'governance' | 'proof' | 'seal', CheckState> = {
-  blacklist: 'idle',
+const EMPTY_CHECKS: Record<'audit' | 'nitro' | 'governance' | 'proof' | 'seal' | 'handshake', CheckState> = {
   audit: 'idle',
+  nitro: 'idle',
   governance: 'idle',
   proof: 'idle',
   seal: 'idle',
+  handshake: 'idle',
 };
 
 type ReceiptState = 'idle' | 'broadcasted' | 'confirming' | 'confirmed' | 'failed';
@@ -53,7 +56,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState('Fill in a destination and amount to prepare a live transfer.');
+  const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [checks, setChecks] = useState(EMPTY_CHECKS);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -63,14 +66,14 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
 
   const securityRows: SecurityCheckRow[] = [
     {
-      label: 'Blacklist',
-      description: 'Screens the destination before signing.',
-      state: checks.blacklist,
-    },
-    {
       label: 'Audit',
       description: 'Builds a signed audit trail for this transfer.',
       state: checks.audit,
+    },
+    {
+      label: 'Nitro',
+      description: 'Escalates the send flow into the Nitro continuity rail.',
+      state: checks.nitro,
     },
     {
       label: 'Governance',
@@ -87,14 +90,14 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       description: 'Seals the transfer record into YieldBoost storage.',
       state: checks.seal,
     },
+    {
+      label: 'Handshake',
+      description: 'Logs the final send approval and receipt trail.',
+      state: checks.handshake,
+    },
   ];
 
-  const liveLayers = [
-    getLayer('Integrity Auditor'),
-    getLayer('Programmable Governance'),
-    getLayer('Secure Compute'),
-    getLayer('Proof Anchor'),
-  ];
+  const liveLayers = WALLET_ACTION_LAYERS.send.map((layer) => getLayer(layer));
 
   const hasApiKey = Boolean(getTitanApiKey());
   const parsedAmount = Number.parseFloat(amount || '0');
@@ -109,25 +112,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
   );
 
   useEffect(() => {
-    if (!isOpen) {
-      setTo('');
-      setAmount('');
-      setQuote(null);
-      setQuoteError(null);
-      setSubmitError(null);
-      setStatusMessage('Fill in a destination and amount to prepare a live transfer.');
-      setChecks(EMPTY_CHECKS);
-      setIsSubmitting(false);
-      setTxHash(null);
-      setSignedTransaction(null);
-      setReceiptState('idle');
-      setReceiptBlockNumber(null);
-      return;
-    }
-
     if (!walletAddress || !isValidRecipient || !isValidAmount) {
-      setQuote(null);
-      setQuoteError(null);
       return;
     }
 
@@ -165,76 +150,6 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     };
   }, [activeNetwork.rpcUrl, amount, isOpen, isValidAmount, isValidRecipient, to, walletAddress]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    if (!walletAddress) {
-      setStatusMessage('Connect or import a wallet before sending funds.');
-      return;
-    }
-
-    if (!to.trim()) {
-      setStatusMessage('Enter a destination address to prepare the transfer.');
-      return;
-    }
-
-    if (!isValidRecipient) {
-      setStatusMessage('Destination address format is invalid.');
-      return;
-    }
-
-    if (!amount.trim()) {
-      setStatusMessage('Enter the amount of native asset to send.');
-      return;
-    }
-
-    if (!isValidAmount) {
-      setStatusMessage('Amount must be greater than zero.');
-      return;
-    }
-
-    if (quoteLoading) {
-      setStatusMessage('Estimating gas and preparing the live transfer...');
-      return;
-    }
-
-    if (quoteError) {
-      setStatusMessage('Gas estimation failed. Adjust the transaction or network settings.');
-      return;
-    }
-
-    if (receiptState === 'confirmed' && txHash) {
-      setStatusMessage(`Transfer confirmed on ${activeNetwork.name}.`);
-      return;
-    }
-
-    if (receiptState === 'confirming' && txHash) {
-      setStatusMessage(`Transaction broadcasted. Waiting for a mined receipt on ${activeNetwork.name}...`);
-      return;
-    }
-
-    if (receiptState === 'broadcasted' && txHash) {
-      setStatusMessage(`Transfer broadcasted successfully on ${activeNetwork.name}.`);
-      return;
-    }
-
-    setStatusMessage('Transaction is ready to sign and broadcast.');
-  }, [
-    activeNetwork.name,
-    amount,
-    isOpen,
-    isValidAmount,
-    isValidRecipient,
-    quoteError,
-    quoteLoading,
-    receiptState,
-    to,
-    txHash,
-    walletAddress,
-  ]);
-
   const setCheckState = (
     key: keyof typeof EMPTY_CHECKS,
     state: CheckState,
@@ -245,18 +160,104 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       [key]: state,
     }));
     if (message) {
-      setStatusMessage(message);
+      setProgressMessage(message);
     }
   };
 
   const apiNetwork = activeNetwork.isTestnet ? 'testnet' : 'mainnet';
   const txExplorerUrl = txHash ? `${activeNetwork.explorerUrl}/tx/${txHash}` : null;
+  const visibleQuote = walletAddress && isValidRecipient && isValidAmount ? quote : null;
   const canSubmit =
     Boolean(walletAddress) &&
     isValidRecipient &&
     isValidAmount &&
     !quoteLoading &&
     !isSubmitting;
+  const statusMessage = useMemo(() => {
+    if (progressMessage) {
+      return progressMessage;
+    }
+
+    if (!walletAddress) {
+      return 'Connect or import a wallet before sending funds.';
+    }
+
+    if (!to.trim()) {
+      return 'Enter a destination address to prepare the transfer.';
+    }
+
+    if (!isValidRecipient) {
+      return 'Destination address format is invalid.';
+    }
+
+    if (!amount.trim()) {
+      return 'Enter the amount of native asset to send.';
+    }
+
+    if (!isValidAmount) {
+      return 'Amount must be greater than zero.';
+    }
+
+    if (quoteLoading) {
+      return 'Estimating gas and preparing the live transfer...';
+    }
+
+    if (quoteError) {
+      return 'Gas estimation failed. Adjust the transaction or network settings.';
+    }
+
+    if (receiptState === 'confirmed' && txHash) {
+      return `Transfer confirmed on ${activeNetwork.name}.`;
+    }
+
+    if (receiptState === 'confirming' && txHash) {
+      return `Transaction broadcasted. Waiting for a mined receipt on ${activeNetwork.name}...`;
+    }
+
+    if (receiptState === 'broadcasted' && txHash) {
+      return `Transfer broadcasted successfully on ${activeNetwork.name}.`;
+    }
+
+    return 'Transaction is ready to sign and broadcast.';
+  }, [
+    activeNetwork.name,
+    amount,
+    isValidAmount,
+    isValidRecipient,
+    progressMessage,
+    quoteError,
+    quoteLoading,
+    receiptState,
+    to,
+    txHash,
+    walletAddress,
+  ]);
+
+  const handleRecipientChange = (value: string) => {
+    setTo(value);
+    setSubmitError(null);
+    setProgressMessage(null);
+    setChecks(EMPTY_CHECKS);
+    setTxHash(null);
+    setSignedTransaction(null);
+    setReceiptState('idle');
+    setReceiptBlockNumber(null);
+    setQuote(null);
+    setQuoteError(null);
+  };
+
+  const handleAmountChange = (value: string) => {
+    setAmount(value);
+    setSubmitError(null);
+    setProgressMessage(null);
+    setChecks(EMPTY_CHECKS);
+    setTxHash(null);
+    setSignedTransaction(null);
+    setReceiptState('idle');
+    setReceiptBlockNumber(null);
+    setQuote(null);
+    setQuoteError(null);
+  };
 
   const handleConfirm = async () => {
     if (!walletAddress) {
@@ -277,6 +278,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     try {
       setIsSubmitting(true);
       setSubmitError(null);
+      setProgressMessage(null);
       setTxHash(null);
       setSignedTransaction(null);
       setReceiptState('idle');
@@ -284,14 +286,6 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       setChecks(EMPTY_CHECKS);
 
       if (hasApiKey) {
-        setCheckState('blacklist', 'running', 'Running blacklist screening...');
-        const blacklist = await checkBlacklist(to.trim());
-        if (!blacklist.allowed) {
-          setCheckState('blacklist', 'blocked', 'TITAN blocked this destination address.');
-          throw new Error('This destination was blocked by the TITAN blacklist.');
-        }
-        setCheckState('blacklist', 'passed', 'Blacklist screening passed.');
-
         setCheckState('audit', 'running', 'Building a transfer audit snapshot...');
         await auditEvaluate({
           plaintext: transferSummary,
@@ -305,6 +299,14 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
         });
         setCheckState('audit', 'passed', 'Audit snapshot generated.');
 
+        setCheckState('nitro', 'running', 'Escalating the transfer into the Nitro continuity rail...');
+        await runNitroFortressOperation({
+          operation: 'wallet_send_transaction',
+          secret: transferSummary.slice(0, 600),
+          operator: walletAddress,
+        });
+        setCheckState('nitro', 'passed', 'Nitro continuity rail acknowledged the transfer.');
+
         setCheckState('governance', 'running', 'Evaluating governance throttle...');
         const governance = await governanceEvaluate({
           walletAddress,
@@ -317,16 +319,17 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
         setCheckState('governance', 'passed', 'Governance policy approved the transfer.');
       } else {
         setChecks({
-          blacklist: 'warning',
           audit: 'warning',
+          nitro: 'warning',
           governance: 'warning',
           proof: 'warning',
           seal: 'warning',
+          handshake: 'warning',
         });
-        setStatusMessage('No YieldBoost API key is configured, so security services will be skipped and the wallet will send onchain only.');
+        setProgressMessage('No YieldBoost API key is configured, so security services will be skipped and the wallet will send onchain only.');
       }
 
-      setStatusMessage('Signing and broadcasting transaction to the active network...');
+      setProgressMessage('Signing and broadcasting transaction to the active network...');
       const sent = await sendNativeAsset({
         to: to.trim(),
         amount,
@@ -334,7 +337,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       setTxHash(sent.hash);
       setSignedTransaction(sent.signedTransaction);
       setReceiptState('broadcasted');
-      setStatusMessage(`Transaction broadcasted. Waiting for confirmation on ${activeNetwork.name}...`);
+      setProgressMessage(`Transaction broadcasted. Waiting for confirmation on ${activeNetwork.name}...`);
       setReceiptState('confirming');
 
       const receipt = await waitForTxReceipt(sent.hash, 120000);
@@ -396,7 +399,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
             metadata: {
               event_type: 'Native Transfer',
               description: `Sent ${amount} ${activeNetwork.symbol} to ${to.trim()}.`,
-              layer_name: 'Proof Anchor',
+              layer_name: 'ProofRegistry Anchor',
               from: walletAddress,
               to: to.trim(),
               amount,
@@ -416,9 +419,34 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
             error instanceof Error ? error.message : 'Transfer broadcast succeeded, but sealing failed.',
           );
         }
+
+        setCheckState('handshake', 'running', 'Logging the send approval trail...');
+        try {
+          await handshakeLog({
+            subjectId: sent.hash,
+            operation: 'send-transaction',
+            walletAddress,
+            metadata: {
+              from: walletAddress,
+              to: to.trim(),
+              amount,
+              network: activeNetwork.name,
+              chain_id: activeNetwork.chainId,
+              tx_hash: sent.hash,
+              block_number: Number(receipt.blockNumber),
+            },
+          });
+          setCheckState('handshake', 'passed', 'Send approval trail logged.');
+        } catch (error) {
+          setCheckState(
+            'handshake',
+            'warning',
+            error instanceof Error ? error.message : 'Transfer confirmed, but handshake logging failed.',
+          );
+        }
       }
 
-      setStatusMessage(`Transfer confirmed on ${activeNetwork.name}.`);
+      setProgressMessage(`Transfer confirmed on ${activeNetwork.name}.`);
     } catch (error) {
       setReceiptState((current) => (current === 'confirming' || current === 'broadcasted' ? 'failed' : current));
       setSubmitError(error instanceof Error ? error.message : 'Unable to send this transaction.');
@@ -449,7 +477,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
               className="titan-input font-mono"
               placeholder="0x..."
               value={to}
-              onChange={(event) => setTo(event.target.value)}
+              onChange={(event) => handleRecipientChange(event.target.value)}
             />
           </div>
 
@@ -460,7 +488,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
                 className="titan-input"
                 placeholder={`0.0 ${activeNetwork.symbol}`}
                 value={amount}
-                onChange={(event) => setAmount(event.target.value)}
+                onChange={(event) => handleAmountChange(event.target.value)}
               />
               <div className="min-w-24 rounded-xl border border-titan-border bg-titan-surface px-3 py-3 text-center text-sm font-semibold text-white">
                 {activeNetwork.symbol}
@@ -498,22 +526,22 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
               <span className="text-xs text-titan-subtext">Estimated fee</span>
             </div>
             <span className="text-xs font-mono text-white">
-              {quote ? `${Number.parseFloat(quote.estimatedFeeNative).toFixed(6)} ${activeNetwork.symbol}` : 'Waiting for quote'}
+              {visibleQuote ? `${Number.parseFloat(visibleQuote.estimatedFeeNative).toFixed(6)} ${activeNetwork.symbol}` : 'Waiting for quote'}
             </span>
           </div>
-          {quote ? (
+          {visibleQuote ? (
             <div className="mt-3 grid gap-2 text-xs text-titan-subtext">
               <div className="flex items-center justify-between">
                 <span>Gas limit</span>
-                <span className="font-mono text-white">{quote.gasLimitLabel}</span>
+                <span className="font-mono text-white">{visibleQuote.gasLimitLabel}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Fee market</span>
                 <span className="font-mono text-white">
-                  {quote.maxFeePerGasGwei
-                    ? `${Number.parseFloat(quote.maxFeePerGasGwei).toFixed(2)} gwei max`
-                    : quote.gasPriceGwei
-                      ? `${Number.parseFloat(quote.gasPriceGwei).toFixed(2)} gwei`
+                  {visibleQuote.maxFeePerGasGwei
+                    ? `${Number.parseFloat(visibleQuote.maxFeePerGasGwei).toFixed(2)} gwei max`
+                    : visibleQuote.gasPriceGwei
+                      ? `${Number.parseFloat(visibleQuote.gasPriceGwei).toFixed(2)} gwei`
                       : 'RPC did not return fee data'}
                 </span>
               </div>

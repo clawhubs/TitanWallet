@@ -22,8 +22,6 @@ export function useBalance(pollMs = 15000) {
 
   useEffect(() => {
     if (!address) {
-      setIsLoading(false);
-      setError(null);
       return;
     }
 
@@ -61,12 +59,12 @@ export function useBalance(pollMs = 15000) {
       disposed = true;
       window.clearInterval(timer);
     };
-  }, [address, activeNetwork.rpcUrl, activeNetwork.symbol, pollMs, setBalance]);
+  }, [address, activeNetwork.isTestnet, activeNetwork.rpcUrl, activeNetwork.symbol, pollMs, setBalance]);
 
   return {
     balanceETH,
     balanceUSD,
-    isLoading,
-    error,
+    isLoading: address ? isLoading : false,
+    error: address ? error : null,
   };
 }

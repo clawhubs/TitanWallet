@@ -16,7 +16,7 @@ const LandingFooter: React.FC = () => {
               <span className="font-bold text-titan-text text-base">TITAN Wallet</span>
             </div>
             <p className="text-titan-subtext text-sm leading-relaxed max-w-xs">
-              A secure web wallet with 6-layer protection. No install required. No compromise.
+              A secure web wallet with context-aware TITAN rails. No install required. No compromise.
             </p>
             <div className="flex items-center gap-3 mt-5">
               <a href="#" title="Twitter / X" className="w-8 h-8 rounded-lg flex items-center justify-center text-titan-subtext hover:text-titan-text hover:bg-titan-muted/40 transition-all">
@@ -51,10 +51,12 @@ const LandingFooter: React.FC = () => {
             <ul className="space-y-2.5">
               {[
                 'Integrity Auditor',
-                'ZK Layer',
-                'Secure Compute',
-                'Proof Anchor',
+                'Secure Compute / TEE',
+                '0G Storage Proof Layer',
+                'Zero-Knowledge Proof Layer',
+                'ProofRegistry Anchor',
                 'Sovereign Memory',
+                'AWS Nitro Enclaves',
               ].map(item => (
                 <li key={item}>
                   <Link to="/security" className="text-sm text-titan-subtext hover:text-titan-text transition-colors">
@@ -78,7 +80,7 @@ const LandingFooter: React.FC = () => {
           </div>
           <div className="flex items-center gap-1.5 text-xs text-titan-subtext">
             <Shield size={12} className="text-titan-success" />
-            6-Layer Security Active
+            9 Wallet Rails Active
           </div>
         </div>
       </div>

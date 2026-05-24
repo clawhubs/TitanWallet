@@ -8,6 +8,8 @@ import { proofRun, handshakeLog } from '../../services/security';
 import { useTitanSecurity } from '../../hooks/useTitanSecurity';
 import { useWallet } from '../../hooks/useWallet';
 import { useNetworkStore } from '../../store/useNetworkStore';
+import { runNitroFortressOperation } from '../../services/nitro';
+import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 
 interface SignMessageRequest {
   appName: string;
@@ -34,6 +36,13 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, re
   const { getLayer, liveMode } = useTitanSecurity(isOpen);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [requestMeta] = useState(() => ({
+    issuedAt: new Date().toISOString(),
+    nonce:
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID().slice(0, 8)
+        : `nonce-${Date.now().toString(16).slice(-8)}`,
+  }));
   const payload = request || defaultRequest;
 
   const signatureMessage = useMemo(() => {
@@ -48,20 +57,24 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, re
       '',
       `Wallet address: ${address || 'No wallet connected'}`,
       `Network: ${activeNetwork.name}`,
-      `Issued at: ${new Date().toISOString()}`,
-      `Nonce: ${Math.random().toString(16).slice(2, 10)}`,
+      `Issued at: ${requestMeta.issuedAt}`,
+      `Nonce: ${requestMeta.nonce}`,
     ].join('\n');
-  }, [activeNetwork.name, address, payload.appName, payload.message]);
+  }, [activeNetwork.name, address, payload.appName, payload.message, requestMeta.issuedAt, requestMeta.nonce]);
 
-  const liveLayers = [
-    getLayer('Integrity Auditor'),
-    getLayer('ZK Layer'),
-    getLayer('Sovereign Memory'),
-  ];
+  const liveLayers = WALLET_ACTION_LAYERS['sign-message'].map((layer) => getLayer(layer));
 
   const handleSign = async () => {
     try {
       setIsSubmitting(true);
+      setStatus('Routing the signature request through the Nitro continuity rail...');
+      if (address) {
+        await runNitroFortressOperation({
+          operation: 'wallet_sign_message',
+          secret: signatureMessage.slice(0, 600),
+          operator: address,
+        });
+      }
       setStatus('Signing message locally in the active wallet session...');
       if (address) {
         await signTextMessage(signatureMessage);
@@ -89,14 +102,11 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, re
           },
         }),
       ]);
-      setStatus('Signature completed.');
+      setStatus('Signature completed and logged through TITAN.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to sign the requested payload.');
-    } finally {
-      setIsSubmitting(false);
     }
-
-    onClose();
+    setIsSubmitting(false);
   };
 
   return (
@@ -132,7 +142,7 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, re
         <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-titan-accent/15 bg-titan-accent/5 p-3">
           <ShieldCheck size={14} className="mt-0.5 flex-shrink-0 text-titan-accent" />
           <p className="text-xs text-titan-subtext">
-            <span className="font-medium text-titan-text">ZK Layer is active.</span> TITAN can prove this signature event happened without exposing the full secret state of your wallet.
+            <span className="font-medium text-titan-text">Nitro, ZK, and handshake rails are in the path.</span> TITAN can prove the signature flow happened without exposing the full secret state of your wallet.
           </p>
         </div>
 

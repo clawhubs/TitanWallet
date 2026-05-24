@@ -12,11 +12,11 @@ import LayerStack from '../components/landing/LayerStack';
 
 const benefits = [
   { icon: Globe, title: 'No install. Just open.', desc: 'Runs entirely in your browser. No extension, no app store, no setup wizard.' },
-  { icon: ShieldCheck, title: '6 layers verify every action.', desc: 'Every transaction is independently checked before it ever touches your funds.' },
+  { icon: ShieldCheck, title: '9 wallet rails, one security language.', desc: 'The wallet uses the same layer names as the TITAN stack instead of a fake parallel naming scheme.' },
   { icon: Eye, title: 'Every proof is yours to audit.', desc: 'All security events are anchored on-chain. Your full trail, always verifiable.' },
-  { icon: Lock, title: 'Keys never leave your device.', desc: 'Private keys live in an isolated compute context. Never sent to any server.' },
+  { icon: Lock, title: 'Nitro stays in the path.', desc: 'High-sensitivity wallet flows can escalate into the Nitro continuity rail instead of stopping at browser-only signing.' },
   { icon: Zap, title: 'Set rules. Enforce on-chain.', desc: 'Spend limits, address allowlists, time-locks — all enforced automatically.' },
-  { icon: Shield, title: 'ZK Layer — prove safely.', desc: 'Zero-knowledge proofs verify actions without revealing your private data.' },
+  { icon: Shield, title: 'Proof-backed wallet rails.', desc: '0G storage, proof anchoring, ZK envelopes, and handshake logs stay visible in the wallet security story.' },
 ];
 
 const useCases = [
@@ -28,8 +28,8 @@ const useCases = [
 
 const faqs = [
   { q: 'Do I need to install anything?', a: 'No. TITAN Wallet runs entirely in your browser. No extension, no app, no setup — just open the website and your wallet is ready.' },
-  { q: 'How is my private key protected?', a: 'Your private key is generated and stored locally using the Secure Compute layer, isolated from the main browser context. It never leaves your device.' },
-  { q: 'What is the ZK Layer?', a: 'The ZK Layer generates zero-knowledge proofs for sensitive operations — allowing you to prove validity without revealing your private data.' },
+  { q: 'How is my private key protected?', a: 'The wallet routes sensitive operations through the Secure Compute / TEE lane, keeps wallet context inside Sovereign Memory, and can escalate high-sensitivity paths into AWS Nitro Enclaves.' },
+  { q: 'What proof layers are used?', a: 'Wallet actions can use the 0G Storage Proof Layer, the Zero-Knowledge Proof Layer, and the ProofRegistry Anchor so security events become verifiable evidence instead of hidden backend claims.' },
   { q: 'What networks are supported?', a: 'Ethereum, Arbitrum, Base, Optimism, and Polygon. More networks are being added regularly.' },
   { q: 'Is it self-custodial?', a: 'Completely. Your keys are generated on your device and never sent to any server. TITAN has zero access to your funds.' },
 ];
@@ -113,7 +113,7 @@ const LandingPage: React.FC = () => {
             </h1>
 
             <p className="text-[17px] sm:text-[18px] text-titan-subtext leading-[1.7] mb-10 max-w-[480px]">
-              Open any browser. Create a wallet. Every action passes through 6 independent security layers before it reaches your funds.
+              Open any browser. Create a wallet. Sensitive actions pass through the wallet rails that actually apply to signing, proof storage, governance, handshake logging, and Nitro continuity.
             </p>
 
             {/* CTAs */}
@@ -217,7 +217,7 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ── 6 Layers Architecture ──────────────────────────────────────── */}
+      {/* ── Wallet Rails Architecture ─────────────────────────────────── */}
       <section id="security" className="py-28 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-20 items-start">
@@ -228,15 +228,15 @@ const LandingPage: React.FC = () => {
                 <span className="text-[11px] font-bold text-titan-accent uppercase tracking-[0.12em]">Architecture</span>
               </div>
               <h2 className="text-[40px] sm:text-[44px] font-bold text-white tracking-tight leading-[1.08] mb-7">
-                Six layers.
-                <br />Zero single point
-                <br />of failure.
+                Nine wallet rails.
+                <br />One hardened
+                <br />execution path.
               </h2>
               <p className="text-[16px] text-titan-subtext leading-[1.7] mb-4">
-                Every transaction passes through all six layers independently. If any layer flags it, the action stops.
+                The wallet shows the same layer names used across TITAN X, but only the rails that actually matter to wallet actions stay in the path.
               </p>
               <p className="text-[14px] text-titan-subtext/70 mb-8">
-                All layers are required. No shortcuts.
+                Send, sign, connect, and proof flows can escalate from secure compute into storage, proof, governance, handshake, and Nitro continuity.
               </p>
               <Link to="/security" className="inline-flex items-center gap-2.5 text-[14px] font-semibold text-white hover:text-titan-accent transition-colors duration-200 group">
                 View Security Center <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform duration-200" />

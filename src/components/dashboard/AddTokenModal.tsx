@@ -20,15 +20,6 @@ const AddTokenModal: React.FC<AddTokenModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen) {
-      setContractAddress('');
-      setMetadata(null);
-      setError(null);
-      setIsLoading(false);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
     if (!isOpen || contractAddress.trim().length !== 42) {
       return;
     }
@@ -83,6 +74,15 @@ const AddTokenModal: React.FC<AddTokenModalProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  const handleAddressChange = (value: string) => {
+    setContractAddress(value);
+    setError(null);
+    if (value.trim().length !== 42) {
+      setMetadata(null);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Import Token" size="md">
       <div className="p-6 space-y-4">
@@ -93,7 +93,7 @@ const AddTokenModal: React.FC<AddTokenModalProps> = ({ isOpen, onClose }) => {
               className="titan-input pr-10"
               placeholder="0x1234..."
               value={contractAddress}
-              onChange={(event) => setContractAddress(event.target.value)}
+              onChange={(event) => handleAddressChange(event.target.value)}
             />
             <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-titan-subtext" />
           </div>

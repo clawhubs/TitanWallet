@@ -103,15 +103,18 @@ const NetworkSettings: React.FC = () => {
         </div>
       </div>
 
-      <AddNetworkModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingNetwork(null);
-        }}
-        onSave={handleSave}
-        initialNetwork={editingNetwork}
-      />
+      {isModalOpen ? (
+        <AddNetworkModal
+          key={editingNetwork?.id || 'new-network'}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingNetwork(null);
+          }}
+          onSave={handleSave}
+          initialNetwork={editingNetwork}
+        />
+      ) : null}
     </>
   );
 };

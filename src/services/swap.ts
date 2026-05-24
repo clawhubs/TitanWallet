@@ -1,7 +1,7 @@
 import type { Network, Token } from '../types';
 
 export interface SwapRoute {
-  provider: 'Uniswap' | 'Oku Trade';
+  provider: 'Uniswap' | 'Oku Trade' | 'Camelot';
   supported: boolean;
   url: string | null;
   reason?: string;
@@ -49,16 +49,25 @@ export function buildSwapUrl(input: {
       provider: 'Oku Trade',
       supported: false,
       url: null,
-      reason: 'No verified live swap UI was confirmed for 0G Galileo testnet, so TITAN blocks redirect instead of sending you to an unverified venue.',
+      reason: '0G Galileo has official docs, faucet, and explorers, but TITAN did not verify a public swap UI for Galileo testnet yet, so redirect stays blocked.',
     };
   }
 
   if (input.network.id === 'arbitrum-sepolia') {
+    const url = new URL('https://app.camelot.exchange/');
+    url.searchParams.set('chainId', String(input.network.chainId));
+    url.searchParams.set('swap', 'v3');
+    if (input.fromToken.contractAddress) {
+      url.searchParams.set('token1', input.fromToken.contractAddress);
+    }
+    if (input.toToken.contractAddress) {
+      url.searchParams.set('token2', input.toToken.contractAddress);
+    }
+
     return {
-      provider: 'Uniswap',
-      supported: false,
-      url: null,
-      reason: 'Uniswap publicly supports Sepolia testnet, but not Arbitrum Sepolia in its web app, so TITAN blocks redirect instead of sending you to a dead route.',
+      provider: 'Camelot',
+      supported: true,
+      url: url.toString(),
     };
   }
 

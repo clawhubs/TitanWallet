@@ -1,17 +1,20 @@
 import React from 'react';
 
 const layers = [
-  { num: '01', name: 'Integrity Auditor', desc: 'Scans every transaction against known threats before signing' },
-  { num: '02', name: 'Programmable Governance', desc: 'Enforces your personal rules — spend limits, allowlists' },
-  { num: '03', name: 'ZK Layer', desc: 'Generates cryptographic proofs without exposing private data' },
-  { num: '04', name: 'Secure Compute', desc: 'Isolates all key operations from the browser environment' },
-  { num: '05', name: 'Proof Anchor', desc: 'Commits an immutable record of each event on-chain' },
-  { num: '06', name: 'Sovereign Memory', desc: 'Maintains your signed history — owned and verified by you' },
+  { num: '01', name: 'Integrity Auditor', desc: 'Deterministic checks for payloads, permissions, and contract intent' },
+  { num: '02', name: 'Secure Compute / TEE', desc: 'Sensitive wallet operations stay on the hardened secure-compute lane' },
+  { num: '03', name: 'Sovereign Memory', desc: 'Maintains wallet context, trusted apps, and signed session history' },
+  { num: '04', name: '0G Storage Proof Layer', desc: 'Writes proof payloads and sealed receipts into the 0G storage rail' },
+  { num: '05', name: 'Zero-Knowledge Proof Layer', desc: 'Builds cryptographic proof envelopes without exposing secret state' },
+  { num: '06', name: 'ProofRegistry Anchor', desc: 'Commits proof receipts into the chain-backed registry path' },
+  { num: '07', name: 'Programmable Governance', desc: 'Applies spend policy, throttle, and safety-gate enforcement' },
+  { num: '08', name: 'Cross-Agent Neural Handshake', desc: 'Records connect, sign, and approval actions into the handshake trail' },
+  { num: '09', name: 'AWS Nitro Enclaves', desc: 'Fortress continuity rail for enclave witness and hardened signing lanes' },
 ];
 
 const LayerStack: React.FC = () => {
   return (
-    <div className="relative w-full max-w-lg mx-auto lg:mx-0">
+    <div className="relative w-full max-w-xl mx-auto lg:mx-0">
       {/* Connecting line */}
       <div className="absolute left-[23px] top-6 bottom-6 w-px bg-gradient-to-b from-titan-accent/30 via-titan-accent/10 to-transparent" />
 

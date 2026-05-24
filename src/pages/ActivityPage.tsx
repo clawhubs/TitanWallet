@@ -20,20 +20,20 @@ const ActivityPage: React.FC = () => {
   const environment = useNetworkStore((state) => state.environment);
   const [activity, setActivity] = useState<ReturnType<typeof mapIntegrityRecordsToActivity>>([]);
   const [proofs, setProofs] = useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
+  const [securityEvents, setSecurityEvents] = useState<{
+    type: string;
+    desc: string;
+    time: Date;
+    level: 'info' | 'success' | 'warning';
+  }[]>([]);
 
   const tabs: { id: Tab; label: string; count: number }[] = [
     { id: 'transactions', label: 'Transactions', count: activity.length },
     { id: 'proofs', label: 'Proofs', count: proofs.length },
-    { id: 'security', label: 'Security Events', count: 3 },
+    { id: 'security', label: 'Security Events', count: securityEvents.length },
   ];
 
   const txFilters = ['all', 'send', 'receive', 'swap', 'approve'];
-
-  const securityEvents = [
-    { type: 'Login', desc: 'Wallet accessed from browser', time: new Date(Date.now() - 1000 * 60 * 32), level: 'info' },
-    { type: 'Proof Anchored', desc: 'Transaction proof committed on-chain', time: new Date(Date.now() - 1000 * 60 * 60 * 3), level: 'success' },
-    { type: 'App Connected', desc: 'Uniswap connected with wallet', time: new Date(Date.now() - 1000 * 60 * 60 * 8), level: 'warning' },
-  ];
 
   useEffect(() => {
     let disposed = false;
@@ -42,6 +42,7 @@ const ActivityPage: React.FC = () => {
       if (!walletAddress) {
         setActivity([]);
         setProofs([]);
+        setSecurityEvents([]);
         return;
       }
 
@@ -51,13 +52,29 @@ const ActivityPage: React.FC = () => {
           network: environment,
         });
         if (!disposed) {
-          setActivity(mapIntegrityRecordsToActivity(records.items));
-          setProofs(mapIntegrityRecordsToProofs(records.items));
+          const nextActivity = mapIntegrityRecordsToActivity(records.items);
+          const nextProofs = mapIntegrityRecordsToProofs(records.items);
+          setActivity(nextActivity);
+          setProofs(nextProofs);
+          setSecurityEvents(
+            nextProofs.slice(0, 10).map((proof) => ({
+              type: proof.type,
+              desc: proof.description,
+              time: proof.timestamp,
+              level:
+                proof.status === 'verified'
+                  ? 'success'
+                  : proof.status === 'active'
+                    ? 'warning'
+                    : 'info',
+            })),
+          );
         }
       } catch {
         if (!disposed) {
           setActivity([]);
           setProofs([]);
+          setSecurityEvents([]);
         }
       }
     };
@@ -191,24 +208,30 @@ const ActivityPage: React.FC = () => {
               </CardHeader>
             </div>
             <div className="p-4 space-y-3">
-              {securityEvents.map((event, i) => (
-                <div key={i} className="flex items-start gap-4 p-4 bg-titan-surface rounded-xl border border-titan-border">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    event.level === 'success' ? 'bg-titan-success/10' : event.level === 'warning' ? 'bg-titan-warning/10' : 'bg-titan-muted/30'
-                  }`}>
-                    <ShieldCheck size={16} className={
-                      event.level === 'success' ? 'text-titan-success' : event.level === 'warning' ? 'text-titan-warning' : 'text-titan-subtext'
-                    } />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-titan-text">{event.type}</p>
-                      <span className="text-xs text-titan-subtext">{formatTimeAgo(event.time)}</span>
+              {securityEvents.length ? (
+                securityEvents.map((event, i) => (
+                  <div key={`${event.type}-${i}`} className="flex items-start gap-4 p-4 bg-titan-surface rounded-xl border border-titan-border">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      event.level === 'success' ? 'bg-titan-success/10' : event.level === 'warning' ? 'bg-titan-warning/10' : 'bg-titan-muted/30'
+                    }`}>
+                      <ShieldCheck size={16} className={
+                        event.level === 'success' ? 'text-titan-success' : event.level === 'warning' ? 'text-titan-warning' : 'text-titan-subtext'
+                      } />
                     </div>
-                    <p className="text-xs text-titan-subtext mt-0.5">{event.desc}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-titan-text">{event.type}</p>
+                        <span className="text-xs text-titan-subtext">{formatTimeAgo(event.time)}</span>
+                      </div>
+                      <p className="text-xs text-titan-subtext mt-0.5">{event.desc}</p>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="rounded-xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
+                  No live security events are available for this wallet yet.
                 </div>
-              ))}
+              )}
             </div>
           </Card>
         )}

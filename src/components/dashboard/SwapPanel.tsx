@@ -29,30 +29,33 @@ const SwapPanel: React.FC<SwapPanelProps> = ({ isOpen, onClose }) => {
   const fromToken =
     networkTokens.find((token) => token.id === fromId) ||
     networkTokens[0] ||
-    tokens[0];
-  const toToken =
-    networkTokens.find((token) => token.id === toId) ||
-    networkTokens.find((token) => token.id !== fromToken?.id) ||
-    tokens.find((token) => token.id !== fromToken?.id) ||
-    tokens[0];
+    null;
   const selectableToTokens = useMemo(
     () => networkTokens.filter((token) => token.id !== fromToken?.id),
     [fromToken?.id, networkTokens],
   );
+  const toToken =
+    networkTokens.find((token) => token.id === toId) ||
+    selectableToTokens[0] ||
+    null;
 
-  const route = fromToken && toToken
-    ? buildSwapUrl({
-        network: activeNetwork,
-        fromToken,
-        toToken,
-        amount,
-      })
-    : {
-        provider: 'Uniswap' as const,
-        supported: false,
-        url: null,
-        reason: 'At least two tokens are required to prepare a swap.',
-      };
+  const route = useMemo(
+    () =>
+      fromToken && toToken
+        ? buildSwapUrl({
+            network: activeNetwork,
+            fromToken,
+            toToken,
+            amount,
+          })
+        : {
+            provider: 'Uniswap' as const,
+            supported: false,
+            url: null,
+            reason: 'At least two tokens are required to prepare a swap.',
+          },
+    [activeNetwork, amount, fromToken, toToken],
+  );
 
   const flipTokens = () => {
     if (!fromToken || !toToken) {
@@ -158,7 +161,7 @@ const SwapPanel: React.FC<SwapPanelProps> = ({ isOpen, onClose }) => {
         </div>
       </Modal>
 
-      {fromToken && toToken ? (
+      {showSecurityCheck && fromToken && toToken ? (
         <SwapSecurityCheck
           isOpen={showSecurityCheck}
           onClose={() => setShowSecurityCheck(false)}

@@ -46,12 +46,16 @@ export interface ProofEvent {
 
 // TITAN Security Layers
 export type TitanLayer =
+  | 'Hallucination Blacklist'
   | 'Integrity Auditor'
+  | 'Secure Compute / TEE'
+  | 'Sovereign Memory'
+  | '0G Storage Proof Layer'
+  | 'Zero-Knowledge Proof Layer'
+  | 'ProofRegistry Anchor'
   | 'Programmable Governance'
-  | 'ZK Layer'
-  | 'Secure Compute'
-  | 'Proof Anchor'
-  | 'Sovereign Memory';
+  | 'Cross-Agent Neural Handshake'
+  | 'AWS Nitro Enclaves';
 
 export interface SecurityLayer {
   id: string;

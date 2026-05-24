@@ -5,11 +5,12 @@ import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import SecurityBadge from '../ui/SecurityBadge';
 import { ShieldCheck } from 'lucide-react';
-import { handshakeLog } from '../../services/security';
+import { auditEvaluate, handshakeLog } from '../../services/security';
 import { useTitanSecurity } from '../../hooks/useTitanSecurity';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import { formatAddress } from '../../utils/cn';
+import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 
 interface ConnectAppRequest {
   appName: string;
@@ -43,17 +44,31 @@ const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClose, requ
   const payload = request || defaultRequest;
 
   const activeLayers = useMemo(
-    () => [
-      getLayer('Integrity Auditor'),
-      getLayer('Programmable Governance'),
-      getLayer('Sovereign Memory'),
-    ],
+    () => WALLET_ACTION_LAYERS['connect-dapp'].map((layer) => getLayer(layer)),
     [getLayer],
   );
 
   const handleConnect = async () => {
     try {
       setIsSubmitting(true);
+      setStatus('Auditing the dApp connection payload...');
+      await auditEvaluate({
+        plaintext: [
+          `wallet=${walletAddress || 'disconnected'}`,
+          `app=${payload.appName}`,
+          `origin=${payload.appUrl}`,
+          `network=${activeNetwork.name}`,
+          `permissions=${(payload.permissions || []).join(', ')}`,
+        ].join(' | '),
+        metadata: {
+          action: 'connect-dapp',
+          app: payload.appName,
+          origin: payload.appUrl,
+          network: activeNetwork.name,
+          risk: payload.risk || 'low',
+          permissions: payload.permissions || [],
+        },
+      });
       setStatus('Logging the app handshake with TITAN...');
       await handshakeLog({
         subjectId: payload.appUrl,

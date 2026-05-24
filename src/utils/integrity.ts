@@ -1,4 +1,5 @@
 import { mockSecurityLayers } from '../data/mockProofs';
+import { TITAN_LAYER_ALIASES } from '../data/titanLayers';
 import type { Activity, ActivityType, ProofEvent, SecurityLayer, TitanLayer } from '../types';
 import type {
   ComponentHealth,
@@ -17,43 +18,25 @@ function toLayerStatus(status?: ComponentHealth['status']): SecurityLayer['statu
   return 'active';
 }
 
-function combineHealth(components: Array<ComponentHealth | undefined>): ComponentHealth | undefined {
-  const values = components.filter(Boolean) as ComponentHealth[];
-  if (!values.length) {
-    return undefined;
-  }
-  if (values.some((item) => item.status === 'down')) {
-    return {
-      status: 'down',
-      detail: values.map((item) => item.detail).join(' • '),
-    };
-  }
-  if (values.some((item) => item.status === 'degraded')) {
-    return {
-      status: 'degraded',
-      detail: values.map((item) => item.detail).join(' • '),
-    };
-  }
-  return {
-    status: 'ok',
-    detail: values.map((item) => item.detail).join(' • '),
-  };
-}
-
 export function buildTitanSecurityLayersFromApi(
   source?: YieldBoostHealthResponse | YieldBoostLayerStatusResponse | null,
+  nitroDetail?: ComponentHealth | null,
 ): SecurityLayer[] {
   if (!source) {
     return mockSecurityLayers;
   }
 
   const statusByLayer: Record<TitanLayer, ComponentHealth | undefined> = {
-    'Integrity Auditor': combineHealth([source.layers.L1, source.layers.L2]),
-    'Programmable Governance': source.layers.L8,
-    'ZK Layer': source.layers.L6,
-    'Secure Compute': source.layers.L3,
-    'Proof Anchor': combineHealth([source.layers.L5, source.layers.L7]),
+    'Hallucination Blacklist': source.layers.L1,
+    'Integrity Auditor': source.layers.L2,
+    'Secure Compute / TEE': source.layers.L3,
     'Sovereign Memory': source.layers.L4,
+    '0G Storage Proof Layer': source.layers.L5,
+    'Zero-Knowledge Proof Layer': source.layers.L6,
+    'ProofRegistry Anchor': source.layers.L7,
+    'Programmable Governance': source.layers.L8,
+    'Cross-Agent Neural Handshake': source.layers.L9,
+    'AWS Nitro Enclaves': nitroDetail || detectNitroHealth(source),
   };
 
   return mockSecurityLayers.map((layer) => {
@@ -84,7 +67,7 @@ export function mapIntegrityRecordsToProofs(items?: YieldBoostVaultListItem[] | 
   return items.map((item) => {
     const metadata = item.metadata || {};
     const metadataLayer = typeof metadata.layer_name === 'string' ? metadata.layer_name : null;
-    const layer = isTitanLayer(metadataLayer) ? metadataLayer : 'Proof Anchor';
+    const layer = normalizeTitanLayer(metadataLayer) || 'ProofRegistry Anchor';
     const type =
       typeof metadata.event_type === 'string'
         ? metadata.event_type
@@ -160,15 +143,32 @@ export function mapIntegrityRecordsToActivity(items?: YieldBoostVaultListItem[] 
   });
 }
 
-function isTitanLayer(value: string | null): value is TitanLayer {
-  return (
-    value === 'Integrity Auditor' ||
-    value === 'Programmable Governance' ||
-    value === 'ZK Layer' ||
-    value === 'Secure Compute' ||
-    value === 'Proof Anchor' ||
-    value === 'Sovereign Memory'
-  );
+function normalizeTitanLayer(value: string | null): TitanLayer | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value in TITAN_LAYER_ALIASES) {
+    return TITAN_LAYER_ALIASES[value];
+  }
+
+  return mockSecurityLayers.some((layer) => layer.name === value) ? (value as TitanLayer) : null;
+}
+
+function detectNitroHealth(source: YieldBoostHealthResponse | YieldBoostLayerStatusResponse) {
+  const candidates = [
+    ...Object.values(source.infrastructure || {}),
+    ...Object.values(source.layers || {}),
+  ];
+  const nitroMatch = candidates.find((component) => /nitro/i.test(component.detail));
+  if (nitroMatch) {
+    return nitroMatch;
+  }
+
+  return {
+    status: 'degraded' as const,
+    detail: 'AWS Nitro Enclaves are not exposed by the current wallet API lane.',
+  };
 }
 
 function inferActivityType(eventLabel: string, metadata: Record<string, unknown>): ActivityType {

@@ -1,18 +1,19 @@
 import type { ProofEvent, SecurityLayer } from '../types';
+import { TITAN_SECURITY_LAYERS } from './titanLayers';
 
 export const mockProofs: ProofEvent[] = [
   {
     id: 'proof-001',
-    layer: 'Integrity Auditor',
-    type: 'Transaction Integrity Check',
-    description: 'Transaction validated against known safe contract patterns.',
+    layer: 'Hallucination Blacklist',
+    type: 'Preflight Screening',
+    description: 'Request intent screened before the wallet action proceeded.',
     timestamp: new Date(Date.now() - 1000 * 60 * 32),
     status: 'verified',
     txHash: '0xf7a3c1e9b5d24680f3a7c1e9b5d24680',
   },
   {
     id: 'proof-002',
-    layer: 'ZK Layer',
+    layer: 'Zero-Knowledge Proof Layer',
     type: 'Zero-Knowledge Proof Generated',
     description: 'Private balance proof generated without revealing wallet state.',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
@@ -20,7 +21,7 @@ export const mockProofs: ProofEvent[] = [
   },
   {
     id: 'proof-003',
-    layer: 'Proof Anchor',
+    layer: 'ProofRegistry Anchor',
     type: 'On-chain Proof Anchored',
     description: 'Activity proof committed to on-chain registry.',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3),
@@ -37,9 +38,9 @@ export const mockProofs: ProofEvent[] = [
   },
   {
     id: 'proof-005',
-    layer: 'Secure Compute',
-    type: 'Secure Key Operation',
-    description: 'Private key operation executed in isolated compute context.',
+    layer: 'Secure Compute / TEE',
+    type: 'Secure Compute Lane',
+    description: 'Sensitive operation routed through the secure compute lane.',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8),
     status: 'verified',
   },
@@ -51,67 +52,24 @@ export const mockProofs: ProofEvent[] = [
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
     status: 'verified',
   },
+  {
+    id: 'proof-007',
+    layer: '0G Storage Proof Layer',
+    type: '0G Proof Receipt Stored',
+    description: 'Encrypted proof payload was written to the 0G-backed storage rail.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6),
+    status: 'active',
+  },
+  {
+    id: 'proof-008',
+    layer: 'Cross-Agent Neural Handshake',
+    type: 'Handshake Log Recorded',
+    description: 'Connection event recorded in the handshake journal.',
+    timestamp: new Date(Date.now() - 1000 * 60 * 90),
+    status: 'active',
+  },
 ];
 
-export const mockSecurityLayers: SecurityLayer[] = [
-  {
-    id: 'layer-1',
-    name: 'Integrity Auditor',
-    shortDesc: 'Validates every transaction against known-safe patterns before execution.',
-    description: 'The Integrity Auditor continuously monitors all transactions and smart contract interactions. It compares each action against a curated database of known safe and malicious patterns, blocking suspicious activity before it reaches your wallet.',
-    status: 'active',
-    icon: '🛡',
-    lastCheck: new Date(Date.now() - 1000 * 60 * 2),
-    eventsCount: 24,
-  },
-  {
-    id: 'layer-2',
-    name: 'Programmable Governance',
-    shortDesc: 'User-defined policies govern what your wallet can and cannot do.',
-    description: 'You set the rules. Programmable Governance lets you define spending limits, address allowlists, time-locked operations, and multi-step approval flows — all enforced on-chain without giving up self-custody.',
-    status: 'active',
-    icon: '⚖',
-    lastCheck: new Date(Date.now() - 1000 * 60 * 5),
-    eventsCount: 8,
-  },
-  {
-    id: 'layer-3',
-    name: 'ZK Layer',
-    shortDesc: 'Cryptographic proofs verify your actions without exposing your data.',
-    description: 'The ZK Layer generates zero-knowledge proofs for sensitive operations, allowing you to prove the validity of a transaction or identity claim without revealing the underlying data. Your privacy is preserved by mathematics.',
-    status: 'active',
-    icon: '◈',
-    lastCheck: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    eventsCount: 12,
-  },
-  {
-    id: 'layer-4',
-    name: 'Secure Compute',
-    shortDesc: 'Key operations run in an isolated, tamper-resistant environment.',
-    description: 'All private key operations and sensitive computations are executed within a Secure Compute context — isolated from the main browser environment to prevent key extraction, memory scraping, or side-channel attacks.',
-    status: 'active',
-    icon: '⬡',
-    lastCheck: new Date(Date.now() - 1000 * 60 * 30),
-    eventsCount: 31,
-  },
-  {
-    id: 'layer-5',
-    name: 'Proof Anchor',
-    shortDesc: 'Immutable on-chain records of your wallet\'s security activity.',
-    description: 'Proof Anchor commits cryptographic records of security-relevant events to a public blockchain. This creates an auditable, tamper-proof trail of your wallet\'s activity that you can verify at any time.',
-    status: 'active',
-    icon: '⚓',
-    lastCheck: new Date(Date.now() - 1000 * 60 * 60 * 3),
-    eventsCount: 6,
-  },
-  {
-    id: 'layer-6',
-    name: 'Sovereign Memory',
-    shortDesc: 'Your wallet\'s context and history are owned and verified by you.',
-    description: 'Sovereign Memory maintains a cryptographically signed record of your trusted apps, approved connections, and wallet history. Unlike cloud-based wallets, your data is yours — verifiable, portable, and not held by any third party.',
-    status: 'active',
-    icon: '⬤',
-    lastCheck: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    eventsCount: 3,
-  },
-];
+export const mockSecurityLayers: SecurityLayer[] = TITAN_SECURITY_LAYERS.map((layer) => ({
+  ...layer,
+}));

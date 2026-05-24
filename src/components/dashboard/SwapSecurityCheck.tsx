@@ -1,14 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useEffectEvent, useState } from 'react';
 import { AlertTriangle, ExternalLink, LoaderCircle, ShieldCheck } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
+import SecurityBadge from '../ui/SecurityBadge';
 import type { Token } from '../../types';
 import type { SwapRoute } from '../../services/swap';
-import { auditEvaluate, checkBlacklist } from '../../services/security';
+import { auditEvaluate, checkBlacklist, governanceEvaluate, handshakeLog, proofRun } from '../../services/security';
 import { getTitanApiKey } from '../../config/api';
 import { useWalletStore } from '../../store/useWalletStore';
 import { useNetworkStore } from '../../store/useNetworkStore';
+import { useTitanSecurity } from '../../hooks/useTitanSecurity';
+import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
+import { runNitroFortressOperation } from '../../services/nitro';
+import { createChallenge, seal } from '../../services/integrity';
+import { useWallet } from '../../hooks/useWallet';
 
 interface SwapSecurityCheckProps {
   isOpen: boolean;
@@ -29,16 +35,16 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
 }) => {
   const walletAddress = useWalletStore((state) => state.address);
   const environment = useNetworkStore((state) => state.environment);
+  const activeNetwork = useNetworkStore((state) => state.activeNetwork);
+  const { signTextMessage } = useWallet();
+  const { getLayer } = useTitanSecurity(isOpen);
   const [status, setStatus] = useState<'idle' | 'running' | 'passed' | 'failed'>('idle');
   const [message, setMessage] = useState('Ready to run TITAN pre-swap checks.');
+  const activeLayers = WALLET_ACTION_LAYERS.swap.map((layer) => getLayer(layer));
+  const signSwapChallenge = useEffectEvent(async (messageToSign: string) => signTextMessage(messageToSign));
+  const routeKey = `${route.provider}:${route.supported ? 'supported' : 'blocked'}:${route.url || route.reason || 'none'}`;
 
   useEffect(() => {
-    if (!isOpen) {
-      setStatus('idle');
-      setMessage('Ready to run TITAN pre-swap checks.');
-      return;
-    }
-
     let disposed = false;
 
     const runChecks = async () => {
@@ -87,9 +93,110 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           },
         });
 
+        if (disposed) {
+          return;
+        }
+
+        setMessage('Evaluating governance policy...');
+        const governance = await governanceEvaluate({
+          walletAddress: walletAddress || undefined,
+          recentRequestCount: Number.parseFloat(amount || '0') >= 1000 ? 3 : 1,
+        });
+        if (!governance.allowed) {
+          throw new Error('Governance policy blocked this swap review.');
+        }
+
+        if (disposed) {
+          return;
+        }
+
+        setMessage('Generating swap proof envelope...');
+        await proofRun({
+          commitment: {
+            wallet_address: walletAddress,
+            type: 'swap-review',
+            amount,
+            from_token: fromToken.symbol,
+            to_token: toToken.symbol,
+            provider: route.provider,
+            network: activeNetwork.name,
+          },
+        });
+
+        if (disposed) {
+          return;
+        }
+
+        setMessage('Escalating the swap review into the Nitro continuity rail...');
+        await runNitroFortressOperation({
+          operation: 'wallet_swap_review',
+          secret: summary.slice(0, 600),
+          operator: walletAddress || 'disconnected-wallet',
+        });
+
+        if (disposed) {
+          return;
+        }
+
+        if (walletAddress) {
+          setMessage('Sealing the swap review trail to 0G storage and registry...');
+          const challenge = await createChallenge({
+            operation: 'seal',
+            walletAddress,
+            network: environment,
+          });
+          const signature = await signSwapChallenge(challenge.message);
+          await seal({
+            walletAddress,
+            network: environment,
+            challengeId: challenge.challenge_id,
+            message: challenge.message,
+            signature,
+            plaintext: JSON.stringify({
+              action: 'swap-review',
+              wallet_address: walletAddress,
+              network: activeNetwork.name,
+              amount,
+              from_token: fromToken.symbol,
+              to_token: toToken.symbol,
+              provider: route.provider,
+              created_at: new Date().toISOString(),
+            }),
+            metadata: {
+              event_type: 'Swap Review',
+              description: `Reviewed ${amount || '0'} ${fromToken.symbol} to ${toToken.symbol} on ${route.provider}.`,
+              layer_name: 'ProofRegistry Anchor',
+              activity_type: 'swap',
+              from: walletAddress,
+              to: route.provider,
+              amount,
+              asset_symbol: fromToken.symbol,
+              network: activeNetwork.name,
+            },
+          });
+        }
+
+        if (disposed) {
+          return;
+        }
+
+        setMessage('Logging swap handshake trail...');
+        await handshakeLog({
+          subjectId: route.provider,
+          operation: 'swap-review',
+          walletAddress: walletAddress || undefined,
+          metadata: {
+            amount,
+            from_token: fromToken.symbol,
+            to_token: toToken.symbol,
+            provider: route.provider,
+            network: activeNetwork.name,
+          },
+        });
+
         if (!disposed) {
           setStatus('passed');
-          setMessage('Blacklist and audit checks passed. You can continue to the swap venue.');
+          setMessage('Swap rails passed: blacklist, audit, governance, proof, storage, handshake, and Nitro are ready.');
         }
       } catch (error) {
         if (!disposed) {
@@ -104,7 +211,21 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
     return () => {
       disposed = true;
     };
-  }, [amount, environment, fromToken, isOpen, route, toToken, walletAddress]);
+  }, [
+    activeNetwork.name,
+    amount,
+    environment,
+    fromToken.contractAddress,
+    fromToken.symbol,
+    isOpen,
+    routeKey,
+    route.provider,
+    route.reason,
+    route.supported,
+    toToken.contractAddress,
+    toToken.symbol,
+    walletAddress,
+  ]);
 
   const handleContinue = () => {
     if (!route.url) {
@@ -140,6 +261,12 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
             )}
             <p className="text-sm text-titan-subtext">{message}</p>
           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-1.5">
+          {activeLayers.map((layer) => (
+            <SecurityBadge key={layer.id} layer={layer} compact />
+          ))}
         </div>
 
         <div className="flex gap-2">

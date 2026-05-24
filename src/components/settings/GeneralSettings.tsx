@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { AlertTriangle, Copy, ExternalLink, Eye, EyeOff, KeyRound } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -8,6 +8,8 @@ import {
   getTitanApiKey,
   setStoredTitanApiKey,
 } from '../../config/api';
+import { handshakeLog } from '../../services/security';
+import { runNitroFortressOperation } from '../../services/nitro';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import { formatAddress } from '../../utils/cn';
@@ -20,15 +22,12 @@ const GeneralSettings: React.FC = () => {
   const walletName = useWalletStore((state) => state.walletName);
   const mnemonic = useWalletStore((state) => state.mnemonic);
   const privateKey = useWalletStore((state) => state.privateKey);
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(() => getTitanApiKey());
   const [saved, setSaved] = useState(false);
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [copiedField, setCopiedField] = useState<'mnemonic' | 'privateKey' | null>(null);
-
-  useEffect(() => {
-    setApiKey(getTitanApiKey());
-  }, []);
+  const [secretStatus, setSecretStatus] = useState<string | null>(null);
 
   const saveApiKey = () => {
     setStoredTitanApiKey(apiKey);
@@ -41,9 +40,67 @@ const GeneralSettings: React.FC = () => {
       return;
     }
 
+    try {
+      if (walletAddress && getTitanApiKey()) {
+        setSecretStatus(`Routing ${field === 'mnemonic' ? 'recovery phrase' : 'private key'} export through Nitro...`);
+        await runNitroFortressOperation({
+          operation: field === 'mnemonic' ? 'wallet_export_mnemonic' : 'wallet_export_private_key',
+          secret: `${field}:${walletAddress}:${activeNetwork.name}`,
+          operator: walletAddress,
+        });
+        await handshakeLog({
+          subjectId: walletAddress,
+          operation: field === 'mnemonic' ? 'export-mnemonic' : 'export-private-key',
+          walletAddress,
+          metadata: {
+            network: activeNetwork.name,
+            field,
+            mode: 'copy',
+          },
+        });
+        setSecretStatus(`${field === 'mnemonic' ? 'Recovery phrase' : 'Private key'} export logged.`);
+      }
+    } catch (error) {
+      setSecretStatus(error instanceof Error ? error.message : 'Secret export logging failed.');
+    }
+
     await navigator.clipboard.writeText(value);
     setCopiedField(field);
     window.setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const revealSecret = async (field: 'mnemonic' | 'privateKey') => {
+    const nextValue = field === 'mnemonic' ? !showMnemonic : !showPrivateKey;
+    try {
+      if (nextValue && walletAddress && getTitanApiKey()) {
+        setSecretStatus(`Routing ${field === 'mnemonic' ? 'recovery phrase' : 'private key'} reveal through Nitro...`);
+        await runNitroFortressOperation({
+          operation: field === 'mnemonic' ? 'wallet_reveal_mnemonic' : 'wallet_reveal_private_key',
+          secret: `${field}:${walletAddress}:${activeNetwork.name}`,
+          operator: walletAddress,
+        });
+        await handshakeLog({
+          subjectId: walletAddress,
+          operation: field === 'mnemonic' ? 'reveal-mnemonic' : 'reveal-private-key',
+          walletAddress,
+          metadata: {
+            network: activeNetwork.name,
+            field,
+            mode: 'reveal',
+          },
+        });
+        setSecretStatus(`${field === 'mnemonic' ? 'Recovery phrase' : 'Private key'} reveal logged.`);
+      }
+    } catch (error) {
+      setSecretStatus(error instanceof Error ? error.message : 'Secret reveal logging failed.');
+    }
+
+    if (field === 'mnemonic') {
+      setShowMnemonic(nextValue);
+      return;
+    }
+
+    setShowPrivateKey(nextValue);
   };
 
   return (
@@ -121,7 +178,7 @@ const GeneralSettings: React.FC = () => {
                 <p className="text-xs text-titan-subtext">Shown only if this session was created from or imported with a mnemonic.</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setShowMnemonic((value) => !value)} disabled={!mnemonic}>
+                <Button variant="secondary" size="sm" onClick={() => void revealSecret('mnemonic')} disabled={!mnemonic}>
                   {showMnemonic ? <EyeOff size={14} /> : <Eye size={14} />}
                   {showMnemonic ? 'Hide' : 'Reveal'}
                 </Button>
@@ -147,7 +204,7 @@ const GeneralSettings: React.FC = () => {
                 <p className="text-xs text-titan-subtext">Available for imported wallets and newly-created wallets while this browser session stays open.</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setShowPrivateKey((value) => !value)} disabled={!privateKey}>
+                <Button variant="secondary" size="sm" onClick={() => void revealSecret('privateKey')} disabled={!privateKey}>
                   {showPrivateKey ? <EyeOff size={14} /> : <Eye size={14} />}
                   {showPrivateKey ? 'Hide' : 'Reveal'}
                 </Button>
@@ -166,6 +223,11 @@ const GeneralSettings: React.FC = () => {
             </div>
           </div>
         </div>
+        {secretStatus ? (
+          <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-3 text-xs text-titan-subtext">
+            {secretStatus}
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">

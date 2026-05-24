@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import type { Network } from '../../types';
@@ -24,25 +24,12 @@ const AddNetworkModal: React.FC<AddNetworkModalProps> = ({
   onSave,
   initialNetwork,
 }) => {
-  const [name, setName] = useState('');
-  const [rpcUrl, setRpcUrl] = useState('');
-  const [chainId, setChainId] = useState('');
-  const [symbol, setSymbol] = useState('');
-  const [explorerUrl, setExplorerUrl] = useState('');
-  const [isTestnet, setIsTestnet] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    setName(initialNetwork?.name || '');
-    setRpcUrl(initialNetwork?.rpcUrl || '');
-    setChainId(initialNetwork ? String(initialNetwork.chainId) : '');
-    setSymbol(initialNetwork?.symbol || '');
-    setExplorerUrl(initialNetwork?.explorerUrl || '');
-    setIsTestnet(initialNetwork?.isTestnet || false);
-  }, [initialNetwork, isOpen]);
+  const [name, setName] = useState(() => initialNetwork?.name || '');
+  const [rpcUrl, setRpcUrl] = useState(() => initialNetwork?.rpcUrl || '');
+  const [chainId, setChainId] = useState(() => (initialNetwork ? String(initialNetwork.chainId) : ''));
+  const [symbol, setSymbol] = useState(() => initialNetwork?.symbol || '');
+  const [explorerUrl, setExplorerUrl] = useState(() => initialNetwork?.explorerUrl || '');
+  const [isTestnet, setIsTestnet] = useState(() => initialNetwork?.isTestnet || false);
 
   const handleSave = () => {
     onSave({

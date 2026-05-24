@@ -3,19 +3,21 @@ import DashboardHeader from '../components/layout/DashboardHeader';
 import Card, { CardHeader, CardTitle } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import SecurityBadge from '../components/ui/SecurityBadge';
-import { mockSecurityLayers } from '../data/mockProofs';
 import { formatTimeAgo } from '../utils/cn';
 import { ShieldCheck, AlertCircle, Clock } from 'lucide-react';
-import { getLayerStatus } from '../services/security';
+import { getHealth, getLayerStatus } from '../services/security';
 import { listRecords } from '../services/integrity';
 import { useWalletStore } from '../store/useWalletStore';
 import { useNetworkStore } from '../store/useNetworkStore';
 import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRecordsToProofs } from '../utils/integrity';
+import type { SecurityLayer } from '../types';
+import { TITAN_SECURITY_LAYERS } from '../data/titanLayers';
+import { getTitanApiKey } from '../config/api';
 
 const SecurityPage: React.FC = () => {
   const walletAddress = useWalletStore((state) => state.address);
   const environment = useNetworkStore((state) => state.environment);
-  const [layers, setLayers] = React.useState(mockSecurityLayers);
+  const [layers, setLayers] = React.useState<SecurityLayer[]>([]);
   const [proofs, setProofs] = React.useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
   const [liveMode, setLiveMode] = React.useState(false);
 
@@ -24,7 +26,7 @@ const SecurityPage: React.FC = () => {
 
     const hydrate = async () => {
       try {
-        const status = await getLayerStatus();
+        const status = getTitanApiKey() ? await getLayerStatus() : await getHealth();
         if (disposed) {
           return;
         }
@@ -33,12 +35,12 @@ const SecurityPage: React.FC = () => {
         setLiveMode(true);
       } catch {
         if (!disposed) {
-          setLayers(mockSecurityLayers);
+          setLayers([]);
           setLiveMode(false);
         }
       }
 
-      if (!walletAddress) {
+      if (!walletAddress || !getTitanApiKey()) {
         return;
       }
 
@@ -76,20 +78,28 @@ const SecurityPage: React.FC = () => {
           <div>
             <h1 className="text-2xl font-bold text-titan-text">Security Center</h1>
             <p className="text-sm text-titan-subtext mt-1">
-              {liveMode ? 'Live layer status is being read from the YieldBoost integrity stack.' : 'Live layer endpoints need an API key, so fallback proof data is shown.'}
+              {liveMode ? 'Live layer status is being read from the YieldBoost integrity stack.' : 'Live layer status is currently unavailable. No fallback mock layer data is shown.'}
             </p>
           </div>
-          <Badge variant="success" dot size="md">{activeLayerCount} / 6 Layers Active</Badge>
+          <Badge variant={liveMode ? 'success' : 'neutral'} dot size="md">
+            {liveMode ? `${activeLayerCount} / ${TITAN_SECURITY_LAYERS.length} Layers Active` : 'Layer status unavailable'}
+          </Badge>
         </div>
 
         {/* 6 layers grid */}
         <div>
           <h2 className="text-sm font-semibold text-titan-text mb-3">TITAN Security Architecture</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {layers.map((layer) => (
-              <SecurityBadge key={layer.id} layer={layer} />
-            ))}
-          </div>
+          {layers.length ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {layers.map((layer) => (
+                <SecurityBadge key={layer.id} layer={layer} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
+              No live layer snapshot is available right now.
+            </div>
+          )}
         </div>
 
         {/* Proof Timeline + Trusted Apps */}

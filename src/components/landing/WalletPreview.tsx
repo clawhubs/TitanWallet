@@ -104,7 +104,7 @@ const WalletPreview: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldCheck size={14} className="text-titan-success" />
-              <span className="text-[11px] font-semibold text-titan-success tracking-wide">6 Layers Active</span>
+              <span className="text-[11px] font-semibold text-titan-success tracking-wide">9 Wallet Rails</span>
             </div>
             
             <div 

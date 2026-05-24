@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../components/layout/DashboardHeader';
 import { ArrowUpRight, ArrowDownLeft, RefreshCw, ShieldCheck, Shield, Clock, Send } from 'lucide-react';
-import { useCountUp } from '../hooks/useCountUp';
 import PortfolioBar from '../components/dashboard/PortfolioBar';
 import { useBalance } from '../hooks/useBalance';
 import { useTokenStore } from '../store/useTokenStore';
@@ -19,6 +18,10 @@ import { listRecords } from '../services/integrity';
 import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRecordsToProofs } from '../utils/integrity';
 import SendTransactionModal from '../components/modals/SendTransactionModal';
 import ReceiveModal from '../components/modals/ReceiveModal';
+import { TITAN_SECURITY_LAYERS } from '../data/titanLayers';
+import { getTitanApiKey } from '../config/api';
+import ConnectAppModal from '../components/modals/ConnectAppModal';
+import SignMessageModal from '../components/modals/SignMessageModal';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,12 +30,13 @@ const DashboardPage: React.FC = () => {
   const [showSwapPanel, setShowSwapPanel] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [showSignModal, setShowSignModal] = useState(false);
   const [proofEvents, setProofEvents] = useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
   const [proofFeed, setProofFeed] = useState([
     { label: 'No integrity records yet', time: 'Create, sign, send, or swap to start a live trail.' },
   ]);
-  const [activeLayerCount, setActiveLayerCount] = useState(6);
-  const animatedBalance = useCountUp(24850.32, 1200);
+  const [activeLayerCount, setActiveLayerCount] = useState<number | null>(null);
   const walletAddress = useWalletStore((state) => state.address);
   const isConnected = useWalletStore((state) => state.isConnected);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
@@ -79,11 +83,11 @@ const DashboardPage: React.FC = () => {
         setActiveLayerCount(countActiveTitanLayers(liveLayers));
       } catch {
         if (!disposed) {
-          setActiveLayerCount(6);
+          setActiveLayerCount(null);
         }
       }
 
-      if (!walletAddress) {
+      if (!walletAddress || !getTitanApiKey()) {
         return;
       }
 
@@ -132,7 +136,7 @@ const DashboardPage: React.FC = () => {
       ? formatUSD(balanceUSD)
       : isConnected
         ? `${Number.parseFloat(balanceETH || '0').toFixed(4)} ${activeNetwork.symbol}`
-        : `$${animatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        : 'Wallet disconnected';
 
   const detectedTokenCount = displayedTokens.filter((token) => token.source === 'detected').length;
 
@@ -155,13 +159,13 @@ const DashboardPage: React.FC = () => {
                   {displayedBalance}
                 </h1>
                 <span className="text-[14px] font-semibold text-titan-success bg-titan-success/10 px-2.5 py-1 rounded-md flex items-center gap-1">
-                  <ArrowUpRight size={14} strokeWidth={2.5} /> {activeLayerCount}/6
+                  <ArrowUpRight size={14} strokeWidth={2.5} /> {activeLayerCount === null ? 'Live status unavailable' : `${activeLayerCount}/${TITAN_SECURITY_LAYERS.length}`}
                 </span>
               </div>
               <p className="mt-3 text-[13px] text-titan-subtext">
                 {walletAddress
                   ? `${activeNetwork.name} wallet ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}${balanceLoading ? ' • syncing balance' : ''}`
-                  : 'Connect or create a wallet to load live balances and proof records.'}
+                  : 'Import or create a wallet to load live balances and proof records.'}
               </p>
             </div>
             
@@ -228,6 +232,23 @@ const DashboardPage: React.FC = () => {
                 </Button>
                 <Button variant="primary" size="sm" onClick={() => setShowAddTokenModal(true)}>
                   Add Token
+                </Button>
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between mb-5 px-1">
+                <h2 className="text-[16px] font-bold text-white tracking-wide">Approval Flows</h2>
+                <span className="text-[12px] font-semibold text-titan-subtext px-2.5 py-1 bg-titan-surface rounded-md border border-titan-border">
+                  Connect + Sign
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button variant="secondary" className="justify-center" onClick={() => setShowConnectModal(true)}>
+                  Connect dApp
+                </Button>
+                <Button variant="secondary" className="justify-center" onClick={() => setShowSignModal(true)}>
+                  Sign Message
                 </Button>
               </div>
             </section>
@@ -313,10 +334,24 @@ const DashboardPage: React.FC = () => {
         </div>
       </main>
 
-      <AddTokenModal isOpen={showAddTokenModal} onClose={() => setShowAddTokenModal(false)} />
-      <SendTransactionModal isOpen={showSendModal} onClose={() => setShowSendModal(false)} />
-      <ReceiveModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} />
-      <SwapPanel isOpen={showSwapPanel} onClose={() => setShowSwapPanel(false)} />
+      {showAddTokenModal ? (
+        <AddTokenModal isOpen={showAddTokenModal} onClose={() => setShowAddTokenModal(false)} />
+      ) : null}
+      {showSendModal ? (
+        <SendTransactionModal isOpen={showSendModal} onClose={() => setShowSendModal(false)} />
+      ) : null}
+      {showReceiveModal ? (
+        <ReceiveModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} />
+      ) : null}
+      {showSwapPanel ? (
+        <SwapPanel isOpen={showSwapPanel} onClose={() => setShowSwapPanel(false)} />
+      ) : null}
+      {showConnectModal ? (
+        <ConnectAppModal isOpen={showConnectModal} onClose={() => setShowConnectModal(false)} />
+      ) : null}
+      {showSignModal ? (
+        <SignMessageModal isOpen={showSignModal} onClose={() => setShowSignModal(false)} />
+      ) : null}
     </div>
   );
 };

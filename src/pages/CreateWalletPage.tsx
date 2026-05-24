@@ -8,6 +8,8 @@ import { useNetworkStore } from '../store/useNetworkStore';
 import { createChallenge, seal } from '../services/integrity';
 import { signMessage as signWalletMessage } from '../services/wallet';
 import { getTitanApiKey } from '../config/api';
+import { runNitroFortressOperation } from '../services/nitro';
+import { WALLET_ACTION_LAYERS } from '../data/walletActionLayers';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -52,6 +54,11 @@ const CreateWalletPage: React.FC = () => {
 
     try {
       setCreationProofStatus('sealing');
+      await runNitroFortressOperation({
+        operation: input.source === 'create' ? 'wallet_create' : 'wallet_import',
+        secret: `${input.address}|${input.eventType}|${environment}`.slice(0, 600),
+        operator: input.address,
+      });
       const challenge = await createChallenge({
         operation: 'seal',
         walletAddress: input.address,
@@ -291,8 +298,8 @@ const CreateWalletPage: React.FC = () => {
                 <div className="flex items-start gap-3 p-3 bg-titan-surface rounded-xl border border-titan-border">
                   <ShieldCheck size={16} className="text-titan-success mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-xs font-medium text-titan-text">6-Layer protection active from creation</p>
-                    <p className="text-xs text-titan-subtext mt-0.5">TITAN security layers initialize as soon as your wallet is created.</p>
+                    <p className="text-xs font-medium text-titan-text">Wallet rails initialize from creation</p>
+                    <p className="text-xs text-titan-subtext mt-0.5">Secure Compute / TEE, Sovereign Memory, and Nitro are activated as soon as the wallet is created.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-titan-muted/20 rounded-xl border border-titan-border">
@@ -377,9 +384,9 @@ const CreateWalletPage: React.FC = () => {
               <p className="text-sm text-titan-subtext mb-2">
                 {isImportMode
                   ? 'Your wallet is ready in this browser session. You can reveal the recovery phrase or private key from Settings while the session stays open.'
-                  : 'Your TITAN Wallet is ready. All 6 security layers are active.'}
+                  : 'Your TITAN Wallet is ready. The wallet security rails are active for this session.'}
               </p>
-              <Badge variant="success" dot className="mb-6">6 / 6 Layers Active</Badge>
+              <Badge variant="success" dot className="mb-6">Wallet rails ready</Badge>
               {creationProofStatus === 'sealed' ? (
                 <p className="mb-4 text-xs text-titan-success">Wallet proof sealed successfully: {creationProofId}</p>
               ) : null}
@@ -391,7 +398,16 @@ const CreateWalletPage: React.FC = () => {
               ) : null}
 
               <div className="grid grid-cols-2 gap-2 mb-6 text-left">
-                {['Integrity Auditor', 'Programmable Governance', 'ZK Layer', 'Secure Compute', 'Proof Anchor', 'Sovereign Memory'].map(l => (
+                {[
+                  ...(isImportMode ? WALLET_ACTION_LAYERS['import-wallet'] : WALLET_ACTION_LAYERS['create-wallet']),
+                  ...(creationProofStatus === 'sealed'
+                    ? ([
+                        '0G Storage Proof Layer',
+                        'Zero-Knowledge Proof Layer',
+                        'ProofRegistry Anchor',
+                      ] as const)
+                    : []),
+                ].map((l) => (
                   <div key={l} className="flex items-center gap-2 p-2 bg-titan-success/5 rounded-lg border border-titan-success/10">
                     <ShieldCheck size={12} className="text-titan-success flex-shrink-0" />
                     <span className="text-xs text-titan-text">{l}</span>
