@@ -1,0 +1,181 @@
+{
+  "contractName": "WalletSecurityRegistry",
+  "address": "0x56D8A81b1F034818bB416FBAeC55f0286F32AfA9",
+  "network": "testnet",
+  "chainId": 16602,
+  "deployer": "0x8a3c7524Aaed081825aC88eC7f4cCECFc583ee7D",
+  "transactionHash": "0x60dd4f06d31629aa77fcd625d2846636cb7983449d61afc945ff62259f9217fc",
+  "explorerUrl": "https://chainscan-galileo.0g.ai/address/0x56D8A81b1F034818bB416FBAeC55f0286F32AfA9",
+  "deployedAt": "2026-05-24T15:50:31.608Z",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "logId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "actionHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "action",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "storageId",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "sourceTxHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "integrityHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "context",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "timestamp",
+          "type": "uint64"
+        }
+      ],
+      "name": "WalletSecurityLogged",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "logId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getRecord",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            },
+            {
+              "internalType": "string",
+              "name": "action",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "storageId",
+              "type": "string"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "sourceTxHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "integrityHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "string",
+              "name": "context",
+              "type": "string"
+            },
+            {
+              "internalType": "uint64",
+              "name": "timestamp",
+              "type": "uint64"
+            }
+          ],
+          "internalType": "struct WalletSecurityRegistry.WalletSecurityRecord",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "recordCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "action",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "storageId",
+          "type": "string"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "sourceTxHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "integrityHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "context",
+          "type": "string"
+        }
+      ],
+      "name": "recordWalletSecurity",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "logId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
+}

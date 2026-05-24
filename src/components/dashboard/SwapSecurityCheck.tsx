@@ -15,7 +15,7 @@ import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { createChallenge, seal } from '../../services/integrity';
 import { useWallet } from '../../hooks/useWallet';
-import { anchorSealedProofOnChain, canAnchorProofOnNetwork } from '../../services/proofRegistry';
+import { anchorWalletSecurityLog, canAnchorSecurityLogsOnNetwork } from '../../services/securityLogRegistry';
 
 interface SwapSecurityCheckProps {
   isOpen: boolean;
@@ -41,7 +41,7 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
   const { getLayer } = useTitanSecurity(isOpen);
   const [status, setStatus] = useState<'idle' | 'running' | 'passed' | 'failed'>('idle');
   const [message, setMessage] = useState('Ready to run TITAN pre-swap checks.');
-  const [proofRegistryExplorerUrl, setProofRegistryExplorerUrl] = useState<string | null>(null);
+  const [securityLogExplorerUrl, setSecurityLogExplorerUrl] = useState<string | null>(null);
   const activeLayers = WALLET_ACTION_LAYERS.swap.map((layer) => getLayer(layer));
   const signSwapChallenge = useEffectEvent(async (messageToSign: string) => signTextMessage(messageToSign));
   const routeKey = `${route.provider}:${route.supported ? 'supported' : 'blocked'}:${route.url || route.reason || 'none'}`;
@@ -50,7 +50,7 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
     let disposed = false;
 
     const runChecks = async () => {
-      setProofRegistryExplorerUrl(null);
+      setSecurityLogExplorerUrl(null);
 
       if (!route.supported) {
         setStatus('failed');
@@ -164,17 +164,18 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
               },
             });
 
-            if (privateKey && canAnchorProofOnNetwork(activeNetwork)) {
-              const anchor = await anchorSealedProofOnChain({
+            if (privateKey && canAnchorSecurityLogsOnNetwork(activeNetwork)) {
+              const anchor = await anchorWalletSecurityLog({
                 network: activeNetwork,
                 privateKey,
                 seal: sealResult,
-                fallbackTxHash: sealResult.transaction_hash || sealResult.storage_tx_hash || sealResult.storage_id,
-                cidHint: sealResult.storage_id,
+                action: 'swap-review',
+                sourceTxHash: sealResult.transaction_hash || sealResult.storage_tx_hash || sealResult.storage_id,
+                context: `swap-review|${activeNetwork.name}|${walletAddress}|${amount || '0'} ${fromToken.symbol}|${toToken.symbol}|${route.provider}`,
               });
-              anchorExplorerUrl = anchor.proofRegistryExplorerUrl;
+              anchorExplorerUrl = anchor.explorerUrl;
               if (!disposed) {
-                setProofRegistryExplorerUrl(anchorExplorerUrl);
+                setSecurityLogExplorerUrl(anchorExplorerUrl);
               }
             }
           } catch {
@@ -205,7 +206,7 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           setStatus('passed');
           setMessage(
             anchorExplorerUrl
-              ? 'Swap rails passed and ProofRegistry security logs are ready.'
+              ? 'Swap rails passed and TITAN security logs are ready.'
               : 'Swap rails passed: audit, military-grade execution, governance, proof, storage, and handshake are ready.',
           );
         }
@@ -281,11 +282,11 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
         </div>
 
         <div className="flex gap-2">
-          {proofRegistryExplorerUrl ? (
+          {securityLogExplorerUrl ? (
             <Button
               variant="secondary"
               className="flex-1"
-              onClick={() => window.open(proofRegistryExplorerUrl, '_blank', 'noopener,noreferrer')}
+              onClick={() => window.open(securityLogExplorerUrl, '_blank', 'noopener,noreferrer')}
             >
               <ExternalLink size={15} /> View Logs
             </Button>

@@ -16,7 +16,7 @@ import { formatAddress } from '../../utils/cn';
 import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 import { addLocalWalletEvent } from '../../services/localActivity';
-import { anchorSealedProofOnChain, canAnchorProofOnNetwork } from '../../services/proofRegistry';
+import { anchorWalletSecurityLog, canAnchorSecurityLogsOnNetwork } from '../../services/securityLogRegistry';
 
 interface SendTransactionModalProps {
   isOpen: boolean;
@@ -65,9 +65,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
   const [signedTransaction, setSignedTransaction] = useState<string | null>(null);
   const [receiptState, setReceiptState] = useState<ReceiptState>('idle');
   const [receiptBlockNumber, setReceiptBlockNumber] = useState<number | null>(null);
-  const [proofRegistryTxHash, setProofRegistryTxHash] = useState<string | null>(null);
-  const [proofRegistryExplorerUrl, setProofRegistryExplorerUrl] = useState<string | null>(null);
-  const [proofRegistryProofId, setProofRegistryProofId] = useState<string | null>(null);
+  const [securityLogTxHash, setSecurityLogTxHash] = useState<string | null>(null);
+  const [securityLogExplorerUrl, setSecurityLogExplorerUrl] = useState<string | null>(null);
+  const [securityLogId, setSecurityLogId] = useState<string | null>(null);
 
   const securityRows: SecurityCheckRow[] = [
     {
@@ -170,7 +170,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
 
   const apiNetwork = activeNetwork.isTestnet ? 'testnet' : 'mainnet';
   const txExplorerUrl = txHash ? `${activeNetwork.explorerUrl}/tx/${txHash}` : null;
-  const primaryExplorerUrl = proofRegistryExplorerUrl || txExplorerUrl;
+  const primaryExplorerUrl = securityLogExplorerUrl || txExplorerUrl;
   const visibleQuote = walletAddress && isValidRecipient && isValidAmount ? quote : null;
   const canSubmit =
     Boolean(walletAddress) &&
@@ -248,9 +248,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     setSignedTransaction(null);
     setReceiptState('idle');
     setReceiptBlockNumber(null);
-    setProofRegistryTxHash(null);
-    setProofRegistryExplorerUrl(null);
-    setProofRegistryProofId(null);
+    setSecurityLogTxHash(null);
+    setSecurityLogExplorerUrl(null);
+    setSecurityLogId(null);
     setQuote(null);
     setQuoteError(null);
   };
@@ -264,9 +264,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     setSignedTransaction(null);
     setReceiptState('idle');
     setReceiptBlockNumber(null);
-    setProofRegistryTxHash(null);
-    setProofRegistryExplorerUrl(null);
-    setProofRegistryProofId(null);
+    setSecurityLogTxHash(null);
+    setSecurityLogExplorerUrl(null);
+    setSecurityLogId(null);
     setQuote(null);
     setQuoteError(null);
   };
@@ -295,9 +295,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       setSignedTransaction(null);
       setReceiptState('idle');
       setReceiptBlockNumber(null);
-      setProofRegistryTxHash(null);
-      setProofRegistryExplorerUrl(null);
-      setProofRegistryProofId(null);
+      setSecurityLogTxHash(null);
+      setSecurityLogExplorerUrl(null);
+      setSecurityLogId(null);
       setChecks(EMPTY_CHECKS);
 
       setCheckState('audit', 'running', 'Building a transfer audit snapshot...');
@@ -436,25 +436,26 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       }
 
       let anchorResult = null;
-      if (sealResult && canAnchorProofOnNetwork(activeNetwork) && privateKey) {
+      if (sealResult && canAnchorSecurityLogsOnNetwork(activeNetwork) && privateKey) {
         try {
-          setCheckState('proof', 'running', 'Publishing ProofRegistry security logs on-chain...');
-          anchorResult = await anchorSealedProofOnChain({
+          setCheckState('proof', 'running', 'Publishing TITAN security logs on-chain...');
+          anchorResult = await anchorWalletSecurityLog({
             network: activeNetwork,
             privateKey,
             seal: sealResult,
-            fallbackTxHash: sent.hash,
-            cidHint: sealResult.storage_id,
+            action: 'send',
+            sourceTxHash: sent.hash,
+            context: `send|${activeNetwork.name}|${walletAddress}|${to.trim()}|${amount} ${activeNetwork.symbol}`,
           });
-          setProofRegistryTxHash(anchorResult.proofRegistryTxHash);
-          setProofRegistryExplorerUrl(anchorResult.proofRegistryExplorerUrl);
-          setProofRegistryProofId(anchorResult.proofId);
-          setCheckState('proof', 'passed', 'ProofRegistry security logs recorded on-chain.');
+          setSecurityLogTxHash(anchorResult.txHash);
+          setSecurityLogExplorerUrl(anchorResult.explorerUrl);
+          setSecurityLogId(anchorResult.logId);
+          setCheckState('proof', 'passed', 'TITAN security logs recorded on-chain.');
         } catch (error) {
           setCheckState(
             'proof',
             'warning',
-            error instanceof Error ? error.message : 'Transfer sent, but ProofRegistry logs are not recorded yet.',
+            error instanceof Error ? error.message : 'Transfer sent, but TITAN security logs are not recorded yet.',
           );
         }
       } else if (sealResult) {
@@ -486,19 +487,19 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
         proofs: WALLET_ACTION_LAYERS.send.map((layer, index) => ({
           id: `local-proof-${sent.hash}-${index}`,
           layer,
-          type: layer === 'ProofRegistry Anchor' && anchorResult?.proofId
-            ? `ProofRecorded #${anchorResult.proofId}`
+          type: layer === 'ProofRegistry Anchor' && anchorResult?.logId
+            ? `WalletSecurityLogged #${anchorResult.logId}`
             : `${layer} Verified`,
           description:
-            layer === 'ProofRegistry Anchor' && anchorResult?.proofRegistryTxHash
+            layer === 'ProofRegistry Anchor' && anchorResult?.txHash
               ? `Security logs recorded on-chain for ${amount} ${activeNetwork.symbol} transfer.`
               : `TITAN confirmed ${layer} for ${amount} ${activeNetwork.symbol} transfer on ${activeNetwork.name}.`,
           timestamp: confirmedAt,
           status: 'verified',
-          txHash: layer === 'ProofRegistry Anchor' ? anchorResult?.proofRegistryTxHash || sent.hash : sent.hash,
+          txHash: layer === 'ProofRegistry Anchor' ? anchorResult?.txHash || sent.hash : sent.hash,
           explorerUrl:
             layer === 'ProofRegistry Anchor'
-              ? anchorResult?.proofRegistryExplorerUrl || `${activeNetwork.explorerUrl}/tx/${sent.hash}`
+              ? anchorResult?.explorerUrl || `${activeNetwork.explorerUrl}/tx/${sent.hash}`
               : `${activeNetwork.explorerUrl}/tx/${sent.hash}`,
           proofStorageId: sealResult?.storage_id || `local-proof-${sent.hash}-${index}`,
         })),
@@ -515,11 +516,11 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
             time: confirmedAt,
             level: 'success',
           },
-          ...(anchorResult?.proofRegistryTxHash
+          ...(anchorResult?.txHash
             ? [
                 {
-                  type: 'ProofRegistry Anchor',
-                  desc: `Security logs emitted on-chain in proof ${anchorResult.proofId || 'pending id'}.`,
+                  type: 'Security Log Anchor',
+                  desc: `Security logs emitted on-chain in log ${anchorResult.logId || 'pending id'}.`,
                   time: confirmedAt,
                   level: 'success' as const,
                 },
@@ -712,21 +713,21 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
                 </a>
               ) : null}
             </div>
-            {proofRegistryTxHash ? (
+            {securityLogTxHash ? (
               <div className="mt-3 border-t border-titan-success/20 pt-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-white">
-                      ProofRegistry security logs
+                      TITAN security logs
                     </p>
-                    <p className="mt-1 break-all font-mono text-xs text-titan-subtext">{proofRegistryTxHash}</p>
-                    {proofRegistryProofId ? (
-                      <p className="mt-2 text-xs text-titan-subtext">Proof ID #{proofRegistryProofId}</p>
+                    <p className="mt-1 break-all font-mono text-xs text-titan-subtext">{securityLogTxHash}</p>
+                    {securityLogId ? (
+                      <p className="mt-2 text-xs text-titan-subtext">Log ID #{securityLogId}</p>
                     ) : null}
                   </div>
-                  {proofRegistryExplorerUrl ? (
+                  {securityLogExplorerUrl ? (
                     <a
-                      href={proofRegistryExplorerUrl}
+                      href={securityLogExplorerUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 text-xs font-medium text-titan-accent hover:text-white"
@@ -760,7 +761,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           >
             {txHash ? (
               <>
-                <ExternalLink size={15} /> {proofRegistryExplorerUrl ? 'Open Proof Logs' : 'Open Explorer'}
+                <ExternalLink size={15} /> {securityLogExplorerUrl ? 'Open Security Logs' : 'Open Explorer'}
               </>
             ) : (
               <>
