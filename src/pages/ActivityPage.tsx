@@ -3,8 +3,8 @@ import DashboardHeader from '../components/layout/DashboardHeader';
 import Card, { CardHeader, CardTitle } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import ActivityRow from '../components/ui/ActivityRow';
-import { ShieldCheck, AlertCircle, Clock, Filter } from 'lucide-react';
-import { formatTimeAgo } from '../utils/cn';
+import { ShieldCheck, AlertCircle, Clock, ExternalLink, Filter } from 'lucide-react';
+import { formatHash, formatTimeAgo } from '../utils/cn';
 import { cn } from '../utils/cn';
 import { listRecords } from '../services/integrity';
 import { useNetworkStore } from '../store/useNetworkStore';
@@ -207,8 +207,15 @@ const ActivityPage: React.FC = () => {
                         <p className="text-sm font-semibold text-titan-text">{proof.type}</p>
                         <p className="text-xs text-titan-accent/80 mt-0.5">{proof.layer}</p>
                         <p className="text-xs text-titan-subtext mt-1 leading-relaxed">{proof.description}</p>
+                        {proof.proofStorageId && (
+                          <p className="text-xs font-mono text-titan-subtext/60 mt-1">
+                            Proof ID {formatHash(proof.proofStorageId, 10)}
+                          </p>
+                        )}
                         {proof.txHash && (
-                          <p className="text-xs font-mono text-titan-subtext/50 mt-1">{proof.txHash}</p>
+                          <p className="text-xs font-mono text-titan-subtext/50 mt-1">
+                            Anchor {formatHash(proof.txHash, 10)}
+                          </p>
                         )}
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -216,6 +223,17 @@ const ActivityPage: React.FC = () => {
                           {proof.status}
                         </Badge>
                         <p className="text-xs text-titan-subtext mt-1">{formatTimeAgo(proof.timestamp)}</p>
+                        {proof.explorerUrl && (
+                          <a
+                            href={proof.explorerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex items-center gap-1 text-xs text-titan-accent hover:text-titan-accent/80"
+                          >
+                            Open proof
+                            <ExternalLink size={11} />
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>

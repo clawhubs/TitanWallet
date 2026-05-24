@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, ArrowDownLeft, RefreshCw, CheckCircle2, Clock, XCircle, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, RefreshCw, CheckCircle2, Clock, ExternalLink, XCircle, ShieldCheck } from 'lucide-react';
 import type { Activity } from '../../types';
 import { formatUSD, formatTimeAgo, formatHash } from '../../utils/cn';
 import { cn } from '../../utils/cn';
@@ -47,6 +47,21 @@ const ActivityRow: React.FC<ActivityRowProps> = ({ activity, onClick }) => {
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs text-titan-subtext font-mono">{formatHash(activity.hash)}</span>
+            {activity.explorerUrl && (
+              <>
+                <span className="text-xs text-titan-subtext/50">·</span>
+                <a
+                  href={activity.explorerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-titan-accent hover:text-titan-accent/80"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  Explorer
+                  <ExternalLink size={11} />
+                </a>
+              </>
+            )}
             <span className="text-xs text-titan-subtext/50">·</span>
             <span className="text-xs text-titan-subtext">{formatTimeAgo(activity.timestamp)}</span>
           </div>

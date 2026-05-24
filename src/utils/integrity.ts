@@ -85,6 +85,9 @@ export function mapIntegrityRecordsToProofs(items?: YieldBoostVaultListItem[] | 
       timestamp: new Date(item.created_at),
       status: item.last_unsealed_at ? 'active' : 'verified',
       txHash: item.anchor_tx_hash || item.storage_tx_hash || item.transaction_hash || undefined,
+      explorerUrl: item.anchor_explorer_url || item.storage_explorer_url || undefined,
+      proofStorageId: item.storage_id,
+      integrityHash: item.integrity_hash,
     };
   });
 }
@@ -136,6 +139,7 @@ export function mapIntegrityRecordsToActivity(items?: YieldBoostVaultListItem[] 
       from: item.wallet_address,
       to: counterparty,
       hash: item.transaction_hash || item.anchor_tx_hash || item.storage_tx_hash || item.integrity_hash,
+      explorerUrl: item.anchor_explorer_url || item.storage_explorer_url || undefined,
       timestamp: new Date(item.created_at),
       network: item.network,
       fee: typeof metadata.fee === 'string' ? metadata.fee : '0',

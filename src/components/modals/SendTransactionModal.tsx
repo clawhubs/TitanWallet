@@ -340,6 +340,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           from: walletAddress,
           to: to.trim(),
           hash: sent.hash,
+          explorerUrl: `${activeNetwork.explorerUrl}/tx/${sent.hash}`,
           timestamp: confirmedAt,
           network: activeNetwork.name,
           fee: quote?.estimatedFeeNative || '0',
@@ -352,6 +353,8 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           timestamp: confirmedAt,
           status: 'verified',
           txHash: sent.hash,
+          explorerUrl: `${activeNetwork.explorerUrl}/tx/${sent.hash}`,
+          proofStorageId: `local-proof-${sent.hash}-${index}`,
         })),
         securityEvents: [
           {

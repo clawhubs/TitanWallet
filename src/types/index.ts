@@ -28,6 +28,7 @@ export interface Activity {
   from: string;
   to: string;
   hash: string;
+  explorerUrl?: string;
   timestamp: Date;
   network: string;
   fee: string;
@@ -42,6 +43,9 @@ export interface ProofEvent {
   timestamp: Date;
   status: 'verified' | 'pending' | 'active';
   txHash?: string;
+  explorerUrl?: string;
+  proofStorageId?: string;
+  integrityHash?: string;
 }
 
 // TITAN Security Layers

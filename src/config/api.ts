@@ -4,7 +4,7 @@ const API_KEY_STORAGE_KEY = 'titan-wallet-api-key';
 const TITAN_RUNTIME_ORIGIN = typeof window !== 'undefined' ? window.location.origin : '';
 
 export const TITAN_API_BASE_URL =
-  import.meta.env.VITE_TITAN_API_BASE_URL?.trim() || 'https://api.yieldboostai.xyz';
+  import.meta.env.VITE_TITAN_API_BASE_URL?.trim() || (TITAN_RUNTIME_ORIGIN ? `${TITAN_RUNTIME_ORIGIN}/api` : 'https://api.yieldboostai.xyz');
 
 export const TITAN_MILITARY_GRADE_BASE_URL =
   import.meta.env.VITE_TITAN_MILITARY_GRADE_BASE_URL?.trim() || TITAN_RUNTIME_ORIGIN;
@@ -33,8 +33,16 @@ export function getTitanApiKey() {
   return getStoredTitanApiKey() || TITAN_DEFAULT_API_KEY;
 }
 
+export function isTitanServerProxyEnabled() {
+  if (!TITAN_RUNTIME_ORIGIN) {
+    return false;
+  }
+
+  return TITAN_API_BASE_URL === '/api' || TITAN_API_BASE_URL.startsWith(`${TITAN_RUNTIME_ORIGIN}/api`);
+}
+
 export function hasTitanSecurityAccess() {
-  return Boolean(getTitanApiKey());
+  return Boolean(getTitanApiKey()) || isTitanServerProxyEnabled();
 }
 
 export function setStoredTitanApiKey(apiKey: string) {

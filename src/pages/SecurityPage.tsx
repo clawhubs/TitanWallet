@@ -3,8 +3,8 @@ import DashboardHeader from '../components/layout/DashboardHeader';
 import Card, { CardHeader, CardTitle } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import SecurityBadge from '../components/ui/SecurityBadge';
-import { formatTimeAgo } from '../utils/cn';
-import { ShieldCheck, AlertCircle, Clock } from 'lucide-react';
+import { formatHash, formatTimeAgo } from '../utils/cn';
+import { ShieldCheck, AlertCircle, Clock, ExternalLink } from 'lucide-react';
 import { getHealth, getLayerStatus } from '../services/security';
 import { listRecords } from '../services/integrity';
 import { runMilitaryGradeOperation, type MilitaryGradeLayerReceipt } from '../services/militaryGrade';
@@ -220,8 +220,26 @@ const SecurityPage: React.FC = () => {
                         <p className="text-sm font-medium text-titan-text leading-snug">{proof.type}</p>
                         <p className="text-xs text-titan-accent/80 mt-0.5">{proof.layer}</p>
                         <p className="text-xs text-titan-subtext mt-0.5 leading-relaxed">{proof.description}</p>
+                        {proof.proofStorageId && (
+                          <p className="text-xs font-mono text-titan-subtext/60 mt-1">
+                            Proof ID {formatHash(proof.proofStorageId, 10)}
+                          </p>
+                        )}
                         {proof.txHash && (
-                          <p className="text-xs font-mono text-titan-subtext/60 mt-1">{proof.txHash.slice(0, 20)}...</p>
+                          <p className="text-xs font-mono text-titan-subtext/60 mt-1">
+                            Anchor {formatHash(proof.txHash, 10)}
+                          </p>
+                        )}
+                        {proof.explorerUrl && (
+                          <a
+                            href={proof.explorerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-2 inline-flex items-center gap-1 text-xs text-titan-accent hover:text-titan-accent/80"
+                          >
+                            Open proof
+                            <ExternalLink size={11} />
+                          </a>
                         )}
                       </div>
                       <span className="text-xs text-titan-subtext flex-shrink-0">{formatTimeAgo(proof.timestamp)}</span>
