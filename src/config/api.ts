@@ -1,9 +1,13 @@
 export type YieldBoostEnvironment = 'testnet' | 'mainnet';
 
 const API_KEY_STORAGE_KEY = 'titan-wallet-api-key';
+const TITAN_RUNTIME_ORIGIN = typeof window !== 'undefined' ? window.location.origin : '';
 
 export const TITAN_API_BASE_URL =
   import.meta.env.VITE_TITAN_API_BASE_URL?.trim() || 'https://api.yieldboostai.xyz';
+
+export const TITAN_MILITARY_GRADE_BASE_URL =
+  import.meta.env.VITE_TITAN_MILITARY_GRADE_BASE_URL?.trim() || TITAN_RUNTIME_ORIGIN;
 
 export const TITAN_DEV_PORTAL_URL =
   import.meta.env.VITE_TITAN_DEV_PORTAL_URL?.trim() || 'https://dev.yieldboostai.xyz';
@@ -27,6 +31,10 @@ export function getStoredTitanApiKey() {
 
 export function getTitanApiKey() {
   return getStoredTitanApiKey() || TITAN_DEFAULT_API_KEY;
+}
+
+export function hasTitanSecurityAccess() {
+  return Boolean(getTitanApiKey());
 }
 
 export function setStoredTitanApiKey(apiKey: string) {

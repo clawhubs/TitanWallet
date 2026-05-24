@@ -7,8 +7,8 @@ import { useWallet } from '../hooks/useWallet';
 import { useNetworkStore } from '../store/useNetworkStore';
 import { createChallenge, seal } from '../services/integrity';
 import { signMessage as signWalletMessage } from '../services/wallet';
-import { getTitanApiKey } from '../config/api';
-import { runNitroFortressOperation } from '../services/nitro';
+import { hasTitanSecurityAccess } from '../config/api';
+import { runMilitaryGradeOperation } from '../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../data/walletActionLayers';
 
 type Step = 1 | 2 | 3 | 4;
@@ -47,17 +47,27 @@ const CreateWalletPage: React.FC = () => {
     description: string;
     source: 'create' | 'import';
   }) => {
-    if (!getTitanApiKey()) {
+    if (!hasTitanSecurityAccess()) {
       setCreationProofStatus('skipped');
       return;
     }
 
     try {
       setCreationProofStatus('sealing');
-      await runNitroFortressOperation({
-        operation: input.source === 'create' ? 'wallet_create' : 'wallet_import',
-        secret: `${input.address}|${input.eventType}|${environment}`.slice(0, 600),
-        operator: input.address,
+      await runMilitaryGradeOperation({
+        action: input.source === 'create' ? 'create-wallet' : 'import-wallet',
+        walletAddress: input.address,
+        network: environment,
+        intent:
+          input.source === 'create'
+            ? 'Protect a new wallet creation flow inside the TITAN military-grade lane.'
+            : 'Protect a wallet import flow inside the TITAN military-grade lane.',
+        metadata: {
+          event_type: input.eventType,
+          description: input.description,
+          wallet_name: name || null,
+          source: input.source,
+        },
       });
       const challenge = await createChallenge({
         operation: 'seal',

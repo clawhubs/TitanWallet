@@ -5,11 +5,13 @@ import Badge from '../ui/Badge';
 import {
   TITAN_API_BASE_URL,
   TITAN_DEV_PORTAL_URL,
+  TITAN_MILITARY_GRADE_BASE_URL,
   getTitanApiKey,
+  hasTitanSecurityAccess,
   setStoredTitanApiKey,
 } from '../../config/api';
 import { handshakeLog } from '../../services/security';
-import { runNitroFortressOperation } from '../../services/nitro';
+import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import { formatAddress } from '../../utils/cn';
@@ -41,12 +43,22 @@ const GeneralSettings: React.FC = () => {
     }
 
     try {
-      if (walletAddress && getTitanApiKey()) {
-        setSecretStatus(`Routing ${field === 'mnemonic' ? 'recovery phrase' : 'private key'} export through Nitro...`);
-        await runNitroFortressOperation({
-          operation: field === 'mnemonic' ? 'wallet_export_mnemonic' : 'wallet_export_private_key',
-          secret: `${field}:${walletAddress}:${activeNetwork.name}`,
-          operator: walletAddress,
+      if (walletAddress && hasTitanSecurityAccess()) {
+        setSecretStatus(`Routing ${field === 'mnemonic' ? 'recovery phrase' : 'private key'} export through the TITAN military-grade rail...`);
+        await runMilitaryGradeOperation({
+          action: 'export-secret',
+          walletAddress,
+          network: activeNetwork.name,
+          chainId: activeNetwork.chainId,
+          intent:
+            field === 'mnemonic'
+              ? 'Protect a recovery phrase copy action inside the TITAN military-grade lane.'
+              : 'Protect a private key copy action inside the TITAN military-grade lane.',
+          metadata: {
+            field,
+            mode: 'copy',
+            wallet_name: walletName || null,
+          },
         });
         await handshakeLog({
           subjectId: walletAddress,
@@ -72,12 +84,22 @@ const GeneralSettings: React.FC = () => {
   const revealSecret = async (field: 'mnemonic' | 'privateKey') => {
     const nextValue = field === 'mnemonic' ? !showMnemonic : !showPrivateKey;
     try {
-      if (nextValue && walletAddress && getTitanApiKey()) {
-        setSecretStatus(`Routing ${field === 'mnemonic' ? 'recovery phrase' : 'private key'} reveal through Nitro...`);
-        await runNitroFortressOperation({
-          operation: field === 'mnemonic' ? 'wallet_reveal_mnemonic' : 'wallet_reveal_private_key',
-          secret: `${field}:${walletAddress}:${activeNetwork.name}`,
-          operator: walletAddress,
+      if (nextValue && walletAddress && hasTitanSecurityAccess()) {
+        setSecretStatus(`Routing ${field === 'mnemonic' ? 'recovery phrase' : 'private key'} reveal through the TITAN military-grade rail...`);
+        await runMilitaryGradeOperation({
+          action: 'export-secret',
+          walletAddress,
+          network: activeNetwork.name,
+          chainId: activeNetwork.chainId,
+          intent:
+            field === 'mnemonic'
+              ? 'Protect a recovery phrase reveal action inside the TITAN military-grade lane.'
+              : 'Protect a private key reveal action inside the TITAN military-grade lane.',
+          metadata: {
+            field,
+            mode: 'reveal',
+            wallet_name: walletName || null,
+          },
         });
         await handshakeLog({
           subjectId: walletAddress,
@@ -137,7 +159,7 @@ const GeneralSettings: React.FC = () => {
               placeholder="yb_live_xxx or yb_dev_xxx"
             />
             <div className="mt-3 flex items-center justify-between gap-3">
-              <p className="text-xs text-titan-subtext">Stored locally in this browser for dev use only. Production should proxy secrets server-side.</p>
+              <p className="text-xs text-titan-subtext">Use a developer key from the YieldBoost Console. TITAN sends military-grade requests directly to the developer store from this wallet session.</p>
               <Button variant="primary" size="sm" onClick={saveApiKey}>
                 {saved ? 'Saved' : 'Save Key'}
               </Button>
@@ -236,6 +258,10 @@ const GeneralSettings: React.FC = () => {
           <div className="rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4">
             <p className="text-xs uppercase tracking-wider text-titan-subtext">Public Integrity API</p>
             <p className="mt-1 font-mono text-white">{TITAN_API_BASE_URL}</p>
+          </div>
+          <div className="rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4">
+            <p className="text-xs uppercase tracking-wider text-titan-subtext">Military-Grade Execution</p>
+            <p className="mt-1 font-mono text-white">{`${TITAN_MILITARY_GRADE_BASE_URL}/api/dev/store/military-grade`}</p>
           </div>
           <a
             href={TITAN_DEV_PORTAL_URL}

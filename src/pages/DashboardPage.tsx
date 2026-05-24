@@ -19,7 +19,7 @@ import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRe
 import SendTransactionModal from '../components/modals/SendTransactionModal';
 import ReceiveModal from '../components/modals/ReceiveModal';
 import { TITAN_SECURITY_LAYERS } from '../data/titanLayers';
-import { getTitanApiKey } from '../config/api';
+import { hasTitanSecurityAccess } from '../config/api';
 import ConnectAppModal from '../components/modals/ConnectAppModal';
 import SignMessageModal from '../components/modals/SignMessageModal';
 
@@ -87,7 +87,7 @@ const DashboardPage: React.FC = () => {
         }
       }
 
-      if (!walletAddress || !getTitanApiKey()) {
+      if (!walletAddress || !hasTitanSecurityAccess()) {
         return;
       }
 

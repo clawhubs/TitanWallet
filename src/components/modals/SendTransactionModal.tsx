@@ -5,7 +5,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import SecurityBadge from '../ui/SecurityBadge';
-import { getTitanApiKey } from '../../config/api';
+import { hasTitanSecurityAccess } from '../../config/api';
 import { useTitanSecurity } from '../../hooks/useTitanSecurity';
 import { useWallet } from '../../hooks/useWallet';
 import { getNativeTransferQuote } from '../../services/blockchain';
@@ -13,7 +13,7 @@ import { createChallenge, seal } from '../../services/integrity';
 import { proofRun, auditEvaluate, governanceEvaluate, handshakeLog } from '../../services/security';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { formatAddress } from '../../utils/cn';
-import { runNitroFortressOperation } from '../../services/nitro';
+import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 
 interface SendTransactionModalProps {
@@ -29,9 +29,9 @@ interface SecurityCheckRow {
   state: CheckState;
 }
 
-const EMPTY_CHECKS: Record<'audit' | 'nitro' | 'governance' | 'proof' | 'seal' | 'handshake', CheckState> = {
+const EMPTY_CHECKS: Record<'audit' | 'execution' | 'governance' | 'proof' | 'seal' | 'handshake', CheckState> = {
   audit: 'idle',
-  nitro: 'idle',
+  execution: 'idle',
   governance: 'idle',
   proof: 'idle',
   seal: 'idle',
@@ -71,9 +71,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       state: checks.audit,
     },
     {
-      label: 'Nitro',
-      description: 'Escalates the send flow into the Nitro continuity rail.',
-      state: checks.nitro,
+      label: 'Military-Grade',
+      description: 'Runs the full TITAN execution rail, including Nitro-backed continuity.',
+      state: checks.execution,
     },
     {
       label: 'Governance',
@@ -99,7 +99,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
 
   const liveLayers = WALLET_ACTION_LAYERS.send.map((layer) => getLayer(layer));
 
-  const hasApiKey = Boolean(getTitanApiKey());
+  const hasApiKey = hasTitanSecurityAccess();
   const parsedAmount = Number.parseFloat(amount || '0');
   const isValidAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
   const isValidRecipient = isAddress(to.trim());
@@ -299,13 +299,21 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
         });
         setCheckState('audit', 'passed', 'Audit snapshot generated.');
 
-        setCheckState('nitro', 'running', 'Escalating the transfer into the Nitro continuity rail...');
-        await runNitroFortressOperation({
-          operation: 'wallet_send_transaction',
-          secret: transferSummary.slice(0, 600),
-          operator: walletAddress,
+        setCheckState('execution', 'running', 'Running the transfer through the TITAN military-grade rail...');
+        await runMilitaryGradeOperation({
+          action: 'send',
+          walletAddress,
+          network: activeNetwork.name,
+          chainId: activeNetwork.chainId,
+          intent: 'Protect a native asset transfer before signing and broadcast.',
+          metadata: {
+            from: walletAddress,
+            to: to.trim(),
+            amount,
+            symbol: activeNetwork.symbol,
+          },
         });
-        setCheckState('nitro', 'passed', 'Nitro continuity rail acknowledged the transfer.');
+        setCheckState('execution', 'passed', 'Military-grade execution accepted the transfer payload.');
 
         setCheckState('governance', 'running', 'Evaluating governance throttle...');
         const governance = await governanceEvaluate({
@@ -320,7 +328,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       } else {
         setChecks({
           audit: 'skipped',
-          nitro: 'skipped',
+          execution: 'skipped',
           governance: 'skipped',
           proof: 'skipped',
           seal: 'skipped',

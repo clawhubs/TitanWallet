@@ -45,7 +45,6 @@ export const WALLET_ACTION_LAYERS: Record<WalletActionKey, TitanLayer[]> = {
     'AWS Nitro Enclaves',
   ],
   swap: [
-    'Hallucination Blacklist',
     'Integrity Auditor',
     'Secure Compute / TEE',
     '0G Storage Proof Layer',

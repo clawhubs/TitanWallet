@@ -12,7 +12,7 @@ import { useNetworkStore } from '../store/useNetworkStore';
 import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRecordsToProofs } from '../utils/integrity';
 import type { SecurityLayer } from '../types';
 import { TITAN_SECURITY_LAYERS } from '../data/titanLayers';
-import { getTitanApiKey } from '../config/api';
+import { hasTitanSecurityAccess } from '../config/api';
 
 const SecurityPage: React.FC = () => {
   const walletAddress = useWalletStore((state) => state.address);
@@ -27,7 +27,7 @@ const SecurityPage: React.FC = () => {
 
     const hydrate = async () => {
       try {
-        const status = getTitanApiKey() ? await getLayerStatus() : await getHealth();
+        const status = hasTitanSecurityAccess() ? await getLayerStatus() : await getHealth();
         if (disposed) {
           return;
         }
@@ -41,7 +41,7 @@ const SecurityPage: React.FC = () => {
         }
       }
 
-      if (!walletAddress || !getTitanApiKey()) {
+      if (!walletAddress || !hasTitanSecurityAccess()) {
         return;
       }
 

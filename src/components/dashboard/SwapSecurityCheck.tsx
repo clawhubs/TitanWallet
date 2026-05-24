@@ -6,13 +6,13 @@ import Badge from '../ui/Badge';
 import SecurityBadge from '../ui/SecurityBadge';
 import type { Token } from '../../types';
 import type { SwapRoute } from '../../services/swap';
-import { auditEvaluate, checkBlacklist, governanceEvaluate, handshakeLog, proofRun } from '../../services/security';
-import { getTitanApiKey } from '../../config/api';
+import { auditEvaluate, governanceEvaluate, handshakeLog, proofRun } from '../../services/security';
+import { hasTitanSecurityAccess } from '../../config/api';
 import { useWalletStore } from '../../store/useWalletStore';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useTitanSecurity } from '../../hooks/useTitanSecurity';
 import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
-import { runNitroFortressOperation } from '../../services/nitro';
+import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { createChallenge, seal } from '../../services/integrity';
 import { useWallet } from '../../hooks/useWallet';
 
@@ -54,15 +54,15 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
         return;
       }
 
-      if (!getTitanApiKey()) {
+      if (!hasTitanSecurityAccess()) {
         setStatus('failed');
-        setMessage('A YieldBoost API key is required before TITAN can run the blacklist and audit checks.');
+        setMessage('A YieldBoost developer API key is required before TITAN can run swap security rails.');
         return;
       }
 
       try {
         setStatus('running');
-        setMessage('Running blacklist screening...');
+        setMessage('Running integrity audit...');
         const summary = [
           `wallet=${walletAddress || 'disconnected'}`,
           `env=${environment}`,
@@ -71,16 +71,10 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           `to=${toToken.contractAddress || toToken.symbol}`,
         ].join(' | ');
 
-        const blacklist = await checkBlacklist(summary);
-        if (!blacklist.allowed) {
-          throw new Error('Blacklist screening blocked this swap request.');
-        }
-
         if (disposed) {
           return;
         }
 
-        setMessage('Running audit evaluation...');
         await auditEvaluate({
           plaintext: summary,
           metadata: {
@@ -127,11 +121,20 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           return;
         }
 
-        setMessage('Escalating the swap review into the Nitro continuity rail...');
-        await runNitroFortressOperation({
-          operation: 'wallet_swap_review',
-          secret: summary.slice(0, 600),
-          operator: walletAddress || 'disconnected-wallet',
+        setMessage('Running the swap review through the TITAN military-grade rail...');
+        await runMilitaryGradeOperation({
+          action: 'swap',
+          walletAddress,
+          network: activeNetwork.name,
+          chainId: activeNetwork.chainId,
+          intent: 'Protect a swap review and external venue redirect inside the TITAN military-grade lane.',
+          metadata: {
+            provider: route.provider,
+            amount,
+            from_token: fromToken.symbol,
+            to_token: toToken.symbol,
+            summary,
+          },
         });
 
         if (disposed) {
@@ -196,7 +199,7 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
 
         if (!disposed) {
           setStatus('passed');
-          setMessage('Swap rails passed: blacklist, audit, governance, proof, storage, handshake, and Nitro are ready.');
+          setMessage('Swap rails passed: audit, military-grade execution, governance, proof, storage, and handshake are ready.');
         }
       } catch (error) {
         if (!disposed) {

@@ -39,6 +39,7 @@ See [.env.example](./.env.example).
 Important values:
 
 - `VITE_TITAN_API_BASE_URL`
+- `VITE_TITAN_MILITARY_GRADE_BASE_URL`
 - `VITE_TITAN_DEV_PORTAL_URL`
 - `VITE_TITAN_API_KEY`
 - `VITE_TITAN_API_ENV`
@@ -60,13 +61,11 @@ Recommended target:
 - web server: `nginx`
 - serve static files from `dist/`
 
-Because this frontend calls the Integrity API directly, make sure the API backend allows:
+Production should prefer same-origin proxy routes on the wallet domain:
+Use a managed API key from `https://dev.yieldboostai.xyz/console` and point the wallet at the live endpoints:
 
-```text
-https://wallet.yieldboostai.xyz
-```
-
-inside `INTEGRITY_API_CORS_ORIGINS`.
+- `https://api.yieldboostai.xyz`
+- `https://dev.yieldboostai.xyz/api/dev/store/aws-nitro-fortress`
 
 ## Notes
 

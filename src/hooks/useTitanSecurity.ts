@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { mockSecurityLayers } from '../data/mockProofs';
 import { getHealth, getLayerStatus } from '../services/security';
-import { getNitroFortressStatus } from '../services/nitro';
 import type { SecurityLayer, TitanLayer } from '../types';
 import { buildTitanSecurityLayersFromApi } from '../utils/integrity';
-import { getTitanApiKey } from '../config/api';
+import { hasTitanSecurityAccess } from '../config/api';
 
 export function useTitanSecurity(enabled = true) {
   const [layers, setLayers] = useState<SecurityLayer[]>(mockSecurityLayers);
@@ -21,30 +20,10 @@ export function useTitanSecurity(enabled = true) {
     const hydrate = async () => {
       try {
         setIsLoading(true);
-        const hasApiKey = Boolean(getTitanApiKey());
-        const [status, nitro] = await Promise.allSettled([
-          hasApiKey ? getLayerStatus() : getHealth(),
-          getNitroFortressStatus(),
-        ]);
+        const status = await (hasTitanSecurityAccess() ? getLayerStatus() : getHealth());
         if (!disposed) {
-          const layerStatus = status.status === 'fulfilled' ? status.value : null;
-          const nitroHealth =
-            nitro.status === 'fulfilled'
-              ? {
-                  status: 'ok' as const,
-                  detail: nitro.value.fortress?.ip
-                    ? `Nitro fortress live at ${nitro.value.fortress.ip}.`
-                    : 'Nitro fortress live via developer rail.',
-                }
-              : null;
-
-          if (layerStatus) {
-            setLayers(buildTitanSecurityLayersFromApi(layerStatus, nitroHealth));
-            setLiveMode(true);
-          } else {
-            setLayers(mockSecurityLayers);
-            setLiveMode(false);
-          }
+          setLayers(buildTitanSecurityLayersFromApi(status));
+          setLiveMode(true);
         }
       } catch {
         if (!disposed) {

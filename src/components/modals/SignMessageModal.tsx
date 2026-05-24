@@ -8,7 +8,7 @@ import { proofRun, handshakeLog } from '../../services/security';
 import { useTitanSecurity } from '../../hooks/useTitanSecurity';
 import { useWallet } from '../../hooks/useWallet';
 import { useNetworkStore } from '../../store/useNetworkStore';
-import { runNitroFortressOperation } from '../../services/nitro';
+import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 
 interface SignMessageRequest {
@@ -67,12 +67,19 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, re
   const handleSign = async () => {
     try {
       setIsSubmitting(true);
-      setStatus('Routing the signature request through the Nitro continuity rail...');
+      setStatus('Routing the signature request through the TITAN military-grade rail...');
       if (address) {
-        await runNitroFortressOperation({
-          operation: 'wallet_sign_message',
-          secret: signatureMessage.slice(0, 600),
-          operator: address,
+        await runMilitaryGradeOperation({
+          action: 'sign-message',
+          walletAddress: address,
+          network: activeNetwork.name,
+          chainId: activeNetwork.chainId,
+          intent: 'Protect a wallet message-signing flow inside the TITAN military-grade lane.',
+          metadata: {
+            app: payload.appName,
+            origin: payload.appUrl,
+            message_preview: signatureMessage.slice(0, 140),
+          },
         });
       }
       setStatus('Signing message locally in the active wallet session...');
@@ -142,7 +149,7 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, re
         <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-titan-accent/15 bg-titan-accent/5 p-3">
           <ShieldCheck size={14} className="mt-0.5 flex-shrink-0 text-titan-accent" />
           <p className="text-xs text-titan-subtext">
-            <span className="font-medium text-titan-text">Nitro, ZK, and handshake rails are in the path.</span> TITAN can prove the signature flow happened without exposing the full secret state of your wallet.
+            <span className="font-medium text-titan-text">Military-grade execution, ZK, and handshake rails are in the path.</span> TITAN can prove the signature flow happened without exposing the full secret state of your wallet.
           </p>
         </div>
 
