@@ -171,6 +171,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     Boolean(walletAddress) &&
     isValidRecipient &&
     isValidAmount &&
+    !txHash &&
     !quoteLoading &&
     !isSubmitting;
   const statusMessage = useMemo(() => {
@@ -660,11 +661,26 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           <Button
             variant="primary"
             className="flex-1"
-            onClick={() => void handleConfirm()}
-            disabled={!canSubmit}
+            onClick={() => {
+              if (txExplorerUrl) {
+                window.open(txExplorerUrl, '_blank', 'noopener,noreferrer');
+                return;
+              }
+
+              void handleConfirm();
+            }}
+            disabled={txHash ? !txExplorerUrl : !canSubmit}
             loading={isSubmitting}
           >
-            <ShieldCheck size={15} /> Send on {activeNetwork.symbol}
+            {txHash ? (
+              <>
+                <ExternalLink size={15} /> Open Explorer
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={15} /> Send on {activeNetwork.symbol}
+              </>
+            )}
           </Button>
         </div>
 
