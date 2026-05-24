@@ -15,6 +15,7 @@ import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { createChallenge, seal } from '../../services/integrity';
 import { useWallet } from '../../hooks/useWallet';
+import { anchorSealedProofOnChain, canAnchorProofOnNetwork } from '../../services/proofRegistry';
 
 interface SwapSecurityCheckProps {
   isOpen: boolean;
@@ -36,10 +37,11 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
   const walletAddress = useWalletStore((state) => state.address);
   const environment = useNetworkStore((state) => state.environment);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
-  const { signTextMessage } = useWallet();
+  const { signTextMessage, privateKey } = useWallet();
   const { getLayer } = useTitanSecurity(isOpen);
   const [status, setStatus] = useState<'idle' | 'running' | 'passed' | 'failed'>('idle');
   const [message, setMessage] = useState('Ready to run TITAN pre-swap checks.');
+  const [proofRegistryExplorerUrl, setProofRegistryExplorerUrl] = useState<string | null>(null);
   const activeLayers = WALLET_ACTION_LAYERS.swap.map((layer) => getLayer(layer));
   const signSwapChallenge = useEffectEvent(async (messageToSign: string) => signTextMessage(messageToSign));
   const routeKey = `${route.provider}:${route.supported ? 'supported' : 'blocked'}:${route.url || route.reason || 'none'}`;
@@ -48,6 +50,8 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
     let disposed = false;
 
     const runChecks = async () => {
+      setProofRegistryExplorerUrl(null);
+
       if (!route.supported) {
         setStatus('failed');
         setMessage(route.reason || 'This network does not have a verified swap route yet.');
@@ -121,47 +125,61 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           return;
         }
 
+        let anchorExplorerUrl: string | null = null;
+
         if (walletAddress && canUseIntegrityApi) {
-          void (async () => {
-            try {
-              const challenge = await createChallenge({
-                operation: 'seal',
-                walletAddress,
-                network: environment,
+          try {
+            const challenge = await createChallenge({
+              operation: 'seal',
+              walletAddress,
+              network: environment,
+            });
+            const signature = await signSwapChallenge(challenge.message);
+            const sealResult = await seal({
+              walletAddress,
+              network: environment,
+              challengeId: challenge.challenge_id,
+              message: challenge.message,
+              signature,
+              plaintext: JSON.stringify({
+                action: 'swap-review',
+                wallet_address: walletAddress,
+                network: activeNetwork.name,
+                amount,
+                from_token: fromToken.symbol,
+                to_token: toToken.symbol,
+                provider: route.provider,
+                created_at: new Date().toISOString(),
+              }),
+              metadata: {
+                event_type: 'Swap Review',
+                description: `Reviewed ${amount || '0'} ${fromToken.symbol} to ${toToken.symbol} on ${route.provider}.`,
+                layer_name: 'ProofRegistry Anchor',
+                activity_type: 'swap',
+                from: walletAddress,
+                to: route.provider,
+                amount,
+                asset_symbol: fromToken.symbol,
+                network: activeNetwork.name,
+              },
+            });
+
+            if (privateKey && canAnchorProofOnNetwork(activeNetwork)) {
+              const anchor = await anchorSealedProofOnChain({
+                network: activeNetwork,
+                privateKey,
+                seal: sealResult,
+                fallbackTxHash: sealResult.transaction_hash || sealResult.storage_tx_hash || sealResult.storage_id,
+                cidHint: sealResult.storage_id,
               });
-              const signature = await signSwapChallenge(challenge.message);
-              await seal({
-                walletAddress,
-                network: environment,
-                challengeId: challenge.challenge_id,
-                message: challenge.message,
-                signature,
-                plaintext: JSON.stringify({
-                  action: 'swap-review',
-                  wallet_address: walletAddress,
-                  network: activeNetwork.name,
-                  amount,
-                  from_token: fromToken.symbol,
-                  to_token: toToken.symbol,
-                  provider: route.provider,
-                  created_at: new Date().toISOString(),
-                }),
-                metadata: {
-                  event_type: 'Swap Review',
-                  description: `Reviewed ${amount || '0'} ${fromToken.symbol} to ${toToken.symbol} on ${route.provider}.`,
-                  layer_name: 'ProofRegistry Anchor',
-                  activity_type: 'swap',
-                  from: walletAddress,
-                  to: route.provider,
-                  amount,
-                  asset_symbol: fromToken.symbol,
-                  network: activeNetwork.name,
-                },
-              });
-            } catch {
-              // The external swap redirect should not be blocked by delayed remote sealing.
+              anchorExplorerUrl = anchor.proofRegistryExplorerUrl;
+              if (!disposed) {
+                setProofRegistryExplorerUrl(anchorExplorerUrl);
+              }
             }
-          })();
+          } catch {
+            // The external swap redirect should not be blocked by delayed remote sealing.
+          }
         }
 
         if (disposed) {
@@ -185,7 +203,11 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
 
         if (!disposed) {
           setStatus('passed');
-          setMessage('Swap rails passed: audit, military-grade execution, governance, proof, storage, and handshake are ready.');
+          setMessage(
+            anchorExplorerUrl
+              ? 'Swap rails passed and ProofRegistry security logs are ready.'
+              : 'Swap rails passed: audit, military-grade execution, governance, proof, storage, and handshake are ready.',
+          );
         }
       } catch (error) {
         if (!disposed) {
@@ -259,6 +281,15 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
         </div>
 
         <div className="flex gap-2">
+          {proofRegistryExplorerUrl ? (
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => window.open(proofRegistryExplorerUrl, '_blank', 'noopener,noreferrer')}
+            >
+              <ExternalLink size={15} /> View Logs
+            </Button>
+          ) : null}
           <Button variant="secondary" className="flex-1" onClick={onClose}>
             Close
           </Button>

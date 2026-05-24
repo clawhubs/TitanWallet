@@ -16,6 +16,7 @@ import { formatAddress } from '../../utils/cn';
 import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 import { addLocalWalletEvent } from '../../services/localActivity';
+import { anchorSealedProofOnChain, canAnchorProofOnNetwork } from '../../services/proofRegistry';
 
 interface SendTransactionModalProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ const EMPTY_CHECKS: Record<'audit' | 'execution' | 'governance' | 'proof' | 'sea
 type ReceiptState = 'idle' | 'broadcasted' | 'confirming' | 'confirmed' | 'failed';
 
 const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onClose }) => {
-  const { address: walletAddress, sendNativeAsset, signTextMessage, waitForTxReceipt } = useWallet();
+  const { address: walletAddress, privateKey, sendNativeAsset, signTextMessage, waitForTxReceipt } = useWallet();
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const { getLayer, liveMode } = useTitanSecurity(isOpen);
   const [to, setTo] = useState('');
@@ -64,6 +65,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
   const [signedTransaction, setSignedTransaction] = useState<string | null>(null);
   const [receiptState, setReceiptState] = useState<ReceiptState>('idle');
   const [receiptBlockNumber, setReceiptBlockNumber] = useState<number | null>(null);
+  const [proofRegistryTxHash, setProofRegistryTxHash] = useState<string | null>(null);
+  const [proofRegistryExplorerUrl, setProofRegistryExplorerUrl] = useState<string | null>(null);
+  const [proofRegistryProofId, setProofRegistryProofId] = useState<string | null>(null);
 
   const securityRows: SecurityCheckRow[] = [
     {
@@ -83,7 +87,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     },
     {
       label: 'Proof',
-      description: 'Generates a live proof envelope for the transfer.',
+      description: 'Generates a live proof envelope and publishes the security log anchor.',
       state: checks.proof,
     },
     {
@@ -166,6 +170,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
 
   const apiNetwork = activeNetwork.isTestnet ? 'testnet' : 'mainnet';
   const txExplorerUrl = txHash ? `${activeNetwork.explorerUrl}/tx/${txHash}` : null;
+  const primaryExplorerUrl = proofRegistryExplorerUrl || txExplorerUrl;
   const visibleQuote = walletAddress && isValidRecipient && isValidAmount ? quote : null;
   const canSubmit =
     Boolean(walletAddress) &&
@@ -243,6 +248,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     setSignedTransaction(null);
     setReceiptState('idle');
     setReceiptBlockNumber(null);
+    setProofRegistryTxHash(null);
+    setProofRegistryExplorerUrl(null);
+    setProofRegistryProofId(null);
     setQuote(null);
     setQuoteError(null);
   };
@@ -256,6 +264,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     setSignedTransaction(null);
     setReceiptState('idle');
     setReceiptBlockNumber(null);
+    setProofRegistryTxHash(null);
+    setProofRegistryExplorerUrl(null);
+    setProofRegistryProofId(null);
     setQuote(null);
     setQuoteError(null);
   };
@@ -284,6 +295,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       setSignedTransaction(null);
       setReceiptState('idle');
       setReceiptBlockNumber(null);
+      setProofRegistryTxHash(null);
+      setProofRegistryExplorerUrl(null);
+      setProofRegistryProofId(null);
       setChecks(EMPTY_CHECKS);
 
       setCheckState('audit', 'running', 'Building a transfer audit snapshot...');
@@ -327,55 +341,11 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       setReceiptState('confirmed');
 
       const confirmedAt = new Date();
-      addLocalWalletEvent({
-        walletAddress,
-        network: activeNetwork.name,
-        activity: {
-          id: `local-send-${sent.hash}`,
-          type: 'send',
-          status: 'confirmed',
-          amount,
-          symbol: activeNetwork.symbol,
-          amountUSD: 0,
-          from: walletAddress,
-          to: to.trim(),
-          hash: sent.hash,
-          explorerUrl: `${activeNetwork.explorerUrl}/tx/${sent.hash}`,
-          timestamp: confirmedAt,
-          network: activeNetwork.name,
-          fee: quote?.estimatedFeeNative || '0',
-        },
-        proofs: WALLET_ACTION_LAYERS.send.map((layer, index) => ({
-          id: `local-proof-${sent.hash}-${index}`,
-          layer,
-          type: `${layer} Verified`,
-          description: `TITAN confirmed ${layer} for ${amount} ${activeNetwork.symbol} transfer on ${activeNetwork.name}.`,
-          timestamp: confirmedAt,
-          status: 'verified',
-          txHash: sent.hash,
-          explorerUrl: `${activeNetwork.explorerUrl}/tx/${sent.hash}`,
-          proofStorageId: `local-proof-${sent.hash}-${index}`,
-        })),
-        securityEvents: [
-          {
-            type: 'Native Transfer Confirmed',
-            desc: `Sent ${amount} ${activeNetwork.symbol} to ${formatAddress(to.trim(), 10)}.`,
-            time: confirmedAt,
-            level: 'success',
-          },
-          {
-            type: 'AWS Nitro Enclaves',
-            desc: 'Nitro continuity rail returned a successful wallet send receipt.',
-            time: confirmedAt,
-            level: 'success',
-          },
-        ],
-      });
-
       setCheckState('proof', 'running', 'Generating transfer proof envelope...');
       setCheckState('seal', 'running', 'Sealing transfer record to the wallet activity trail...');
       setCheckState('handshake', 'running', 'Logging the send approval trail...');
 
+      let sealResult = null;
       await runMilitaryGradeOperation({
         action: 'send-receipt',
         walletAddress,
@@ -405,50 +375,49 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           },
         }).catch(() => undefined);
 
-        void (async () => {
-          try {
-            const challenge = await createChallenge({
-              operation: 'seal',
-              walletAddress,
-              network: apiNetwork,
-            });
-            const signature = await signTextMessage(challenge.message);
-            await seal({
-              walletAddress,
-              network: apiNetwork,
-              challengeId: challenge.challenge_id,
-              message: challenge.message,
-              signature,
-              transactionHash: sent.hash,
-              plaintext: JSON.stringify({
-                from: walletAddress,
-                to: to.trim(),
-                amount,
-                network: activeNetwork.name,
-                chain_id: activeNetwork.chainId,
-                tx_hash: sent.hash,
-                signed_transaction: sent.signedTransaction,
-                created_at: new Date().toISOString(),
-              }),
-              metadata: {
-                event_type: 'Native Transfer',
-                description: `Sent ${amount} ${activeNetwork.symbol} to ${to.trim()}.`,
-                layer_name: 'ProofRegistry Anchor',
-                from: walletAddress,
-                to: to.trim(),
-                amount,
-                amount_usd: 0,
-                asset_symbol: activeNetwork.symbol,
-                network: activeNetwork.name,
-                activity_type: 'send',
-                tx_hash: sent.hash,
-                chain_id: activeNetwork.chainId,
-              },
-            });
-          } catch {
-            // Local receipt-backed activity keeps the UI truthful even if remote sealing is delayed.
-          }
-        })();
+        try {
+          const challenge = await createChallenge({
+            operation: 'seal',
+            walletAddress,
+            network: apiNetwork,
+          });
+          const signature = await signTextMessage(challenge.message);
+          sealResult = await seal({
+            walletAddress,
+            network: apiNetwork,
+            challengeId: challenge.challenge_id,
+            message: challenge.message,
+            signature,
+            transactionHash: sent.hash,
+            plaintext: JSON.stringify({
+              from: walletAddress,
+              to: to.trim(),
+              amount,
+              network: activeNetwork.name,
+              chain_id: activeNetwork.chainId,
+              tx_hash: sent.hash,
+              signed_transaction: sent.signedTransaction,
+              created_at: new Date().toISOString(),
+            }),
+            metadata: {
+              event_type: 'Native Transfer',
+              description: `Sent ${amount} ${activeNetwork.symbol} to ${to.trim()}.`,
+              layer_name: 'ProofRegistry Anchor',
+              from: walletAddress,
+              to: to.trim(),
+              amount,
+              amount_usd: 0,
+              asset_symbol: activeNetwork.symbol,
+              network: activeNetwork.name,
+              activity_type: 'send',
+              tx_hash: sent.hash,
+              chain_id: activeNetwork.chainId,
+            },
+          });
+          setCheckState('seal', 'passed', 'Transfer record sealed in the TITAN proof vault.');
+        } catch {
+          setCheckState('seal', 'warning', 'Transfer sent, but proof vault sealing is delayed.');
+        }
 
         void handshakeLog({
           subjectId: sent.hash,
@@ -466,9 +435,98 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
         }).catch(() => undefined);
       }
 
-      setCheckState('proof', 'passed', 'Transfer proof envelope recorded.');
-      setCheckState('seal', 'passed', 'Transfer record stored in the wallet activity trail.');
+      let anchorResult = null;
+      if (sealResult && canAnchorProofOnNetwork(activeNetwork) && privateKey) {
+        try {
+          setCheckState('proof', 'running', 'Publishing ProofRegistry security logs on-chain...');
+          anchorResult = await anchorSealedProofOnChain({
+            network: activeNetwork,
+            privateKey,
+            seal: sealResult,
+            fallbackTxHash: sent.hash,
+            cidHint: sealResult.storage_id,
+          });
+          setProofRegistryTxHash(anchorResult.proofRegistryTxHash);
+          setProofRegistryExplorerUrl(anchorResult.proofRegistryExplorerUrl);
+          setProofRegistryProofId(anchorResult.proofId);
+          setCheckState('proof', 'passed', 'ProofRegistry security logs recorded on-chain.');
+        } catch (error) {
+          setCheckState(
+            'proof',
+            'warning',
+            error instanceof Error ? error.message : 'Transfer sent, but ProofRegistry logs are not recorded yet.',
+          );
+        }
+      } else if (sealResult) {
+        setCheckState('proof', 'passed', 'Transfer proof envelope recorded.');
+      } else {
+        setCheckState('proof', 'warning', 'Transfer sent, but proof anchoring is delayed.');
+      }
+
       setCheckState('handshake', 'passed', 'Send approval trail logged.');
+
+      addLocalWalletEvent({
+        walletAddress,
+        network: activeNetwork.name,
+        activity: {
+          id: `local-send-${sent.hash}`,
+          type: 'send',
+          status: 'confirmed',
+          amount,
+          symbol: activeNetwork.symbol,
+          amountUSD: 0,
+          from: walletAddress,
+          to: to.trim(),
+          hash: sent.hash,
+          explorerUrl: `${activeNetwork.explorerUrl}/tx/${sent.hash}`,
+          timestamp: confirmedAt,
+          network: activeNetwork.name,
+          fee: quote?.estimatedFeeNative || '0',
+        },
+        proofs: WALLET_ACTION_LAYERS.send.map((layer, index) => ({
+          id: `local-proof-${sent.hash}-${index}`,
+          layer,
+          type: layer === 'ProofRegistry Anchor' && anchorResult?.proofId
+            ? `ProofRecorded #${anchorResult.proofId}`
+            : `${layer} Verified`,
+          description:
+            layer === 'ProofRegistry Anchor' && anchorResult?.proofRegistryTxHash
+              ? `Security logs recorded on-chain for ${amount} ${activeNetwork.symbol} transfer.`
+              : `TITAN confirmed ${layer} for ${amount} ${activeNetwork.symbol} transfer on ${activeNetwork.name}.`,
+          timestamp: confirmedAt,
+          status: 'verified',
+          txHash: layer === 'ProofRegistry Anchor' ? anchorResult?.proofRegistryTxHash || sent.hash : sent.hash,
+          explorerUrl:
+            layer === 'ProofRegistry Anchor'
+              ? anchorResult?.proofRegistryExplorerUrl || `${activeNetwork.explorerUrl}/tx/${sent.hash}`
+              : `${activeNetwork.explorerUrl}/tx/${sent.hash}`,
+          proofStorageId: sealResult?.storage_id || `local-proof-${sent.hash}-${index}`,
+        })),
+        securityEvents: [
+          {
+            type: 'Native Transfer Confirmed',
+            desc: `Sent ${amount} ${activeNetwork.symbol} to ${formatAddress(to.trim(), 10)}.`,
+            time: confirmedAt,
+            level: 'success',
+          },
+          {
+            type: 'AWS Nitro Enclaves',
+            desc: 'Nitro continuity rail returned a successful wallet send receipt.',
+            time: confirmedAt,
+            level: 'success',
+          },
+          ...(anchorResult?.proofRegistryTxHash
+            ? [
+                {
+                  type: 'ProofRegistry Anchor',
+                  desc: `Security logs emitted on-chain in proof ${anchorResult.proofId || 'pending id'}.`,
+                  time: confirmedAt,
+                  level: 'success' as const,
+                },
+              ]
+            : []),
+        ],
+      });
 
       setProgressMessage(`Transfer confirmed on ${activeNetwork.name}.`);
     } catch (error) {
@@ -650,10 +708,35 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-medium text-titan-accent hover:text-white"
                 >
-                  Explorer <ExternalLink size={12} />
+                  Transfer <ExternalLink size={12} />
                 </a>
               ) : null}
             </div>
+            {proofRegistryTxHash ? (
+              <div className="mt-3 border-t border-titan-success/20 pt-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      ProofRegistry security logs
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-titan-subtext">{proofRegistryTxHash}</p>
+                    {proofRegistryProofId ? (
+                      <p className="mt-2 text-xs text-titan-subtext">Proof ID #{proofRegistryProofId}</p>
+                    ) : null}
+                  </div>
+                  {proofRegistryExplorerUrl ? (
+                    <a
+                      href={proofRegistryExplorerUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-titan-accent hover:text-white"
+                    >
+                      Logs <ExternalLink size={12} />
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -665,19 +748,19 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
             variant="primary"
             className="flex-1"
             onClick={() => {
-              if (txExplorerUrl) {
-                window.open(txExplorerUrl, '_blank', 'noopener,noreferrer');
+              if (primaryExplorerUrl) {
+                window.open(primaryExplorerUrl, '_blank', 'noopener,noreferrer');
                 return;
               }
 
               void handleConfirm();
             }}
-            disabled={txHash ? !txExplorerUrl : !canSubmit}
+            disabled={txHash ? !primaryExplorerUrl : !canSubmit}
             loading={isSubmitting}
           >
             {txHash ? (
               <>
-                <ExternalLink size={15} /> Open Explorer
+                <ExternalLink size={15} /> {proofRegistryExplorerUrl ? 'Open Proof Logs' : 'Open Explorer'}
               </>
             ) : (
               <>
