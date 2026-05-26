@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { handleAgentWalletControlPlane } from './developer-ai-wallet/server/controlPlane.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const rootDir = join(__dirname, 'dist');
@@ -56,6 +57,11 @@ const server = createServer(async (request, response) => {
         'Cache-Control': 'no-cache',
       });
       response.end(payload);
+      return;
+    }
+
+    if (requestPath === '/api/agent-wallet/control') {
+      await handleAgentWalletControlPlane(request, response);
       return;
     }
 

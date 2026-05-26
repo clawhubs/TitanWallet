@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import DashboardHeader from '../components/layout/DashboardHeader';
 import GeneralSettings from '../components/settings/GeneralSettings';
 import NetworkSettings from '../components/settings/NetworkSettings';
+import DeveloperSettings from '../features/developer/DeveloperSettings';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { useTokenStore } from '../store/useTokenStore';
 import { useNetworkStore } from '../store/useNetworkStore';
 
-type SettingsTab = 'general' | 'networks' | 'tokens';
+type SettingsTab = 'general' | 'networks' | 'tokens' | 'developer';
 
 const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -36,6 +37,7 @@ const SettingsPage: React.FC = () => {
             { id: 'general', label: 'General' },
             { id: 'networks', label: 'Networks' },
             { id: 'tokens', label: 'Tokens' },
+            { id: 'developer', label: 'Developer' },
           ].map((tab) => (
             <Button
               key={tab.id}
@@ -50,6 +52,7 @@ const SettingsPage: React.FC = () => {
 
         {activeTab === 'general' ? <GeneralSettings /> : null}
         {activeTab === 'networks' ? <NetworkSettings /> : null}
+        {activeTab === 'developer' ? <DeveloperSettings /> : null}
         {activeTab === 'tokens' ? (
           <div className="space-y-4">
             <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">

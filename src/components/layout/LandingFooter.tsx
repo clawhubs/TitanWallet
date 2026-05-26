@@ -35,10 +35,16 @@ const LandingFooter: React.FC = () => {
           <div>
             <h4 className="text-xs font-semibold text-titan-subtext uppercase tracking-wider mb-4">Product</h4>
             <ul className="space-y-2.5">
-              {['Dashboard', 'Security Center', 'Activity', 'Onboarding'].map(item => (
-                <li key={item}>
-                  <Link to={`/${item.toLowerCase().replace(' ', '')}`} className="text-sm text-titan-subtext hover:text-titan-text transition-colors">
-                    {item}
+              {[
+                { label: 'Dashboard', to: '/dashboard' },
+                { label: 'Security Center', to: '/securitycenter' },
+                { label: 'Activity', to: '/activity' },
+                { label: 'Onboarding', to: '/onboarding' },
+                { label: 'Developer Docs', to: '/developer/docs' },
+              ].map(item => (
+                <li key={item.to}>
+                  <Link to={item.to} className="text-sm text-titan-subtext hover:text-titan-text transition-colors">
+                    {item.label}
                   </Link>
                 </li>
               ))}

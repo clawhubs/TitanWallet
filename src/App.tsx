@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import SecurityPage from './pages/SecurityPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
+import DeveloperDocsPage from './features/developer/DeveloperDocsPage';
 import RequireWallet from './components/routing/RequireWallet';
 import { useWalletStore } from './store/useWalletStore';
 import { useTokenStore } from './store/useTokenStore';
@@ -30,6 +31,7 @@ const App: React.FC = () => {
         <Route path="/securitycenter" element={<RequireWallet><SecurityPage /></RequireWallet>} />
         <Route path="/activity" element={<RequireWallet><ActivityPage /></RequireWallet>} />
         <Route path="/settings" element={<RequireWallet><SettingsPage /></RequireWallet>} />
+        <Route path="/developer/docs" element={<DeveloperDocsPage />} />
         {/* Catch-all redirect */}
         <Route path="*" element={<LandingPage />} />
       </Routes>

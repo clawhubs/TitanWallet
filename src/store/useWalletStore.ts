@@ -31,6 +31,49 @@ const initialState = {
   walletName: 'TITAN Wallet',
 };
 
+const STORAGE_KEY = 'titan-wallet-session-store';
+
+function canUseStorage(storageName: 'localStorage' | 'sessionStorage') {
+  return typeof window !== 'undefined' && typeof window[storageName] !== 'undefined';
+}
+
+const walletSessionStorage = createJSONStorage(() => ({
+  getItem(name: string) {
+    if (canUseStorage('localStorage')) {
+      const localValue = window.localStorage.getItem(name);
+      if (localValue) {
+        return localValue;
+      }
+    }
+
+    if (canUseStorage('sessionStorage')) {
+      const sessionValue = window.sessionStorage.getItem(name);
+      if (sessionValue && canUseStorage('localStorage')) {
+        window.localStorage.setItem(name, sessionValue);
+      }
+      return sessionValue;
+    }
+
+    return null;
+  },
+  setItem(name: string, value: string) {
+    if (canUseStorage('localStorage')) {
+      window.localStorage.setItem(name, value);
+    }
+    if (canUseStorage('sessionStorage')) {
+      window.sessionStorage.setItem(name, value);
+    }
+  },
+  removeItem(name: string) {
+    if (canUseStorage('localStorage')) {
+      window.localStorage.removeItem(name);
+    }
+    if (canUseStorage('sessionStorage')) {
+      window.sessionStorage.removeItem(name);
+    }
+  },
+}));
+
 export const useWalletStore = create<WalletStore>()(
   persist(
     (set) => ({
@@ -51,9 +94,9 @@ export const useWalletStore = create<WalletStore>()(
         }),
     }),
     {
-      name: 'titan-wallet-session-store',
+      name: STORAGE_KEY,
       version: 1,
-      storage: createJSONStorage(() => window.sessionStorage),
+      storage: walletSessionStorage,
       partialize: (state) => ({
         address: state.address,
         isConnected: state.isConnected,

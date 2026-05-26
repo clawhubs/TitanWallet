@@ -1,0 +1,21 @@
+{
+  "name": "@titan/agent-wallet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "titan-agent-wallet": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "smoke": "node dist/tests/smoke.js",
+    "dev:docs": "python3 -m http.server 8097 --directory docs"
+  },
+  "dependencies": {
+    "ethers": "^6.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.3",
+    "typescript": "~6.0.2"
+  }
+}
