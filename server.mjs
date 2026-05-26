@@ -22,7 +22,12 @@ const contentTypes = {
   '.webp': 'image/webp',
 };
 
+const apiV1Target = 'https://api.yieldboostai.xyz/v1';
 const militaryGradeTarget = 'https://dev.yieldboostai.xyz/api/dev/store/military-grade';
+const serverApiKey = process.env.TITAN_AGENT_WALLET_API_KEY?.trim() || process.env.TITAN_API_KEY?.trim() || '';
+const serverMilitaryGradeAuth =
+  process.env.TITAN_AGENT_WALLET_MILITARY_GRADE_AUTH?.trim() ||
+  (serverApiKey ? `Bearer ${serverApiKey}` : '');
 
 const server = createServer(async (request, response) => {
   try {
@@ -34,7 +39,40 @@ const server = createServer(async (request, response) => {
         method: request.method,
         headers: {
           'Content-Type': request.headers['content-type'] || 'application/json',
-          ...(request.headers.authorization ? { Authorization: request.headers.authorization } : {}),
+          ...(request.headers.authorization
+            ? { Authorization: request.headers.authorization }
+            : serverMilitaryGradeAuth
+              ? { Authorization: serverMilitaryGradeAuth }
+              : {}),
+        },
+        body:
+          request.method === 'GET' || request.method === 'HEAD'
+            ? undefined
+            : await readRequestBody(request),
+      });
+      const payload = await upstream.text();
+      response.writeHead(upstream.status, {
+        'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      });
+      response.end(payload);
+      return;
+    }
+
+    if (requestPath.startsWith('/api/v1/')) {
+      const upstreamPath = requestPath.replace(/^\/api\/v1\//, '');
+      const upstreamUrl = new URL(`${apiV1Target}/${upstreamPath}`);
+      upstreamUrl.search = url.search;
+
+      const upstream = await fetch(upstreamUrl, {
+        method: request.method,
+        headers: {
+          'Content-Type': request.headers['content-type'] || 'application/json',
+          ...(request.headers['x-api-key']
+            ? { 'X-API-Key': request.headers['x-api-key'] }
+            : serverApiKey
+              ? { 'X-API-Key': serverApiKey }
+              : {}),
         },
         body:
           request.method === 'GET' || request.method === 'HEAD'
