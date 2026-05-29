@@ -5,9 +5,6 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { useWallet } from '../hooks/useWallet';
 import { useNetworkStore } from '../store/useNetworkStore';
-import { createChallenge, seal } from '../services/integrity';
-import { signMessage as signWalletMessage } from '../services/wallet';
-import { hasTitanSecurityAccess } from '../config/api';
 import { runMilitaryGradeOperation } from '../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../data/walletActionLayers';
 import { addLocalWalletProof } from '../services/localActivity';
@@ -91,41 +88,6 @@ const CreateWalletPage: React.FC = () => {
           },
         ],
       });
-      if (hasTitanSecurityAccess()) {
-        void (async () => {
-          try {
-            const challenge = await createChallenge({
-              operation: 'seal',
-              walletAddress: input.address,
-              network: environment,
-            });
-            const signature = await signWalletMessage(challenge.message, input.privateKey);
-            const result = await seal({
-              walletAddress: input.address,
-              network: environment,
-              challengeId: challenge.challenge_id,
-              message: challenge.message,
-              signature,
-              plaintext: JSON.stringify({
-                wallet_name: name,
-                created_at: new Date().toISOString(),
-                flow: input.source,
-                environment,
-                wallet_address: input.address,
-                app: 'titan-wallet',
-              }),
-              metadata: {
-                event_type: input.eventType,
-                description: input.description,
-                layer_name: 'Sovereign Memory',
-              },
-            });
-            setCreationProofId(result.storage_id);
-          } catch {
-            // The military-grade rail is authoritative for onboarding; storage sealing can retry later.
-          }
-        })();
-      }
     } catch {
       setCreationProofStatus('failed');
     }

@@ -140,7 +140,7 @@ const DashboardHeader: React.FC = () => {
                     <ExternalLink size={14} className="text-titan-subtext" /> Explorer
                   </a>
                   <div className="border-t border-titan-border my-1" />
-                  <button onClick={() => { disconnect(); navigate('/'); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-titan-muted/30 text-sm text-titan-danger transition-all">
+                  <button onClick={() => { disconnect(); navigate('/create-wallet'); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-titan-muted/30 text-sm text-titan-danger transition-all">
                     <LogOut size={14} /> Disconnect
                   </button>
                 </div>

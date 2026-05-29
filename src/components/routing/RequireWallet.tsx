@@ -12,7 +12,7 @@ const RequireWallet: React.FC<RequireWalletProps> = ({ children }) => {
   const walletAddress = useWalletStore((state) => state.address);
 
   if (!isConnected || !walletAddress) {
-    return <Navigate to="/onboarding" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/create-wallet" replace state={{ from: location.pathname }} />;
   }
 
   return children;

@@ -97,12 +97,17 @@ export function mapIntegrityRecordsToActivity(items?: YieldBoostVaultListItem[] 
     return [];
   }
 
-  return items.map((item) => {
+  return items.flatMap((item) => {
     const metadata = item.metadata || {};
     const eventLabel =
       typeof metadata.event_type === 'string'
         ? metadata.event_type
         : item.file_name || 'Integrity event';
+
+    if (isProofOnlyRecord(eventLabel, metadata)) {
+      return [];
+    }
+
     const type = inferActivityType(eventLabel, metadata);
     const symbol =
       typeof metadata.asset_symbol === 'string'
@@ -129,7 +134,7 @@ export function mapIntegrityRecordsToActivity(items?: YieldBoostVaultListItem[] 
           ? metadata.target_address
           : item.wallet_address;
 
-    return {
+    return [{
       id: item.storage_id,
       type,
       status: item.anchor_tx_hash || item.storage_tx_hash || item.transaction_hash ? 'confirmed' : 'pending',
@@ -143,7 +148,7 @@ export function mapIntegrityRecordsToActivity(items?: YieldBoostVaultListItem[] 
       timestamp: new Date(item.created_at),
       network: item.network,
       fee: typeof metadata.fee === 'string' ? metadata.fee : '0',
-    };
+    }];
   });
 }
 
@@ -194,4 +199,15 @@ function inferActivityType(eventLabel: string, metadata: Record<string, unknown>
     return 'stake';
   }
   return 'send';
+}
+
+function isProofOnlyRecord(eventLabel: string, metadata: Record<string, unknown>) {
+  const activityType = typeof metadata.activity_type === 'string'
+    ? metadata.activity_type.toLowerCase()
+    : '';
+  const normalizedLabel = eventLabel.toLowerCase();
+
+  return activityType === 'proof'
+    || normalizedLabel.includes('wallet creation proof')
+    || normalizedLabel.includes('wallet import proof');
 }
