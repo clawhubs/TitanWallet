@@ -7,6 +7,7 @@ import LandingFooter from '../components/layout/LandingFooter';
 import WalletPreview from '../components/landing/WalletPreview';
 import TrustBar from '../components/landing/TrustBar';
 import LayerStack from '../components/landing/LayerStack';
+import { useWalletStore } from '../store/useWalletStore';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,10 @@ const FAQItem: React.FC<{ q: string; a: string }> = ({ q, a }) => {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const LandingPage: React.FC = () => {
+  const hasWalletSession = useWalletStore((state) => Boolean(state.isConnected && state.address));
+  const primaryWalletHref = hasWalletSession ? '/dashboard' : '/onboarding';
+  const primaryWalletLabel = hasWalletSession ? 'Open Dashboard' : 'Create Wallet';
+
   return (
     <div className="min-h-screen bg-titan-bg overflow-x-hidden">
 
@@ -79,10 +84,10 @@ const LandingPage: React.FC = () => {
           </nav>
 
           <Link
-            to="/onboarding"
+            to={primaryWalletHref}
             className="bg-white text-[#06080C] font-semibold text-[13px] px-5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
           >
-            Create Wallet
+            {primaryWalletLabel}
           </Link>
         </div>
       </header>
@@ -119,10 +124,10 @@ const LandingPage: React.FC = () => {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mb-5">
               <Link
-                to="/onboarding"
+                to={primaryWalletHref}
                 className="bg-titan-accent text-[#06080C] font-bold text-[15px] px-8 py-4 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2.5 shadow-lg shadow-titan-accent/20"
               >
-                Create Wallet <ArrowRight size={18} strokeWidth={2.5} />
+                {primaryWalletLabel} <ArrowRight size={18} strokeWidth={2.5} />
               </Link>
               <a
                 href="#security"

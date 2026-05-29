@@ -1,14 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Key, Download, Fingerprint, Mail, Shield, Globe } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
+import { useWalletStore } from '../store/useWalletStore';
 
 type OnboardingOption = 'create' | 'import' | 'passkey' | 'email' | null;
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const hasWalletSession = useWalletStore((state) => Boolean(state.isConnected && state.address));
   const [selected, setSelected] = useState<OnboardingOption>(null);
+
+  useEffect(() => {
+    if (hasWalletSession) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [hasWalletSession, navigate]);
 
   const options = [
     {

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Copy, Check, ShieldCheck, RefreshCw } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { useWallet } from '../hooks/useWallet';
 import { useNetworkStore } from '../store/useNetworkStore';
+import { useWalletStore } from '../store/useWalletStore';
 import { runMilitaryGradeOperation } from '../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../data/walletActionLayers';
 import { addLocalWalletProof } from '../services/localActivity';
@@ -15,12 +16,15 @@ const CreateWalletPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { createWallet, importWallet } = useWallet();
+  const hasWalletSession = useWalletStore((state) => Boolean(state.isConnected && state.address));
   const environment = useNetworkStore((state) => state.environment);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const isImportMode = searchParams.get('mode') === 'import';
   const returnTo = searchParams.get('returnTo') || '/dashboard';
   const intent = searchParams.get('intent');
   const isAddAccountFlow = intent === 'add-account';
+  const isAddWalletFlow = intent === 'add-wallet';
+  const shouldRedirectExistingSession = useRef(hasWalletSession && !intent && !isImportMode);
   const [step, setStep] = useState<Step>(1);
   const [showSeed, setShowSeed] = useState(false);
   const [copiedSeed, setCopiedSeed] = useState(false);
@@ -35,6 +39,12 @@ const CreateWalletPage: React.FC = () => {
   const [importSecret, setImportSecret] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (shouldRedirectExistingSession.current) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [navigate, returnTo]);
 
   const copyMnemonic = () => {
     navigator.clipboard.writeText(mnemonicWords.join(' '));
@@ -154,7 +164,7 @@ const CreateWalletPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-titan-bg flex flex-col items-center justify-center p-4">
       <button
-        onClick={() => step === 1 ? navigate(isAddAccountFlow || intent === 'add-wallet' ? returnTo : '/onboarding') : isImportMode ? setStep(1) : setStep((s) => (s - 1) as Step)}
+        onClick={() => step === 1 ? navigate(isAddAccountFlow || isAddWalletFlow ? returnTo : '/onboarding') : isImportMode ? setStep(1) : setStep((s) => (s - 1) as Step)}
         className="absolute top-6 left-6 flex items-center gap-2 text-sm text-titan-subtext hover:text-titan-text transition-colors"
       >
         ← Back
