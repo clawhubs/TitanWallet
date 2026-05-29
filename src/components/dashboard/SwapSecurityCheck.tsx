@@ -16,6 +16,7 @@ import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { createChallenge, seal } from '../../services/integrity';
 import { useWallet } from '../../hooks/useWallet';
 import { anchorWalletSecurityLog, canAnchorSecurityLogsOnNetwork } from '../../services/securityLogRegistry';
+import { useSecurityPreferencesStore } from '../../store/useSecurityPreferencesStore';
 
 interface SwapSecurityCheckProps {
   isOpen: boolean;
@@ -37,12 +38,15 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
   const walletAddress = useWalletStore((state) => state.address);
   const environment = useNetworkStore((state) => state.environment);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
+  const anchorOnChain = useSecurityPreferencesStore((state) => state.anchorOnChain);
   const { signTextMessage, privateKey } = useWallet();
   const { getLayer } = useTitanSecurity(isOpen);
   const [status, setStatus] = useState<'idle' | 'running' | 'passed' | 'failed'>('idle');
   const [message, setMessage] = useState('Ready to run TITAN pre-swap checks.');
   const [securityLogExplorerUrl, setSecurityLogExplorerUrl] = useState<string | null>(null);
   const activeLayers = WALLET_ACTION_LAYERS.swap.map((layer) => getLayer(layer));
+  const canAnchorOnActiveNetwork = canAnchorSecurityLogsOnNetwork(activeNetwork);
+  const willTryOnChainAnchor = anchorOnChain && canAnchorOnActiveNetwork && Boolean(privateKey);
   const signSwapChallenge = useEffectEvent(async (messageToSign: string) => signTextMessage(messageToSign));
   const routeKey = `${route.provider}:${route.supported ? 'supported' : 'blocked'}:${route.url || route.reason || 'none'}`;
 
@@ -164,7 +168,7 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
               },
             });
 
-            if (privateKey && canAnchorSecurityLogsOnNetwork(activeNetwork)) {
+            if (anchorOnChain && privateKey && canAnchorOnActiveNetwork) {
               const anchor = await anchorWalletSecurityLog({
                 network: activeNetwork,
                 privateKey,
@@ -207,7 +211,9 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           setMessage(
             anchorExplorerUrl
               ? 'Swap rails passed and TITAN security logs are ready.'
-              : 'Swap rails passed: audit, military-grade execution, governance, proof, storage, and handshake are ready.',
+              : anchorOnChain && canAnchorOnActiveNetwork
+                ? 'Swap rails passed. Proofs were sealed, but the extra on-chain anchor was skipped in this session.'
+                : 'Swap rails passed: audit, military-grade execution, governance, proof, storage, and handshake are ready.',
           );
         }
       } catch (error) {
@@ -224,12 +230,15 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
       disposed = true;
     };
   }, [
-    activeNetwork.name,
+    activeNetwork,
+    anchorOnChain,
     amount,
+    canAnchorOnActiveNetwork,
     environment,
     fromToken.contractAddress,
     fromToken.symbol,
     isOpen,
+    privateKey,
     routeKey,
     route.provider,
     route.reason,
@@ -255,6 +264,9 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
           <Badge variant="neutral" size="sm">{route.provider}</Badge>
           <Badge variant={status === 'passed' ? 'success' : status === 'failed' ? 'danger' : 'accent'} size="sm">
             {status === 'running' ? 'Checking' : status === 'passed' ? 'Passed' : status === 'failed' ? 'Blocked' : 'Queued'}
+          </Badge>
+          <Badge variant={willTryOnChainAnchor ? 'warning' : 'neutral'} size="sm">
+            {willTryOnChainAnchor ? 'On-chain anchor on' : 'On-chain anchor off'}
           </Badge>
         </div>
 

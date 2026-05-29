@@ -11,12 +11,16 @@ import {
 } from '../services/wallet';
 
 export function useWallet() {
+  const accounts = useWalletStore((state) => state.accounts);
+  const activeAccountId = useWalletStore((state) => state.activeAccountId);
   const address = useWalletStore((state) => state.address);
   const isConnected = useWalletStore((state) => state.isConnected);
   const mnemonic = useWalletStore((state) => state.mnemonic);
   const privateKey = useWalletStore((state) => state.privateKey);
   const walletName = useWalletStore((state) => state.walletName);
   const connect = useWalletStore((state) => state.connect);
+  const switchAccount = useWalletStore((state) => state.switchAccount);
+  const removeAccount = useWalletStore((state) => state.removeAccount);
   const disconnect = useWalletStore((state) => state.disconnect);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
 
@@ -88,6 +92,8 @@ export function useWallet() {
   }
 
   return {
+    accounts,
+    activeAccountId,
     address,
     isConnected,
     mnemonic,
@@ -96,6 +102,8 @@ export function useWallet() {
     activeNetwork,
     createWallet,
     importWallet,
+    switchAccount,
+    removeAccount,
     disconnectWallet: disconnect,
     getSigner,
     signTextMessage,

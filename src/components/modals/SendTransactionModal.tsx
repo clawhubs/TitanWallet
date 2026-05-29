@@ -17,6 +17,7 @@ import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../../data/walletActionLayers';
 import { addLocalWalletEvent } from '../../services/localActivity';
 import { anchorWalletSecurityLog, canAnchorSecurityLogsOnNetwork } from '../../services/securityLogRegistry';
+import { useSecurityPreferencesStore } from '../../store/useSecurityPreferencesStore';
 
 interface SendTransactionModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ type ReceiptState = 'idle' | 'broadcasted' | 'confirming' | 'confirmed' | 'faile
 const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onClose }) => {
   const { address: walletAddress, privateKey, sendNativeAsset, signTextMessage, waitForTxReceipt } = useWallet();
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
+  const anchorOnChain = useSecurityPreferencesStore((state) => state.anchorOnChain);
   const { getLayer, liveMode } = useTitanSecurity(isOpen);
   const [to, setTo] = useState('');
   const [amount, setAmount] = useState('');
@@ -69,6 +71,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
   const [securityLogExplorerUrl, setSecurityLogExplorerUrl] = useState<string | null>(null);
   const [securityLogId, setSecurityLogId] = useState<string | null>(null);
 
+  const canAnchorOnActiveNetwork = canAnchorSecurityLogsOnNetwork(activeNetwork);
+  const willTryOnChainAnchor = anchorOnChain && canAnchorOnActiveNetwork && Boolean(privateKey);
+
   const securityRows: SecurityCheckRow[] = [
     {
       label: 'Audit',
@@ -87,7 +92,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
     },
     {
       label: 'Proof',
-      description: 'Generates a live proof envelope and publishes the security log anchor.',
+      description: willTryOnChainAnchor
+        ? 'Generates a live proof envelope and publishes a security log anchor on-chain.'
+        : 'Generates a live proof envelope without the optional on-chain anchor fee.',
       state: checks.proof,
     },
     {
@@ -436,7 +443,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
       }
 
       let anchorResult = null;
-      if (sealResult && canAnchorSecurityLogsOnNetwork(activeNetwork) && privateKey) {
+      if (sealResult && anchorOnChain && canAnchorOnActiveNetwork && privateKey) {
         try {
           setCheckState('proof', 'running', 'Publishing TITAN security logs on-chain...');
           anchorResult = await anchorWalletSecurityLog({
@@ -459,7 +466,13 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           );
         }
       } else if (sealResult) {
-        setCheckState('proof', 'passed', 'Transfer proof envelope recorded.');
+        setCheckState(
+          'proof',
+          'passed',
+          anchorOnChain && canAnchorOnActiveNetwork
+            ? 'Transfer proof envelope recorded. On-chain anchoring is unavailable in this session.'
+            : 'Transfer proof envelope recorded without on-chain anchoring.',
+        );
       } else {
         setCheckState('proof', 'warning', 'Transfer sent, but proof anchoring is delayed.');
       }
@@ -493,7 +506,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           description:
             layer === 'ProofRegistry Anchor' && anchorResult?.txHash
               ? `Security logs recorded on-chain for ${amount} ${activeNetwork.symbol} transfer.`
-              : `TITAN confirmed ${layer} for ${amount} ${activeNetwork.symbol} transfer on ${activeNetwork.name}.`,
+              : `TITAN confirmed an off-chain proof envelope for ${amount} ${activeNetwork.symbol} transfer on ${activeNetwork.name}.`,
           timestamp: confirmedAt,
           status: 'verified',
           txHash: layer === 'ProofRegistry Anchor' ? anchorResult?.txHash || sent.hash : sent.hash,
@@ -547,6 +560,9 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           </Badge>
           <Badge variant="accent" size="sm">
             TITAN rail enabled
+          </Badge>
+          <Badge variant={willTryOnChainAnchor ? 'warning' : 'neutral'} size="sm">
+            {willTryOnChainAnchor ? 'On-chain anchor on' : 'On-chain anchor off'}
           </Badge>
           <Badge variant={liveMode ? 'success' : 'neutral'} size="sm">
             {liveMode ? 'Live layer status' : 'Layer fallback'}

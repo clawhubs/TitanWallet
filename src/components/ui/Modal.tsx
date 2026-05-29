@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -34,9 +35,9 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
     lg: 'max-w-lg',
   };
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 modal-backdrop animate-fade-in sm:items-center"
+      className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto p-4 modal-backdrop animate-fade-in sm:items-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className={cn(
@@ -69,6 +70,8 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 };
 
 export default Modal;

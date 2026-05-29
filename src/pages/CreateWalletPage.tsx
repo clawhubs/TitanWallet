@@ -10,6 +10,7 @@ import { signMessage as signWalletMessage } from '../services/wallet';
 import { hasTitanSecurityAccess } from '../config/api';
 import { runMilitaryGradeOperation } from '../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../data/walletActionLayers';
+import { addLocalWalletProof } from '../services/localActivity';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -18,7 +19,11 @@ const CreateWalletPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { createWallet, importWallet } = useWallet();
   const environment = useNetworkStore((state) => state.environment);
+  const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const isImportMode = searchParams.get('mode') === 'import';
+  const returnTo = searchParams.get('returnTo') || '/dashboard';
+  const intent = searchParams.get('intent');
+  const isAddAccountFlow = intent === 'add-account';
   const [step, setStep] = useState<Step>(1);
   const [showSeed, setShowSeed] = useState(false);
   const [copiedSeed, setCopiedSeed] = useState(false);
@@ -65,6 +70,27 @@ const CreateWalletPage: React.FC = () => {
         },
       });
       setCreationProofStatus('sealed');
+      addLocalWalletProof({
+        walletAddress: input.address,
+        network: activeNetwork.name,
+        proof: {
+          id: `local-${input.source}-${input.address.toLowerCase()}-${Date.now()}`,
+          layer: 'Sovereign Memory',
+          type: input.eventType,
+          description: input.description,
+          timestamp: new Date(),
+          status: 'verified',
+          proofStorageId: `local-${input.source}-${input.address.slice(2, 10)}`,
+        },
+        securityEvents: [
+          {
+            type: input.eventType,
+            desc: input.description,
+            time: new Date(),
+            level: 'success',
+          },
+        ],
+      });
       if (hasTitanSecurityAccess()) {
         void (async () => {
           try {
@@ -165,7 +191,10 @@ const CreateWalletPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-titan-bg flex flex-col items-center justify-center p-4">
-      <button onClick={() => step === 1 ? navigate('/onboarding') : isImportMode ? setStep(1) : setStep((s) => (s - 1) as Step)} className="absolute top-6 left-6 flex items-center gap-2 text-sm text-titan-subtext hover:text-titan-text transition-colors">
+      <button
+        onClick={() => step === 1 ? navigate(isAddAccountFlow || intent === 'add-wallet' ? returnTo : '/onboarding') : isImportMode ? setStep(1) : setStep((s) => (s - 1) as Step)}
+        className="absolute top-6 left-6 flex items-center gap-2 text-sm text-titan-subtext hover:text-titan-text transition-colors"
+      >
         ← Back
       </button>
 
@@ -241,8 +270,12 @@ const CreateWalletPage: React.FC = () => {
 
           {!isImportMode && step === 1 && (
             <div>
-              <h1 className="text-lg font-bold text-titan-text mb-1">Set up your account</h1>
-              <p className="text-sm text-titan-subtext mb-6">Choose a name and password to protect your wallet locally.</p>
+              <h1 className="text-lg font-bold text-titan-text mb-1">{isAddAccountFlow ? 'Add another account' : 'Set up your account'}</h1>
+              <p className="text-sm text-titan-subtext mb-6">
+                {isAddAccountFlow
+                  ? 'Create another self-custodial account and keep it alongside your existing wallets.'
+                  : 'Choose a name and password to protect your wallet locally.'}
+              </p>
               <div className="space-y-4">
                 <div>
                   <label className="titan-label block mb-2">Wallet name</label>
@@ -297,8 +330,12 @@ const CreateWalletPage: React.FC = () => {
           {/* Step 2: Confirm */}
           {!isImportMode && step === 2 && (
             <div>
-              <h1 className="text-lg font-bold text-titan-text mb-1">Create your wallet</h1>
-              <p className="text-sm text-titan-subtext mb-6">A new Ethereum-compatible wallet will be generated for you.</p>
+              <h1 className="text-lg font-bold text-titan-text mb-1">{isAddAccountFlow ? 'Create another account' : 'Create your wallet'}</h1>
+              <p className="text-sm text-titan-subtext mb-6">
+                {isAddAccountFlow
+                  ? 'A fresh Ethereum-compatible account will be added to your local TITAN wallet list.'
+                  : 'A new Ethereum-compatible wallet will be generated for you.'}
+              </p>
 
               <div className="space-y-3 mb-6">
                 <div className="flex items-start gap-3 p-3 bg-titan-surface rounded-xl border border-titan-border">
@@ -393,11 +430,15 @@ const CreateWalletPage: React.FC = () => {
               <div className="w-16 h-16 rounded-full bg-titan-success/10 border border-titan-success/30 flex items-center justify-center mx-auto mb-5">
                 <ShieldCheck size={32} className="text-titan-success" />
               </div>
-              <h1 className="text-xl font-bold text-titan-text mb-2">{isImportMode ? 'Wallet imported.' : 'Wallet created.'}</h1>
+              <h1 className="text-xl font-bold text-titan-text mb-2">
+                {isImportMode ? 'Wallet imported.' : isAddAccountFlow ? 'Account added.' : 'Wallet created.'}
+              </h1>
               <p className="text-sm text-titan-subtext mb-2">
                 {isImportMode
                   ? 'Your wallet is ready in this browser tab session. You can reveal the recovery phrase or private key from Settings while the tab stays open.'
-                  : 'Your TITAN Wallet is ready. The wallet security rails are active for this tab session.'}
+                  : isAddAccountFlow
+                    ? 'Your new account is now stored alongside your other TITAN wallet accounts in this browser session.'
+                    : 'Your TITAN Wallet is ready. The wallet security rails are active for this tab session.'}
               </p>
               <Badge variant="success" dot className="mb-6">Wallet rails ready</Badge>
               {creationProofStatus === 'sealed' ? (
@@ -425,7 +466,7 @@ const CreateWalletPage: React.FC = () => {
                 ))}
               </div>
 
-              <Button variant="primary" className="w-full" size="lg" onClick={() => navigate('/dashboard')}>
+              <Button variant="primary" className="w-full" size="lg" onClick={() => navigate(returnTo)}>
                 Open Dashboard <ArrowRight size={16} />
               </Button>
             </div>

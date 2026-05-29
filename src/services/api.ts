@@ -223,6 +223,13 @@ export class TitanApiError extends Error {
   }
 }
 
+const APY_RESPONSE_KEYS = new Set([
+  'currentApyBps',
+  'optimizedApyBps',
+  'current_apy_bps',
+  'optimized_apy_bps',
+]);
+
 export async function apiRequest<T>(
   endpoint: string,
   options: ApiRequestOptions = {},
@@ -258,7 +265,7 @@ export async function apiRequest<T>(
     });
   }
 
-  return payload as T;
+  return sanitizeTitanPayload(payload) as T;
 }
 
 function safeParseJson(text: string): unknown {
@@ -271,4 +278,26 @@ function safeParseJson(text: string): unknown {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+export function sanitizeTitanPayload(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeTitanPayload(item));
+  }
+
+  if (!isObject(value)) {
+    return value;
+  }
+
+  const next: Record<string, unknown> = {};
+
+  Object.entries(value).forEach(([key, entryValue]) => {
+    if (APY_RESPONSE_KEYS.has(key)) {
+      return;
+    }
+
+    next[key] = sanitizeTitanPayload(entryValue);
+  });
+
+  return next;
 }

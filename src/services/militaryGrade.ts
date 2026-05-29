@@ -1,5 +1,5 @@
 import { TITAN_MILITARY_GRADE_BASE_URL, getTitanApiKey } from '../config/api';
-import { TitanApiError } from './api';
+import { sanitizeTitanPayload, TitanApiError } from './api';
 
 export interface MilitaryGradeLayerReceipt {
   id: string;
@@ -86,7 +86,7 @@ async function militaryGradeRequest<T>(
     });
   }
 
-  return payload as T;
+  return sanitizeTitanPayload(payload) as T;
 }
 
 function safeParse(text: string): unknown {

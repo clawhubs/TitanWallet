@@ -1,6 +1,12 @@
 import type { Network, Token } from '../types';
 import { formatEther } from 'ethers';
-import { buildNativeTokenFromBalance, getNativeBalance, getTokenMetadata as readOnchainTokenMetadata } from './blockchain';
+import {
+  buildNativeTokenFromBalance,
+  getNativeBalance,
+  getTokenBalance,
+  getTokenMetadata as readOnchainTokenMetadata,
+} from './blockchain';
+import { getPopularTokensForNetwork } from '../data/mockTokens';
 
 const FALLBACK_METADATA: Record<string, { name: string; symbol: string; decimals: number }> = {
   ['0xc02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2'.toLowerCase()]: {
@@ -29,6 +35,8 @@ export async function detectTokens(input: {
   }
 
   const detected: Token[] = [];
+  const popularNetworkTokens = getPopularTokensForNetwork(input.network.id);
+  const nativeTokenDefinition = popularNetworkTokens.find((token) => token.isNative);
 
   try {
     const nativeBalance = await getNativeBalance(input.walletAddress, input.network.rpcUrl);
@@ -36,11 +44,57 @@ export async function detectTokens(input: {
       buildNativeTokenFromBalance({
         network: input.network,
         balance: Number.parseFloat(formatEther(nativeBalance)).toFixed(4),
+        balanceUSD:
+          Number.parseFloat(formatEther(nativeBalance)) * (nativeTokenDefinition?.price || 0),
+        price: nativeTokenDefinition?.price,
+        change24h: nativeTokenDefinition?.change24h,
+        icon: nativeTokenDefinition?.icon,
+        logoUrl: nativeTokenDefinition?.logoUrl,
+        name: nativeTokenDefinition?.name,
       }),
     );
   } catch {
     return [];
   }
+
+  const erc20Candidates = popularNetworkTokens.filter((token) => token.contractAddress && typeof token.decimals === 'number');
+
+  const balances = await Promise.all(
+    erc20Candidates.map(async (token): Promise<Token | null> => {
+      try {
+        const balance = await getTokenBalance({
+          walletAddress: input.walletAddress!,
+          contractAddress: token.contractAddress!,
+          decimals: token.decimals!,
+          rpcUrl: input.network.rpcUrl,
+        });
+        const normalizedBalance = Number.parseFloat(balance);
+
+        if (!Number.isFinite(normalizedBalance) || normalizedBalance <= 0) {
+          return null;
+        }
+
+        return {
+          id: token.id,
+          symbol: token.symbol,
+          name: token.name,
+          balance: normalizedBalance.toFixed(token.decimals === 6 ? 2 : 4),
+          balanceUSD: normalizedBalance * token.price,
+          price: token.price,
+          change24h: token.change24h,
+          icon: token.icon,
+          logoUrl: token.logoUrl,
+          network: input.network.name,
+          source: 'detected' as const,
+          contractAddress: token.contractAddress,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  detected.push(...balances.filter((token): token is Token => token !== null));
 
   return detected;
 }

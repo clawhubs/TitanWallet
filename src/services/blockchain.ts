@@ -6,6 +6,9 @@ const ERC20_METADATA_ABI = [
   'function symbol() view returns (string)',
   'function decimals() view returns (uint8)',
 ];
+const ERC20_BALANCE_ABI = [
+  'function balanceOf(address owner) view returns (uint256)',
+];
 
 export function getProvider(rpcUrl: string) {
   return new JsonRpcProvider(rpcUrl);
@@ -83,20 +86,40 @@ export async function getTokenMetadata(contractAddress: string, network: Network
   };
 }
 
+export async function getTokenBalance(input: {
+  walletAddress: string;
+  contractAddress: string;
+  decimals: number;
+  rpcUrl: string;
+}) {
+  const provider = getProvider(input.rpcUrl);
+  const contract = new Contract(input.contractAddress, ERC20_BALANCE_ABI, provider);
+  const balance = await contract.balanceOf(input.walletAddress);
+  return formatUnits(balance, input.decimals);
+}
+
 export function buildNativeTokenFromBalance(input: {
   network: Network;
   balance: string;
   balanceUSD?: number;
+  price?: number;
+  change24h?: number;
+  icon?: string;
+  logoUrl?: string;
+  name?: string;
 }): Token {
+  const isZeroGravity = input.network.symbol === '0G' || /(^|\s)0G(\s|$)/i.test(input.network.name);
+
   return {
     id: `${input.network.id}-native`,
     symbol: input.network.symbol,
-    name: input.network.name,
+    name: input.name || (isZeroGravity ? '0G' : input.network.name),
     balance: input.balance,
     balanceUSD: input.balanceUSD || 0,
-    price: 0,
-    change24h: 0,
-    icon: input.network.symbol.slice(0, 1),
+    price: input.price || 0,
+    change24h: input.change24h || 0,
+    icon: input.icon || input.network.symbol.slice(0, 1),
+    logoUrl: input.logoUrl || (isZeroGravity ? '/0g-logo.png' : undefined),
     network: input.network.name,
     source: 'detected',
   };

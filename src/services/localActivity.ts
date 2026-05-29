@@ -10,7 +10,7 @@ export interface LocalSecurityEvent {
 interface StoredLocalEvent {
   walletAddress: string;
   network: string;
-  activity: Activity;
+  activity?: Activity;
   proofs: ProofEvent[];
   securityEvents: LocalSecurityEvent[];
 }
@@ -18,16 +18,18 @@ interface StoredLocalEvent {
 const STORAGE_KEY = 'titan-wallet-local-activity';
 
 function canUseStorage() {
-  return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined';
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
 function serializeEvent(event: StoredLocalEvent) {
   return {
     ...event,
-    activity: {
-      ...event.activity,
-      timestamp: event.activity.timestamp.toISOString(),
-    },
+    activity: event.activity
+      ? {
+          ...event.activity,
+          timestamp: event.activity.timestamp.toISOString(),
+        }
+      : undefined,
     proofs: event.proofs.map((proof) => ({
       ...proof,
       timestamp: proof.timestamp.toISOString(),
@@ -42,10 +44,12 @@ function serializeEvent(event: StoredLocalEvent) {
 function deserializeEvent(event: ReturnType<typeof serializeEvent>): StoredLocalEvent {
   return {
     ...event,
-    activity: {
-      ...event.activity,
-      timestamp: new Date(event.activity.timestamp),
-    },
+    activity: event.activity
+      ? {
+          ...event.activity,
+          timestamp: new Date(event.activity.timestamp),
+        }
+      : undefined,
     proofs: event.proofs.map((proof) => ({
       ...proof,
       timestamp: new Date(proof.timestamp),
@@ -63,11 +67,30 @@ export function addLocalWalletEvent(event: StoredLocalEvent) {
   }
 
   const existing = getAllLocalWalletEvents();
-  const withoutDuplicate = existing.filter((item) => item.activity.hash !== event.activity.hash);
+  const eventKey = getStoredEventKey(event);
+  const withoutDuplicate = existing.filter((item) => getStoredEventKey(item) !== eventKey);
   window.sessionStorage.setItem(
     STORAGE_KEY,
     JSON.stringify([serializeEvent(event), ...withoutDuplicate.map(serializeEvent)].slice(0, 100)),
   );
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify([serializeEvent(event), ...withoutDuplicate.map(serializeEvent)].slice(0, 100)),
+  );
+}
+
+export function addLocalWalletProof(input: {
+  walletAddress: string;
+  network: string;
+  proof: ProofEvent;
+  securityEvents?: LocalSecurityEvent[];
+}) {
+  addLocalWalletEvent({
+    walletAddress: input.walletAddress,
+    network: input.network,
+    proofs: [input.proof],
+    securityEvents: input.securityEvents || [],
+  });
 }
 
 export function getLocalWalletEvents(walletAddress: string | null, network: string) {
@@ -87,7 +110,7 @@ export function getLocalWalletEvents(walletAddress: string | null, network: stri
   );
 
   return {
-    activity: events.map((event) => event.activity),
+    activity: events.flatMap((event) => (event.activity ? [event.activity] : [])),
     proofs: events.flatMap((event) => event.proofs),
     securityEvents: events.flatMap((event) => event.securityEvents),
   };
@@ -99,9 +122,13 @@ function getAllLocalWalletEvents(): StoredLocalEvent[] {
   }
 
   try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY) || window.sessionStorage?.getItem(STORAGE_KEY);
     if (!raw) {
       return [];
+    }
+
+    if (!window.localStorage.getItem(STORAGE_KEY)) {
+      window.localStorage.setItem(STORAGE_KEY, raw);
     }
 
     const parsed = JSON.parse(raw) as ReturnType<typeof serializeEvent>[];
@@ -109,4 +136,13 @@ function getAllLocalWalletEvents(): StoredLocalEvent[] {
   } catch {
     return [];
   }
+}
+
+function getStoredEventKey(event: StoredLocalEvent) {
+  if (event.activity?.hash) {
+    return `activity:${event.activity.hash}`;
+  }
+
+  const proofId = event.proofs[0]?.id || event.proofs[0]?.proofStorageId;
+  return `proof:${event.walletAddress.toLowerCase()}:${event.network}:${proofId || Date.now()}`;
 }

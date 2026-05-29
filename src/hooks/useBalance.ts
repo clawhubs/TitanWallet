@@ -9,6 +9,7 @@ const NATIVE_USD_PRICE: Record<string, number> = {
   '0G': 0.18,
   MATIC: 0.75,
   POL: 0.75,
+  BNB: 580,
 };
 
 export function useBalance(pollMs = 15000) {

@@ -1,33 +1,25 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Copy, ChevronDown, Bell, Settings, LogOut, Check, ExternalLink } from 'lucide-react';
+import { ChevronDown, Bell, Settings, LogOut, Check, ExternalLink, WalletCards } from 'lucide-react';
 import { formatAddress } from '../../utils/cn';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
+import AccountSwitcherModal from './AccountSwitcherModal';
 
 const DashboardHeader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const walletAddress = useWalletStore((state) => state.address);
   const isConnected = useWalletStore((state) => state.isConnected);
+  const walletName = useWalletStore((state) => state.walletName);
   const disconnect = useWalletStore((state) => state.disconnect);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const networks = useNetworkStore((state) => state.networks);
   const setActiveNetwork = useNetworkStore((state) => state.setActiveNetwork);
   const explorerHref = walletAddress ? `${activeNetwork.explorerUrl}/address/${walletAddress}` : activeNetwork.explorerUrl;
-
-  const copyAddress = () => {
-    if (!walletAddress) {
-      return;
-    }
-
-    navigator.clipboard.writeText(walletAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard' },
@@ -98,11 +90,19 @@ const DashboardHeader: React.FC = () => {
           {/* Address / Connect */}
           {walletAddress ? (
             <button
-              onClick={copyAddress}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-titan-surface border border-titan-border text-xs font-mono text-titan-subtext hover:text-titan-text hover:border-titan-accent/30 transition-all"
+              onClick={() => {
+                setShowAccountSwitcher(true);
+                setShowNetworkMenu(false);
+                setShowUserMenu(false);
+              }}
+              className="flex items-center gap-2 rounded-xl border border-titan-border bg-titan-surface px-3 py-1.5 text-left transition-all hover:border-titan-accent/30 hover:text-titan-text"
+              data-testid="account-switcher-trigger"
             >
-              {formatAddress(walletAddress)}
-              {copied ? <Check size={12} className="text-titan-success" /> : <Copy size={12} />}
+              <WalletCards size={14} className="text-titan-accent" />
+              <div className="min-w-0">
+                <p className="max-w-[110px] truncate text-[11px] font-semibold text-white">{walletName}</p>
+                <p className="text-xs font-mono text-titan-subtext">{formatAddress(walletAddress)}</p>
+              </div>
             </button>
           ) : (
             <button
@@ -154,6 +154,11 @@ const DashboardHeader: React.FC = () => {
       {(showNetworkMenu || showUserMenu) && (
         <div className="fixed inset-0 z-30" onClick={() => { setShowNetworkMenu(false); setShowUserMenu(false); }} />
       )}
+
+      <AccountSwitcherModal
+        isOpen={showAccountSwitcher}
+        onClose={() => setShowAccountSwitcher(false)}
+      />
     </header>
   );
 };

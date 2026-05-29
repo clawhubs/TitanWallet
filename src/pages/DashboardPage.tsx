@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../components/layout/DashboardHeader';
-import { ArrowUpRight, ArrowDownLeft, RefreshCw, ShieldCheck, Shield, Clock, Send } from 'lucide-react';
+import {
+  ArrowUpRight,
+  ArrowDownLeft,
+  RefreshCw,
+  ShieldCheck,
+  Shield,
+  Clock,
+  Send,
+  ChevronDown,
+  EllipsisVertical,
+  SlidersHorizontal,
+} from 'lucide-react';
 import PortfolioBar from '../components/dashboard/PortfolioBar';
 import { useBalance } from '../hooks/useBalance';
 import { useTokenStore } from '../store/useTokenStore';
@@ -11,6 +22,7 @@ import { formatTimeAgo, formatUSD } from '../utils/cn';
 import TokenRow from '../components/ui/TokenRow';
 import TokenDetectionBanner from '../components/dashboard/TokenDetectionBanner';
 import AddTokenModal from '../components/dashboard/AddTokenModal';
+import AssetNetworkPickerModal from '../components/dashboard/AssetNetworkPickerModal';
 import Button from '../components/ui/Button';
 import SwapPanel from '../components/dashboard/SwapPanel';
 import { getHealth } from '../services/security';
@@ -22,13 +34,130 @@ import { hasTitanSecurityAccess } from '../config/api';
 import ConnectAppModal from '../components/modals/ConnectAppModal';
 import SignMessageModal from '../components/modals/SignMessageModal';
 import { WALLET_SECURITY_LAYER_NAMES } from '../data/walletActionLayers';
+import { mockTokens } from '../data/mockTokens';
 import { runMilitaryGradeOperation } from '../services/militaryGrade';
+import AddNetworkModal from '../components/settings/AddNetworkModal';
+import { getLocalWalletEvents } from '../services/localActivity';
+import type { Network, ProofEvent } from '../types';
 
 const WALLET_LAYER_NAME_SET = new Set<string>(WALLET_SECURITY_LAYER_NAMES);
+const ASSET_TABS = [
+  { id: 'tokens', label: 'Tokens' },
+  { id: 'perps', label: 'Perps' },
+  { id: 'defi', label: 'DeFi' },
+  { id: 'nfts', label: 'NFTs' },
+  { id: 'activity', label: 'Activity' },
+] as const;
+const POPULAR_TOKEN_ORDER = ['ETH', '0G', 'BNB', 'POL', 'USDC', 'USDT', 'WBTC', 'cbBTC', 'BTCB', 'LINK', 'UNI', 'AERO', 'OP', 'ARB', 'WETH'] as const;
+const POPULAR_TOKEN_NETWORK_PREFERENCE: Record<string, string[]> = {
+  ETH: ['Ethereum', 'Base', 'Arbitrum', 'Optimism'],
+  '0G': ['0G'],
+  BNB: ['BNB Chain'],
+  POL: ['Polygon'],
+  USDC: ['Ethereum', 'Base', 'Arbitrum', 'Optimism', 'BNB Chain'],
+  USDT: ['Ethereum', 'Arbitrum', 'Optimism', 'Polygon', 'BNB Chain'],
+  WBTC: ['Ethereum', 'Arbitrum', 'Optimism', 'Polygon'],
+  cbBTC: ['Base'],
+  BTCB: ['BNB Chain'],
+  LINK: ['Ethereum', 'Polygon'],
+  UNI: ['Ethereum'],
+  AERO: ['Base'],
+  OP: ['Optimism'],
+  ARB: ['Arbitrum'],
+  WETH: ['Polygon'],
+};
+
+function mergeProofEvents(primary: ProofEvent[], secondary: ProofEvent[]) {
+  const seen = new Set<string>();
+  const merged: ProofEvent[] = [];
+
+  [...primary, ...secondary].forEach((proof) => {
+    const key = proof.txHash || proof.proofStorageId || proof.id;
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    merged.push(proof);
+  });
+
+  return merged.sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime());
+}
+
+function buildProofFeed(proofs: ProofEvent[]) {
+  return proofs.slice(0, 4).map((proof) => ({
+    label: proof.type,
+    time: proof.timestamp.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
+  }));
+}
+
+type AssetTabId = (typeof ASSET_TABS)[number]['id'];
+
+function buildShowcaseTokens() {
+  return mockTokens.map((token) => ({
+    ...token,
+    balance: '0',
+    balanceUSD: 0,
+  }));
+}
+
+function sortAssetCatalog(tokens: typeof mockTokens) {
+  return [...tokens].sort((left, right) => {
+    const leftBalance = Number.parseFloat(left.balance || '0');
+    const rightBalance = Number.parseFloat(right.balance || '0');
+    const leftHasValue = left.balanceUSD > 0 || leftBalance > 0;
+    const rightHasValue = right.balanceUSD > 0 || rightBalance > 0;
+
+    if (leftHasValue !== rightHasValue) {
+      return leftHasValue ? -1 : 1;
+    }
+
+    const leftOrder = POPULAR_TOKEN_ORDER.indexOf(left.symbol as (typeof POPULAR_TOKEN_ORDER)[number]);
+    const rightOrder = POPULAR_TOKEN_ORDER.indexOf(right.symbol as (typeof POPULAR_TOKEN_ORDER)[number]);
+
+    if (leftOrder !== rightOrder) {
+      const normalizedLeft = leftOrder === -1 ? Number.MAX_SAFE_INTEGER : leftOrder;
+      const normalizedRight = rightOrder === -1 ? Number.MAX_SAFE_INTEGER : rightOrder;
+      return normalizedLeft - normalizedRight;
+    }
+
+    const networkPreference = POPULAR_TOKEN_NETWORK_PREFERENCE[left.symbol] || [];
+    const leftNetworkOrder = networkPreference.indexOf(left.network);
+    const rightNetworkOrder = networkPreference.indexOf(right.network);
+
+    if (leftNetworkOrder !== rightNetworkOrder) {
+      const normalizedLeft = leftNetworkOrder === -1 ? Number.MAX_SAFE_INTEGER : leftNetworkOrder;
+      const normalizedRight = rightNetworkOrder === -1 ? Number.MAX_SAFE_INTEGER : rightNetworkOrder;
+      return normalizedLeft - normalizedRight;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+}
+
+function dedupeAssetCatalog(tokens: typeof mockTokens) {
+  const seen = new Set<string>();
+
+  return tokens.filter((token) => {
+    const key = token.symbol;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [proofIndex, setProofIndex] = useState(0);
+  const [assetTab, setAssetTab] = useState<AssetTabId>('tokens');
+  const [assetFilter, setAssetFilter] = useState<'all' | string>('all');
+  const [showNetworkPicker, setShowNetworkPicker] = useState(false);
+  const [showAddNetworkModal, setShowAddNetworkModal] = useState(false);
   const [showAddTokenModal, setShowAddTokenModal] = useState(false);
   const [showSwapPanel, setShowSwapPanel] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
@@ -43,14 +172,37 @@ const DashboardPage: React.FC = () => {
   const walletAddress = useWalletStore((state) => state.address);
   const isConnected = useWalletStore((state) => state.isConnected);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
+  const networks = useNetworkStore((state) => state.networks);
+  const addNetwork = useNetworkStore((state) => state.addNetwork);
   const tokens = useTokenStore((state) => state.tokens);
   const isDetecting = useTokenStore((state) => state.isDetecting);
   const runAutoDetect = useTokenStore((state) => state.runAutoDetect);
   const { balanceETH, balanceUSD, isLoading: balanceLoading } = useBalance();
+  const showcaseTokens = buildShowcaseTokens();
+  const combinedAssetTokens = [
+    ...tokens,
+    ...showcaseTokens.filter(
+      (showcase) =>
+        !tokens.some(
+          (token) => token.symbol === showcase.symbol && token.network === showcase.network,
+        ),
+    ),
+  ];
+  const sortedAssetCatalog = sortAssetCatalog(combinedAssetTokens);
+  const dedupedPopularCatalog = dedupeAssetCatalog(sortedAssetCatalog);
+  const assetNetworkNames = Array.from(
+    new Set([
+      ...combinedAssetTokens.map((token) => token.network),
+      ...networks.map((network) => network.name),
+    ]),
+  ).sort((a, b) => a.localeCompare(b));
   const networkTokens = tokens.filter((token) => token.network === activeNetwork.name);
-  const displayedTokens = networkTokens;
-  const totalTokenValue = displayedTokens.reduce((sum, token) => sum + Math.max(token.balanceUSD, 0), 0);
-  const portfolioData = displayedTokens.map((token, index) => ({
+  const assetDisplayedTokens =
+    assetFilter === 'all'
+      ? dedupedPopularCatalog
+      : sortAssetCatalog(combinedAssetTokens.filter((token) => token.network === assetFilter));
+  const totalTokenValue = networkTokens.reduce((sum, token) => sum + Math.max(token.balanceUSD, 0), 0);
+  const portfolioData = networkTokens.map((token, index) => ({
     symbol: token.symbol,
     percentage: totalTokenValue > 0 ? Math.max(1, Math.round((token.balanceUSD / totalTokenValue) * 100)) : 100,
     color: ['#4ECDC4', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'][index % 5],
@@ -116,7 +268,27 @@ const DashboardPage: React.FC = () => {
         }
       }
 
-      if (!walletAddress || !hasTitanSecurityAccess()) {
+      if (!walletAddress) {
+        if (!disposed) {
+          setProofEvents([]);
+          setProofFeed([
+            { label: 'No wallet connected', time: 'Create or import a wallet to start a proof trail.' },
+          ]);
+        }
+        return;
+      }
+
+      const localProofs = getLocalWalletEvents(walletAddress, activeNetwork.name).proofs;
+      if (!disposed) {
+        setProofEvents(localProofs);
+        setProofFeed(
+          localProofs.length
+            ? buildProofFeed(localProofs)
+            : [{ label: 'No integrity records yet', time: 'Your first protected action will appear here.' }],
+        );
+      }
+
+      if (!hasTitanSecurityAccess()) {
         return;
       }
 
@@ -129,26 +301,22 @@ const DashboardPage: React.FC = () => {
           return;
         }
 
-        const mapped = mapIntegrityRecordsToProofs(records.items).slice(0, 3).map((proof) => ({
-          label: proof.type,
-          time: proof.timestamp.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-          }),
-        }));
         const liveProofs = mapIntegrityRecordsToProofs(records.items);
-        setProofEvents(liveProofs);
+        const mergedProofs = mergeProofEvents(localProofs, liveProofs);
+        setProofEvents(mergedProofs);
         setProofFeed(
-          mapped.length
-            ? mapped
+          mergedProofs.length
+            ? buildProofFeed(mergedProofs)
             : [{ label: 'No integrity records yet', time: 'Your first protected action will appear here.' }],
         );
       } catch {
         if (!disposed) {
-          setProofEvents([]);
-          setProofFeed([
-            { label: 'Proof log unavailable', time: 'Check API key or network connectivity.' },
-          ]);
+          setProofEvents(localProofs);
+          setProofFeed(
+            localProofs.length
+              ? buildProofFeed(localProofs)
+              : [{ label: 'Proof log unavailable', time: 'Check API key or network connectivity.' }],
+          );
         }
       }
     };
@@ -162,7 +330,7 @@ const DashboardPage: React.FC = () => {
       disposed = true;
       window.clearInterval(interval);
     };
-  }, [recordNetwork, walletAddress]);
+  }, [activeNetwork.chainId, activeNetwork.name, recordNetwork, walletAddress]);
 
   const displayedBalance =
     isConnected && balanceUSD > 0
@@ -171,7 +339,30 @@ const DashboardPage: React.FC = () => {
         ? `${Number.parseFloat(balanceETH || '0').toFixed(4)} ${activeNetwork.symbol}`
         : 'Wallet disconnected';
 
-  const detectedTokenCount = displayedTokens.filter((token) => token.source === 'detected').length;
+  const selectedAssetFilterLabel = assetFilter === 'all' ? 'All popular networks' : assetFilter;
+  const nonTokenTabCopy: Record<Exclude<AssetTabId, 'tokens'>, { title: string; body: string }> = {
+    perps: {
+      title: 'Perps rail not connected yet',
+      body: 'Derivative positions will surface here once TITAN starts tracking perpetual venues on the active wallet.',
+    },
+    defi: {
+      title: 'DeFi positions pending discovery',
+      body: 'Liquidity, lending, and yield strategies will appear here after the next protocol index sync.',
+    },
+    nfts: {
+      title: 'NFT inventory is empty',
+      body: 'Imported collections and security-tagged NFTs will show up in this rail when available.',
+    },
+    activity: {
+      title: 'Activity rail points to the main feed',
+      body: 'Use the Activity page for the full ledger. This compact rail is reserved for wallet-native movement snapshots.',
+    },
+  };
+
+  const handleSaveCustomNetwork = (network: Network) => {
+    addNetwork(network);
+    setAssetFilter(network.name);
+  };
 
   return (
     <div className="min-h-screen bg-titan-bg">
@@ -235,37 +426,102 @@ const DashboardPage: React.FC = () => {
           <div className="md:col-span-7 space-y-8">
             
             <section>
-              <div className="flex items-center justify-between mb-5 px-1">
-                <h2 className="text-[16px] font-bold text-white tracking-wide">Assets</h2>
-                <span className="text-[12px] font-semibold text-titan-subtext px-2.5 py-1 bg-titan-surface rounded-md border border-titan-border">{tokens.length} Tokens</span>
+              <div className="mb-5 flex items-center justify-between px-1">
+                <h2 className="text-[16px] font-bold tracking-wide text-white">Assets</h2>
+                <span className="rounded-md border border-titan-border bg-titan-surface px-2.5 py-1 text-[12px] font-semibold text-titan-subtext">
+                  {assetTab === 'tokens' ? `${assetDisplayedTokens.length} visible` : 'Preview'}
+                </span>
               </div>
-              <div className="mb-4">
-                <TokenDetectionBanner isDetecting={isDetecting} detectedCount={detectedTokenCount} />
-              </div>
-              <div className="bg-[#0A0D14] border border-titan-border rounded-2xl overflow-hidden shadow-card">
-                {displayedTokens.length ? (
-                  displayedTokens.map((token, i) => (
-                    <div
-                      key={token.id}
-                      className="border-b border-titan-border/40 last:border-0 hover:bg-[#0F1520] transition-colors duration-200 animate-stagger-up"
-                      style={{ animationDelay: `${i * 60 + 200}ms` }}
+
+              <div className="overflow-hidden rounded-[24px] border border-titan-border bg-[#111317] shadow-card">
+                <div className="border-b border-white/5 px-4 pt-4">
+                  <div className="flex gap-5 overflow-x-auto pb-3">
+                    {ASSET_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setAssetTab(tab.id)}
+                        className={`shrink-0 border-b-2 pb-2 text-[15px] font-semibold transition-colors ${
+                          assetTab === tab.id
+                            ? 'border-white text-white'
+                            : 'border-transparent text-white/55 hover:text-white/85'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 border-b border-white/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    onClick={() => setShowNetworkPicker(true)}
+                    className="flex h-11 min-w-0 flex-1 items-center justify-between rounded-xl border border-white/10 bg-[#1A1C21] px-4 text-sm font-semibold text-white transition-colors hover:border-white/20 sm:max-w-[250px]"
+                  >
+                    <span className="truncate">{selectedAssetFilterLabel}</span>
+                    <ChevronDown size={16} className="shrink-0 text-white/65" />
+                  </button>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <button
+                      onClick={() => setShowNetworkPicker(true)}
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#1A1C21] text-white/70 transition-colors hover:border-white/20 hover:text-white"
                     >
-                      <TokenRow token={token} />
+                      <SlidersHorizontal size={16} />
+                    </button>
+                    <button
+                      onClick={() => setShowAddNetworkModal(true)}
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#1A1C21] text-white/70 transition-colors hover:border-white/20 hover:text-white"
+                    >
+                      <EllipsisVertical size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {isDetecting ? (
+                  <div className="p-4">
+                    <TokenDetectionBanner isDetecting={isDetecting} />
+                  </div>
+                ) : null}
+
+                {assetTab === 'tokens' ? (
+                  <>
+                    <div className="px-4 pb-2">
+                      {assetDisplayedTokens.length ? (
+                        <div className="overflow-hidden rounded-[20px] border border-white/6 bg-[#15171C]">
+                          {assetDisplayedTokens.map((token, i) => (
+                            <div
+                              key={token.id}
+                              className="border-b border-white/6 last:border-0 hover:bg-white/[0.02] transition-colors duration-200 animate-stagger-up"
+                              style={{ animationDelay: `${i * 50 + 120}ms` }}
+                            >
+                              <TokenRow token={token} variant="wallet-compact" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-[20px] border border-dashed border-white/10 bg-[#15171C] px-4 py-10 text-center text-sm text-titan-subtext">
+                          No assets found for {assetFilter === 'all' ? 'your current wallet scope' : assetFilter}. Run a scan, switch networks, or import a token manually.
+                        </div>
+                      )}
                     </div>
-                  ))
+
+                    <div className="flex flex-wrap gap-2 px-4 pb-4 pt-1">
+                      <Button variant="secondary" size="sm" onClick={() => void runAutoDetect()} loading={isDetecting}>
+                        Scan Tokens
+                      </Button>
+                      <Button variant="primary" size="sm" onClick={() => setShowAddTokenModal(true)}>
+                        Add Token
+                      </Button>
+                    </div>
+                  </>
                 ) : (
-                  <div className="px-4 py-10 text-center text-sm text-titan-subtext">
-                    No assets detected on {activeNetwork.name} yet. Run a token scan or import a custom token.
+                  <div className="px-4 pb-4">
+                    <div className="rounded-[20px] border border-dashed border-white/10 bg-[#15171C] px-5 py-10 text-center">
+                      <p className="text-[15px] font-semibold text-white">{nonTokenTabCopy[assetTab].title}</p>
+                      <p className="mx-auto mt-2 max-w-sm text-sm text-titan-subtext">{nonTokenTabCopy[assetTab].body}</p>
+                    </div>
                   </div>
                 )}
-              </div>
-              <div className="mt-4 flex gap-2">
-                <Button variant="secondary" size="sm" onClick={() => void runAutoDetect()} loading={isDetecting}>
-                  Scan Tokens
-                </Button>
-                <Button variant="primary" size="sm" onClick={() => setShowAddTokenModal(true)}>
-                  Add Token
-                </Button>
               </div>
             </section>
 
@@ -384,6 +640,26 @@ const DashboardPage: React.FC = () => {
       ) : null}
       {showSignModal ? (
         <SignMessageModal isOpen={showSignModal} onClose={() => setShowSignModal(false)} />
+      ) : null}
+      {showNetworkPicker ? (
+        <AssetNetworkPickerModal
+          isOpen={showNetworkPicker}
+          onClose={() => setShowNetworkPicker(false)}
+          selectedNetwork={assetFilter}
+          onSelect={setAssetFilter}
+          onAddCustom={() => {
+            setShowNetworkPicker(false);
+            setShowAddNetworkModal(true);
+          }}
+          networks={networks.filter((network) => assetNetworkNames.includes(network.name))}
+        />
+      ) : null}
+      {showAddNetworkModal ? (
+        <AddNetworkModal
+          isOpen={showAddNetworkModal}
+          onClose={() => setShowAddNetworkModal(false)}
+          onSave={handleSaveCustomNetwork}
+        />
       ) : null}
     </div>
   );
