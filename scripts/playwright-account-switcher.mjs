@@ -151,6 +151,16 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 
   await installRoutes(page);
+  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+  assert(
+    (await page.getByRole('banner').getByRole('link', { name: 'Dashboard', exact: true }).count()) === 0,
+    'The header Dashboard link should stay hidden before a wallet session exists.',
+  );
+  assert(
+    await page.getByRole('banner').getByRole('link', { name: 'Create Wallet' }).isVisible(),
+    'The header should show Create Wallet before a wallet session exists.',
+  );
+
   console.log('Opening first create-wallet flow');
   await page.goto(`${BASE_URL}/create-wallet`, { waitUntil: 'domcontentloaded' });
 

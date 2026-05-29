@@ -84,12 +84,14 @@ const LandingPage: React.FC = () => {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link
-              to={hasWalletSession ? '/dashboard' : '/onboarding'}
-              className="hidden rounded-xl border border-titan-border bg-titan-surface px-4 py-2.5 text-[13px] font-semibold text-titan-text transition-colors duration-200 hover:border-titan-accent/30 hover:bg-[#182030] sm:inline-flex"
-            >
-              Dashboard
-            </Link>
+            {hasWalletSession ? (
+              <Link
+                to="/dashboard"
+                className="hidden rounded-xl border border-titan-border bg-titan-surface px-4 py-2.5 text-[13px] font-semibold text-titan-text transition-colors duration-200 hover:border-titan-accent/30 hover:bg-[#182030] sm:inline-flex"
+              >
+                Dashboard
+              </Link>
+            ) : null}
             <Link
               to={primaryWalletHref}
               className="bg-white text-[#06080C] font-semibold text-[13px] px-5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
