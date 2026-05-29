@@ -165,6 +165,9 @@ async function main() {
   assert(firstAccountSummary.includes('YieldBoostAi'), 'The first account did not become active.');
   await page.getByText('Wallet Creation Proof').first().waitFor();
   await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+  await page.getByRole('banner').getByRole('link', { name: 'Dashboard', exact: true }).click();
+  await page.waitForURL('**/dashboard');
+  await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('link', { name: /Open Dashboard/ }).first().click();
   await page.waitForURL('**/dashboard');
   await page.goto(`${BASE_URL}/create-wallet`, { waitUntil: 'domcontentloaded' });
