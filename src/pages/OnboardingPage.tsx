@@ -51,15 +51,13 @@ const OnboardingPage: React.FC = () => {
       recommended: false,
       disabled: !socialEnabled || !googleLoginEnabled,
     },
-    {
+    ...(appleLoginEnabled ? [{
       id: 'apple' as OnboardingOption,
       icon: Mail,
       title: 'Login with Apple',
-      desc: socialEnabled && appleLoginEnabled
-        ? 'Apple login creates a new TITAN wallet through the Privy MPC flow.'
-        : 'Apple login is disabled in the current Privy app.',
+      desc: 'Apple login creates a new TITAN wallet through the Privy MPC flow.',
       disabled: !socialEnabled || !appleLoginEnabled,
-    },
+    }] : []),
     {
       id: 'passkey' as OnboardingOption,
       icon: Fingerprint,
@@ -104,7 +102,11 @@ const OnboardingPage: React.FC = () => {
         <div className="titan-card p-6">
           <div className="mb-6 text-center">
             <h1 className="text-xl font-bold text-titan-text mb-2">Welcome to TITAN</h1>
-            <p className="text-sm text-titan-subtext">Choose how you want to get started. Google or Apple login creates a new TITAN wallet automatically.</p>
+            <p className="text-sm text-titan-subtext">
+              {appleLoginEnabled
+                ? 'Choose how you want to get started. Google or Apple login creates a new TITAN wallet automatically.'
+                : 'Choose how you want to get started. Google login creates a new TITAN wallet automatically.'}
+            </p>
           </div>
 
           {!hasSocialLogin ? (

@@ -81,6 +81,10 @@ const CreateWalletPage: React.FC = () => {
   const requestedSocialProviderError = isSocialSignupFlow && socialConfigReady && !isRequestedSocialProviderEnabled
     ? getSocialDisabledMessage(socialProvider === 'apple' ? 'apple' : 'google')
     : null;
+  const socialLoginHeading = appleLoginEnabled ? 'Google or Apple login creates a TITAN wallet' : 'Google login creates a TITAN wallet';
+  const socialLoginDescription = appleLoginEnabled
+    ? 'As soon as the user logs in, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.'
+    : 'As soon as the user logs in with Google, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.';
 
   useEffect(() => {
     if (shouldRedirectExistingSession.current) {
@@ -402,14 +406,14 @@ const CreateWalletPage: React.FC = () => {
                   <div className="mb-6 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-white">Google or Apple login creates a TITAN wallet</p>
-                        <p className="text-xs text-titan-subtext">As soon as the user logs in, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.</p>
+                        <p className="text-sm font-semibold text-white">{socialLoginHeading}</p>
+                        <p className="text-xs text-titan-subtext">{socialLoginDescription}</p>
                       </div>
                       <Badge variant={hasSocialLogin && socialConfigReady ? 'accent' : 'neutral'} size="sm">
                         {!hasSocialLogin ? 'Not configured' : !socialConfigReady ? 'Checking app' : 'Privy ready'}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className={`grid grid-cols-1 gap-2 ${appleLoginEnabled ? 'sm:grid-cols-2' : ''}`}>
                       <Button
                         type="button"
                         variant="secondary"
@@ -420,16 +424,18 @@ const CreateWalletPage: React.FC = () => {
                       >
                         Login Google
                       </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="w-full"
-                        disabled={!hasSocialLogin || !privyReady || !socialConfigReady || !appleLoginEnabled}
-                        loading={socialSubmitting === 'apple'}
-                        onClick={() => void startSocialAuth('apple')}
-                      >
-                        Login Apple
-                      </Button>
+                      {appleLoginEnabled ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="w-full"
+                          disabled={!hasSocialLogin || !privyReady || !socialConfigReady || !appleLoginEnabled}
+                          loading={socialSubmitting === 'apple'}
+                          onClick={() => void startSocialAuth('apple')}
+                        >
+                          Login Apple
+                        </Button>
+                      ) : null}
                     </div>
                     {!hasSocialLogin ? (
                       <p className="mt-3 text-xs text-titan-subtext">Set `VITE_PRIVY_APP_ID` to enable social wallet login.</p>
