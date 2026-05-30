@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Copy, Check, ShieldCheck, RefreshCw } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -20,6 +20,9 @@ const CreateWalletPage: React.FC = () => {
     importWallet,
     hasSocialLogin,
     privyReady,
+    socialConfigReady,
+    googleLoginEnabled,
+    appleLoginEnabled,
     loginWithGoogle,
     loginWithApple,
   } = useWallet();
@@ -35,6 +38,11 @@ const CreateWalletPage: React.FC = () => {
   const intent = searchParams.get('intent');
   const socialProvider = searchParams.get('auth');
   const isSocialSignupFlow = socialProvider === 'google' || socialProvider === 'apple';
+  const isRequestedSocialProviderEnabled = socialProvider === 'google'
+    ? googleLoginEnabled
+    : socialProvider === 'apple'
+      ? appleLoginEnabled
+      : false;
   const isAddAccountFlow = intent === 'add-account';
   const isAddWalletFlow = intent === 'add-wallet';
   const shouldRedirectExistingSession = useRef(hasWalletSession && !intent && !isImportMode && !isSocialSignupFlow);
@@ -57,13 +65,36 @@ const CreateWalletPage: React.FC = () => {
   const [socialSubmitting, setSocialSubmitting] = useState<'google' | 'apple' | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
 
+  const getSocialDisabledMessage = useCallback((provider: 'google' | 'apple') => {
+    const label = provider === 'google' ? 'Google' : 'Apple';
+
+    if (!hasSocialLogin) {
+      return 'Set `VITE_PRIVY_APP_ID` to enable social wallet login.';
+    }
+
+    if (!socialConfigReady) {
+      return 'Checking the current Privy app configuration.';
+    }
+
+    return `${label} login is disabled in the current Privy app. Enable ${label} OAuth in the Privy dashboard first.`;
+  }, [hasSocialLogin, socialConfigReady]);
+  const requestedSocialProviderError = isSocialSignupFlow && socialConfigReady && !isRequestedSocialProviderEnabled
+    ? getSocialDisabledMessage(socialProvider === 'apple' ? 'apple' : 'google')
+    : null;
+
   useEffect(() => {
     if (shouldRedirectExistingSession.current) {
       navigate(returnTo, { replace: true });
     }
   }, [navigate, returnTo]);
 
-  const startSocialAuth = async (provider: 'google' | 'apple') => {
+  const startSocialAuth = useCallback(async (provider: 'google' | 'apple') => {
+    const providerEnabled = provider === 'google' ? googleLoginEnabled : appleLoginEnabled;
+    if (!providerEnabled) {
+      setSocialError(getSocialDisabledMessage(provider));
+      return;
+    }
+
     try {
       setSocialError(null);
       setSocialSubmitting(provider);
@@ -74,14 +105,17 @@ const CreateWalletPage: React.FC = () => {
         await loginWithApple();
       }
     } catch (error) {
-      setSocialError(error instanceof Error ? error.message : 'Unable to start social login.');
+      const message = error instanceof Error ? error.message : 'Unable to start social login.';
+      setSocialError(message.includes('not allowed') ? getSocialDisabledMessage(provider) : message);
       setSocialSubmitting(null);
     }
-  };
-
-  const startSocialAuthFromEffect = useEffectEvent((provider: 'google' | 'apple') => {
-    void startSocialAuth(provider);
-  });
+  }, [
+    appleLoginEnabled,
+    getSocialDisabledMessage,
+    googleLoginEnabled,
+    loginWithApple,
+    loginWithGoogle,
+  ]);
 
   useEffect(() => {
     if (
@@ -90,15 +124,36 @@ const CreateWalletPage: React.FC = () => {
       || socialAuthStarted.current
       || !hasSocialLogin
       || !privyReady
+      || !socialConfigReady
       || hasWalletSession
     ) {
       return;
     }
 
     const provider = socialProvider === 'apple' ? 'apple' : 'google';
+    if (!isRequestedSocialProviderEnabled) {
+      return;
+    }
     socialAuthStarted.current = true;
-    startSocialAuthFromEffect(provider);
-  }, [hasSocialLogin, hasWalletSession, isImportMode, privyReady, socialProvider]);
+    const timeoutId = window.setTimeout(() => {
+      void startSocialAuth(provider);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    googleLoginEnabled,
+    appleLoginEnabled,
+    hasSocialLogin,
+    hasWalletSession,
+    isImportMode,
+    isRequestedSocialProviderEnabled,
+    privyReady,
+    socialConfigReady,
+    socialProvider,
+    startSocialAuth,
+  ]);
 
   const copyMnemonic = () => {
     navigator.clipboard.writeText(mnemonicWords.join(' '));
@@ -350,8 +405,8 @@ const CreateWalletPage: React.FC = () => {
                         <p className="text-sm font-semibold text-white">Google or Apple login creates a TITAN wallet</p>
                         <p className="text-xs text-titan-subtext">As soon as the user logs in, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.</p>
                       </div>
-                      <Badge variant={hasSocialLogin ? 'accent' : 'neutral'} size="sm">
-                        {hasSocialLogin ? 'Privy ready' : 'Not configured'}
+                      <Badge variant={hasSocialLogin && socialConfigReady ? 'accent' : 'neutral'} size="sm">
+                        {!hasSocialLogin ? 'Not configured' : !socialConfigReady ? 'Checking app' : 'Privy ready'}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -359,7 +414,7 @@ const CreateWalletPage: React.FC = () => {
                         type="button"
                         variant="secondary"
                         className="w-full"
-                        disabled={!hasSocialLogin || !privyReady}
+                        disabled={!hasSocialLogin || !privyReady || !socialConfigReady || !googleLoginEnabled}
                         loading={socialSubmitting === 'google'}
                         onClick={() => void startSocialAuth('google')}
                       >
@@ -369,7 +424,7 @@ const CreateWalletPage: React.FC = () => {
                         type="button"
                         variant="secondary"
                         className="w-full"
-                        disabled={!hasSocialLogin || !privyReady}
+                        disabled={!hasSocialLogin || !privyReady || !socialConfigReady || !appleLoginEnabled}
                         loading={socialSubmitting === 'apple'}
                         onClick={() => void startSocialAuth('apple')}
                       >
@@ -379,8 +434,16 @@ const CreateWalletPage: React.FC = () => {
                     {!hasSocialLogin ? (
                       <p className="mt-3 text-xs text-titan-subtext">Set `VITE_PRIVY_APP_ID` to enable social wallet login.</p>
                     ) : null}
+                    {hasSocialLogin && !socialConfigReady ? (
+                      <p className="mt-3 text-xs text-titan-subtext">Checking which login providers are enabled in the current Privy app.</p>
+                    ) : null}
+                    {hasSocialLogin && socialConfigReady && !googleLoginEnabled && !appleLoginEnabled ? (
+                      <p className="mt-3 text-xs text-titan-danger">The current Privy app has Google and Apple login disabled. Enable them in the Privy dashboard first.</p>
+                    ) : null}
                     {socialError ? (
                       <p className="mt-3 text-xs text-titan-danger">{socialError}</p>
+                    ) : requestedSocialProviderError ? (
+                      <p className="mt-3 text-xs text-titan-danger">{requestedSocialProviderError}</p>
                     ) : null}
                   </div>
                   <div className="mb-5 flex items-center gap-3">

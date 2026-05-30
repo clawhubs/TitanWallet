@@ -19,6 +19,12 @@ import { TITAN_PRIVY_APP_ID, TITAN_PRIVY_CONFIG, TITAN_PRIVY_ENABLED } from '../
 
 type SocialAuthProvider = 'google' | 'apple';
 
+interface PrivyAppLoginMethods {
+  loaded: boolean;
+  google: boolean;
+  apple: boolean;
+}
+
 interface PrivyBridgeValue {
   enabled: boolean;
   ready: boolean;
@@ -27,6 +33,7 @@ interface PrivyBridgeValue {
   walletName: string | null;
   authProvider: SocialAuthProvider | null;
   wallet: ConnectedWallet | null;
+  loginMethods: PrivyAppLoginMethods;
   loginWithGoogle: () => Promise<void>;
   loginWithApple: () => Promise<void>;
   logout: () => Promise<void>;
@@ -47,6 +54,11 @@ const defaultPrivyBridgeValue: PrivyBridgeValue = {
   walletName: null,
   authProvider: null,
   wallet: null,
+  loginMethods: {
+    loaded: false,
+    google: false,
+    apple: false,
+  },
   loginWithGoogle: noopAsync,
   loginWithApple: noopAsync,
   logout: noopAsync,
@@ -110,6 +122,56 @@ const PrivyBridgeRuntime: React.FC<{ children: React.ReactNode }> = ({ children 
   const { sendTransaction } = useSendTransaction();
   const wallet = useMemo(() => getEmbeddedConnectedWallet(wallets) || wallets[0] || null, [wallets]);
   const createAttemptedForUser = useRef<string | null>(null);
+  const [loginMethods, setLoginMethods] = React.useState<PrivyAppLoginMethods>({
+    loaded: false,
+    google: false,
+    apple: false,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLoginMethods = async () => {
+      try {
+        const response = await fetch(`https://auth.privy.io/api/v1/apps/${TITAN_PRIVY_APP_ID}`, {
+          headers: {
+            'privy-app-id': TITAN_PRIVY_APP_ID,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Unable to load Privy app config: ${response.status}`);
+        }
+
+        const payload = await response.json() as {
+          google_oauth?: boolean;
+          apple_oauth?: boolean;
+        };
+
+        if (!cancelled) {
+          setLoginMethods({
+            loaded: true,
+            google: Boolean(payload.google_oauth),
+            apple: Boolean(payload.apple_oauth),
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setLoginMethods({
+            loaded: true,
+            google: false,
+            apple: false,
+          });
+        }
+      }
+    };
+
+    void loadLoginMethods();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!privyReady || !walletsReady || !authenticated || !user) {
@@ -149,6 +211,7 @@ const PrivyBridgeRuntime: React.FC<{ children: React.ReactNode }> = ({ children 
     walletName,
     authProvider,
     wallet,
+    loginMethods,
     loginWithGoogle: () => initOAuth({ provider: 'google' }),
     loginWithApple: () => initOAuth({ provider: 'apple' }),
     logout,
@@ -217,6 +280,7 @@ const PrivyBridgeRuntime: React.FC<{ children: React.ReactNode }> = ({ children 
     authenticated,
     exportWallet,
     initOAuth,
+    loginMethods,
     logout,
     privyReady,
     sendTransaction,

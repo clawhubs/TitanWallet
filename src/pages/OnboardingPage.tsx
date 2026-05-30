@@ -3,14 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Key, Download, Fingerprint, Mail, Shield, Globe } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
-import { useWalletStore } from '../store/useWalletStore';
+import { useWallet } from '../hooks/useWallet';
 
 type OnboardingOption = 'create' | 'import' | 'google' | 'apple' | 'passkey' | 'email' | null;
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
-  const hasWalletSession = useWalletStore((state) => Boolean(state.isConnected && state.address));
+  const {
+    isConnected,
+    address,
+    hasSocialLogin,
+    socialConfigReady,
+    googleLoginEnabled,
+    appleLoginEnabled,
+  } = useWallet();
+  const hasWalletSession = Boolean(isConnected && address);
   const [selected, setSelected] = useState<OnboardingOption>(null);
+  const socialEnabled = hasSocialLogin && socialConfigReady;
 
   useEffect(() => {
     if (hasWalletSession) {
@@ -36,14 +45,20 @@ const OnboardingPage: React.FC = () => {
       id: 'google' as OnboardingOption,
       icon: Globe,
       title: 'Login with Google',
-      desc: 'Google login creates a new TITAN wallet through the Privy MPC flow.',
+      desc: socialEnabled && googleLoginEnabled
+        ? 'Google login creates a new TITAN wallet through the Privy MPC flow.'
+        : 'Google login is disabled in the current Privy app.',
       recommended: false,
+      disabled: !socialEnabled || !googleLoginEnabled,
     },
     {
       id: 'apple' as OnboardingOption,
       icon: Mail,
       title: 'Login with Apple',
-      desc: 'Apple login creates a new TITAN wallet through the Privy MPC flow.',
+      desc: socialEnabled && appleLoginEnabled
+        ? 'Apple login creates a new TITAN wallet through the Privy MPC flow.'
+        : 'Apple login is disabled in the current Privy app.',
+      disabled: !socialEnabled || !appleLoginEnabled,
     },
     {
       id: 'passkey' as OnboardingOption,
@@ -91,6 +106,22 @@ const OnboardingPage: React.FC = () => {
             <h1 className="text-xl font-bold text-titan-text mb-2">Welcome to TITAN</h1>
             <p className="text-sm text-titan-subtext">Choose how you want to get started. Google or Apple login creates a new TITAN wallet automatically.</p>
           </div>
+
+          {!hasSocialLogin ? (
+            <div className="mb-4 rounded-xl border border-titan-border bg-titan-surface px-4 py-3 text-xs text-titan-subtext">
+              Social login is not configured because `VITE_PRIVY_APP_ID` is missing.
+            </div>
+          ) : null}
+          {hasSocialLogin && !socialConfigReady ? (
+            <div className="mb-4 rounded-xl border border-titan-border bg-titan-surface px-4 py-3 text-xs text-titan-subtext">
+              Checking which login providers are enabled in the current Privy app.
+            </div>
+          ) : null}
+          {socialEnabled && !googleLoginEnabled && !appleLoginEnabled ? (
+            <div className="mb-4 rounded-xl border border-titan-danger/30 bg-titan-danger/5 px-4 py-3 text-xs text-titan-danger">
+              The current Privy app has Google and Apple login disabled. Enable them in the Privy dashboard before offering social signup.
+            </div>
+          ) : null}
 
           {/* No install badge */}
           <div className="flex items-center gap-2 p-3 bg-titan-accent/5 border border-titan-accent/15 rounded-xl mb-5">
