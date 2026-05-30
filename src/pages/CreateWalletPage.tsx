@@ -485,11 +485,13 @@ const CreateWalletPage: React.FC = () => {
                       <p className="mt-3 text-xs text-titan-danger">{requestedSocialProviderError}</p>
                     ) : null}
                   </div>
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="h-px flex-1 bg-titan-border" />
-                    <span className="text-[11px] uppercase tracking-[0.2em] text-titan-subtext">or self-custody</span>
-                    <div className="h-px flex-1 bg-titan-border" />
-                  </div>
+                  {!isGoogleLinkedLocalFlow ? (
+                    <div className="mb-5 flex items-center gap-3">
+                      <div className="h-px flex-1 bg-titan-border" />
+                      <span className="text-[11px] uppercase tracking-[0.2em] text-titan-subtext">or self-custody</span>
+                      <div className="h-px flex-1 bg-titan-border" />
+                    </div>
+                  ) : null}
                 </>
               ) : null}
               <div className="space-y-4">
@@ -502,48 +504,60 @@ const CreateWalletPage: React.FC = () => {
                       onChange={(e) => setName(e.target.value)}
                     />
                 </div>
-                <div>
-                  <label className="titan-label block mb-2">Password</label>
-                  <div className="relative">
-                    <input
-                      className="titan-input font-sans pr-10"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="At least 8 characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-titan-subtext hover:text-titan-text">
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label className="titan-label block mb-2">Confirm password</label>
-                  <input
-                    className="titan-input font-sans"
-                    type="password"
-                    placeholder="Repeat your password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                  {confirmPassword && password !== confirmPassword && (
-                    <p className="text-titan-danger text-xs mt-1">Passwords do not match</p>
-                  )}
-                </div>
+                {!isGoogleLinkedLocalFlow ? (
+                  <>
+                    <div>
+                      <label className="titan-label block mb-2">Password</label>
+                      <div className="relative">
+                        <input
+                          className="titan-input font-sans pr-10"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="At least 8 characters"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-titan-subtext hover:text-titan-text">
+                          {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="titan-label block mb-2">Confirm password</label>
+                      <input
+                        className="titan-input font-sans"
+                        type="password"
+                        placeholder="Repeat your password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                      {confirmPassword && password !== confirmPassword && (
+                        <p className="text-titan-danger text-xs mt-1">Passwords do not match</p>
+                      )}
+                    </div>
+                  </>
+                ) : null}
               </div>
               {isGoogleLinkedLocalFlow ? (
                 <div className="mt-4 rounded-2xl border border-titan-accent/20 bg-titan-accent/5 px-4 py-3 text-xs text-titan-subtext">
-                  <span className="font-medium text-white">Google-linked:</span> the wallet is still generated locally in this browser, then TITAN stores an encrypted recovery copy tied to this Google session.
+                  <span className="font-medium text-white">Google-linked:</span> the wallet is generated locally, then TITAN stores an encrypted recovery copy tied to this Google session. No extra wallet password is needed for this Google flow.
                 </div>
               ) : null}
               <Button
                 variant="primary"
                 className="w-full mt-6"
                 size="lg"
-                disabled={!name || password.length < 8 || password !== confirmPassword}
-                onClick={() => setStep(2)}
+                loading={isSubmitting}
+                disabled={isGoogleLinkedLocalFlow ? !managedWalletReady : !name || password.length < 8 || password !== confirmPassword}
+                onClick={() => {
+                  if (isGoogleLinkedLocalFlow) {
+                    void handleCreateWallet();
+                    return;
+                  }
+
+                  setStep(2);
+                }}
               >
-                Continue <ArrowRight size={16} />
+                {isGoogleLinkedLocalFlow ? 'Create Wallet' : 'Continue'} <ArrowRight size={16} />
               </Button>
             </div>
           )}
