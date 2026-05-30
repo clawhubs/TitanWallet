@@ -373,10 +373,24 @@ const DashboardPage: React.FC = () => {
         : 'Wallet disconnected';
 
   const selectedAssetFilterLabel = assetFilter === 'all' ? 'All popular networks' : assetFilter;
+  const walletTimelineEvents = [
+    ...walletActivity.map((activity) => ({
+      id: `activity:${activity.id}`,
+      kind: 'activity' as const,
+      timestamp: activity.timestamp,
+      activity,
+    })),
+    ...proofEvents.map((proof) => ({
+      id: `proof:${proof.id}`,
+      kind: 'proof' as const,
+      timestamp: proof.timestamp,
+      proof,
+    })),
+  ].sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime());
   const assetTabStatusLabel = assetTab === 'tokens'
     ? `${assetDisplayedTokens.length} visible`
     : assetTab === 'activity'
-      ? `${walletActivity.length} events`
+      ? `${walletTimelineEvents.length} events`
       : '0 live';
 
   const renderDomainEmptyState = (
@@ -394,18 +408,47 @@ const DashboardPage: React.FC = () => {
 
   const renderNonTokenAssetTab = () => {
     if (assetTab === 'activity') {
-      return walletActivity.length ? (
+      return walletTimelineEvents.length ? (
         <div className="overflow-hidden rounded-[20px] border border-white/6 bg-[#15171C]">
-          {walletActivity.slice(0, 5).map((activity) => (
-            <ActivityRow
-              key={activity.id}
-              activity={activity}
-              onClick={() => navigate('/activity?tab=transactions')}
-            />
-          ))}
+          {walletTimelineEvents.slice(0, 5).map((event) => {
+            if (event.kind === 'activity') {
+              return (
+                <ActivityRow
+                  key={event.id}
+                  activity={event.activity}
+                  onClick={() => navigate('/activity?tab=transactions')}
+                />
+              );
+            }
+
+            return (
+              <button
+                key={event.id}
+                type="button"
+                onClick={() => navigate('/activity?tab=proofs')}
+                className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-white/[0.02]"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-titan-accent/10 text-titan-accent">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-titan-text">{event.proof.type}</p>
+                    <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-titan-subtext">
+                      <Clock size={10} /> {formatTimeAgo(event.proof.timestamp)}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-[11px] font-semibold text-titan-accent">{getProofSourceLabel(event.proof)}</p>
+                  <p className="mt-0.5 max-w-[120px] truncate text-xs text-titan-subtext">{event.proof.layer}</p>
+                </div>
+              </button>
+            );
+          })}
           <button
             type="button"
-            onClick={() => navigate('/activity?tab=transactions')}
+            onClick={() => navigate('/activity')}
             className="w-full border-t border-white/6 px-4 py-3 text-sm font-semibold text-titan-accent transition-colors hover:bg-white/[0.02] hover:text-white"
           >
             Open full Activity
@@ -414,7 +457,7 @@ const DashboardPage: React.FC = () => {
       ) : (
         renderDomainEmptyState(
           'No wallet activity yet',
-          'This tab reads only the wallet activity ledger. Sends, receives, swaps, and approvals will appear here after they happen.',
+          'This tab reads the wallet timeline: sends, receives, swaps, approvals, security proofs, and sealed wallet events.',
         )
       );
     }
