@@ -97,7 +97,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (requestPath === '/api/public/wallet-stats') {
+    if (requestPath === '/api/public/wallet-stats' || requestPath === '/api/consumer-auth/wallet-stats') {
       if (request.method !== 'GET') {
         writeJson(response, 405, { error: 'Method not allowed' });
         return;
@@ -107,7 +107,7 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (requestPath === '/api/public/wallet-opened') {
+    if (requestPath === '/api/public/wallet-opened' || requestPath === '/api/consumer-auth/wallet-opened') {
       if (request.method !== 'POST') {
         writeJson(response, 405, { error: 'Method not allowed' });
         return;

@@ -3,7 +3,7 @@ interface WalletStatsResponse {
 }
 
 export async function getWalletStats() {
-  const response = await fetch('/api/public/wallet-stats', {
+  const response = await fetch('/api/consumer-auth/wallet-stats', {
     headers: {
       Accept: 'application/json',
     },
@@ -21,7 +21,7 @@ export async function registerWalletOpened(input: {
   source: 'create' | 'import' | 'google' | 'add-account' | 'add-wallet';
   walletName?: string | null;
 }) {
-  await fetch('/api/public/wallet-opened', {
+  await fetch('/api/consumer-auth/wallet-opened', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
