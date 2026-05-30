@@ -645,7 +645,7 @@ const DashboardPage: React.FC = () => {
               </div>
             </section>
 
-            <section>
+            <section id="approval-flows" className="scroll-mt-28">
               <div className="flex items-center justify-between mb-5 px-1">
                 <h2 className="text-[16px] font-bold text-white tracking-wide">Approval Flows</h2>
                 <span className="text-[12px] font-semibold text-titan-subtext px-2.5 py-1 bg-titan-surface rounded-md border border-titan-border">

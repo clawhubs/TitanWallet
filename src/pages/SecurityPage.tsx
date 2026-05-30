@@ -257,7 +257,7 @@ const SecurityPage: React.FC = () => {
           {/* Policy + Memory */}
           <div className="space-y-4">
             {/* Governance policy */}
-            <Card className="p-5">
+            <Card id="governance" className="scroll-mt-28 p-5">
               <CardHeader>
                 <CardTitle>Governance Policies</CardTitle>
                 <Badge variant={hasWalletSession ? 'accent' : 'neutral'} size="sm">{hasWalletSession ? 'Session-ready' : 'No wallet'}</Badge>

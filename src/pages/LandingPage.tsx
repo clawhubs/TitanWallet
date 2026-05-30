@@ -22,10 +22,46 @@ const benefits = [
 ];
 
 const useCases = [
-  { icon: User, title: 'Personal wallet', desc: 'Full visibility into every action. Real security without complexity.' },
-  { icon: Users, title: 'DAO treasury', desc: 'Multi-party governance with programmable approval flows and on-chain proof.' },
-  { icon: Briefcase, title: 'Team vault', desc: 'Set spending policies for your team. Every transaction has a signed audit trail.' },
-  { icon: Bot, title: 'AI agent wallet', desc: 'Give your agent a wallet with hard limits, time-locks, and full auditability.' },
+  {
+    icon: User,
+    title: 'Personal wallet',
+    desc: 'Open the live wallet dashboard with assets, approvals, proof logs, and security settings.',
+    connectedHref: '/dashboard',
+    guestHref: '/onboarding',
+    connectedCta: 'Open wallet',
+    guestCta: 'Create wallet',
+    rail: 'Wallet dashboard',
+  },
+  {
+    icon: Users,
+    title: 'DAO treasury',
+    desc: 'Open governance policy rails for spending limits, allowlists, and treasury review.',
+    connectedHref: '/security#governance',
+    guestHref: '/onboarding',
+    connectedCta: 'Open governance',
+    guestCta: 'Create treasury wallet',
+    rail: 'Governance rail',
+  },
+  {
+    icon: Briefcase,
+    title: 'Team vault',
+    desc: 'Open approval flows for dApp connections, message signing, and team audit trails.',
+    connectedHref: '/dashboard#approval-flows',
+    guestHref: '/onboarding',
+    connectedCta: 'Open approvals',
+    guestCta: 'Create team wallet',
+    rail: 'Approval rail',
+  },
+  {
+    icon: Bot,
+    title: 'AI agent wallet',
+    desc: 'Open the developer setup for project, agent wallet, and capability-token wiring.',
+    connectedHref: '/settings?tab=developer',
+    guestHref: '/developer/docs',
+    connectedCta: 'Open developer setup',
+    guestCta: 'Read developer docs',
+    rail: 'Agent rail',
+  },
 ];
 
 const faqs = [
@@ -176,22 +212,32 @@ const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {useCases.map((uc) => {
               const Icon = uc.icon;
+              const href = hasWalletSession ? uc.connectedHref : uc.guestHref;
+              const cta = hasWalletSession ? uc.connectedCta : uc.guestCta;
               return (
-                <div
+                <Link
                   key={uc.title}
-                  className="group relative bg-titan-surface border border-titan-border rounded-2xl p-7 hover:-translate-y-1 hover:border-titan-accent/25 hover:shadow-elevated transition-all duration-300 cursor-default"
+                  to={href}
+                  className="group relative bg-titan-surface border border-titan-border rounded-2xl p-7 hover:-translate-y-1 hover:border-titan-accent/25 hover:shadow-elevated transition-all duration-300"
                 >
                   {/* Hover glow */}
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-titan-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   
-                  <div className="relative">
+                  <div className="relative flex min-h-[180px] flex-col">
                     <div className="w-11 h-11 rounded-xl bg-titan-bg border border-titan-border flex items-center justify-center mb-6 group-hover:border-titan-accent/30 group-hover:bg-titan-accent/5 transition-all duration-300">
                       <Icon size={20} className="text-titan-subtext group-hover:text-titan-accent transition-colors duration-300" />
                     </div>
+                    <span className="mb-3 inline-flex w-fit rounded-full border border-titan-accent/15 bg-titan-accent/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-titan-accent">
+                      {uc.rail}
+                    </span>
                     <h3 className="text-[15px] font-semibold text-white mb-2.5">{uc.title}</h3>
                     <p className="text-[13px] text-titan-subtext leading-[1.7]">{uc.desc}</p>
+                    <span className="mt-auto pt-6 inline-flex items-center gap-2 text-[12px] font-semibold text-titan-accent group-hover:text-white transition-colors duration-200">
+                      {cta}
+                      <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform duration-200" />
+                    </span>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

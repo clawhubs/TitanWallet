@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardHeader from '../components/layout/DashboardHeader';
 import GeneralSettings from '../components/settings/GeneralSettings';
 import NetworkSettings from '../components/settings/NetworkSettings';
@@ -10,14 +11,29 @@ import { useNetworkStore } from '../store/useNetworkStore';
 
 type SettingsTab = 'general' | 'networks' | 'tokens' | 'developer';
 
+const SETTINGS_TABS = ['general', 'networks', 'tokens', 'developer'] as const;
+
+function parseSettingsTab(tab: string | null): SettingsTab {
+  return SETTINGS_TABS.includes(tab as SettingsTab) ? (tab as SettingsTab) : 'general';
+}
+
 const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = parseSettingsTab(searchParams.get('tab'));
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const tokens = useTokenStore((state) => state.tokens);
   const customTokens = useTokenStore((state) => state.customTokens);
   const removeToken = useTokenStore((state) => state.removeToken);
   const networkTokens = tokens.filter((token) => token.network === activeNetwork.name);
   const networkCustomTokens = customTokens.filter((token) => token.network === activeNetwork.name);
+
+  const selectTab = (tab: SettingsTab) => {
+    if (tab === 'general') {
+      setSearchParams({});
+      return;
+    }
+    setSearchParams({ tab });
+  };
 
   return (
     <div className="min-h-screen bg-titan-bg">
@@ -43,7 +59,7 @@ const SettingsPage: React.FC = () => {
               key={tab.id}
               variant={activeTab === tab.id ? 'primary' : 'secondary'}
               size="sm"
-              onClick={() => setActiveTab(tab.id as SettingsTab)}
+              onClick={() => selectTab(tab.id as SettingsTab)}
             >
               {tab.label}
             </Button>

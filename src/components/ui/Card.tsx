@@ -1,18 +1,18 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
   glow?: boolean;
-  onClick?: () => void;
 }
 
-const Card: React.FC<CardProps> = ({ children, className, hover = false, glow = false, onClick }) => {
+const Card: React.FC<CardProps> = ({ children, className, hover = false, glow = false, onClick, ...props }) => {
   return (
     <div
       onClick={onClick}
+      {...props}
       className={cn(
         'titan-card',
         hover && 'hover:border-titan-border/80 hover:bg-titan-card/80 transition-all duration-200 cursor-pointer',
