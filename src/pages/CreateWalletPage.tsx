@@ -50,6 +50,7 @@ const CreateWalletPage: React.FC = () => {
   const {
     createWallet,
     linkWalletToGoogle,
+    restoreWalletFromGoogle,
     importWallet,
     authLane,
     hasSocialLogin,
@@ -113,6 +114,12 @@ const CreateWalletPage: React.FC = () => {
   const googleWalletName = socialUserEmail || socialUserName || 'Google Wallet';
   const googleWalletCreateLockKey = buildGoogleWalletCreateLockKey(socialUserEmail || socialUserName);
   const isGoogleLinkedLocalFlow = authLane === 'titan-managed' && socialAuthenticated && !isAddAccountFlow && !isAddWalletFlow;
+  const hasMatchingGoogleWalletSession = Boolean(
+    managedWalletSession?.address
+    && hasWalletSession
+    && walletAddress
+    && managedWalletSession.address.toLowerCase() === walletAddress.toLowerCase(),
+  );
 
   function getManagedAuthErrorMessage(code: string | null) {
     switch (code) {
@@ -151,7 +158,7 @@ const CreateWalletPage: React.FC = () => {
     ? getSocialDisabledMessage(socialProvider === 'apple' ? 'apple' : 'google')
     : null;
   const socialLoginHeading = 'Google login unlocks a local TITAN wallet flow';
-  const socialLoginDescription = 'The Google account is verified first, then the wallet is still created locally in this browser and linked back to that Google session.';
+  const socialLoginDescription = 'The Google account is verified first. If this is your first time, TITAN creates a local wallet and links it. If you already have one, TITAN restores that same wallet.';
 
   useEffect(() => {
     if (shouldRedirectExistingSession.current) {
@@ -346,32 +353,44 @@ const CreateWalletPage: React.FC = () => {
         const wallet = createNewWallet();
 
         try {
-          await linkWalletToGoogle({
+          const linkedWallet = await linkWalletToGoogle({
             walletName: walletLabel,
             address: wallet.address,
             mnemonic: wallet.mnemonic,
             privateKey: wallet.privateKey,
           });
-          connectWallet({
-            address: wallet.address,
-            mnemonic: wallet.mnemonic,
-            privateKey: wallet.privateKey,
-            walletName: walletLabel,
-            source: 'google',
-            authProvider: 'google',
-          });
-          setMnemonicWords(wallet.mnemonic.split(' '));
+
+          const linkedAddress = linkedWallet.address.toLowerCase();
+          const createdAddress = wallet.address.toLowerCase();
+          const restoredWallet = linkedAddress === createdAddress
+            ? wallet
+            : await restoreWalletFromGoogle();
+
+          if (linkedAddress === createdAddress) {
+            connectWallet({
+              address: wallet.address,
+              mnemonic: wallet.mnemonic,
+              privateKey: wallet.privateKey,
+              walletName: walletLabel,
+              source: 'google',
+              authProvider: 'google',
+            });
+          }
+
+          setMnemonicWords(restoredWallet.mnemonic.split(' '));
           setShowSeed(false);
           setConfirmed(false);
-          setStep(3);
+          setStep(linkedAddress === createdAddress ? 3 : 4);
           writeGoogleWalletCreateLock(googleWalletCreateLockKey, 'done');
-          await persistWalletProof({
-            address: wallet.address,
-            eventType: 'Google Linked Wallet Creation Proof',
-            description: 'Local wallet creation and Google account binding were sealed through the TITAN onboarding flow.',
-            source: 'social',
-            walletLabel,
-          });
+          if (linkedAddress === createdAddress) {
+            await persistWalletProof({
+              address: wallet.address,
+              eventType: 'Google Linked Wallet Creation Proof',
+              description: 'Local wallet creation and Google account binding were sealed through the TITAN onboarding flow.',
+              source: 'social',
+              walletLabel,
+            });
+          }
         } catch (error) {
           clearGoogleWalletCreateLock(googleWalletCreateLockKey);
           throw error;
@@ -423,6 +442,44 @@ const CreateWalletPage: React.FC = () => {
     managedWalletSession,
     step,
     googleWalletCreateLockKey,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isGoogleLinkedLocalFlow
+      || step !== 1
+      || !managedWalletSession?.address
+      || isSubmitting
+    ) {
+      return;
+    }
+
+    if (hasMatchingGoogleWalletSession) {
+      navigate(returnTo, { replace: true });
+      return;
+    }
+
+    let cancelled = false;
+    void restoreWalletFromGoogle()
+      .then(() => {
+        if (!cancelled) {
+          navigate(returnTo, { replace: true });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    hasMatchingGoogleWalletSession,
+    isGoogleLinkedLocalFlow,
+    isSubmitting,
+    managedWalletSession,
+    navigate,
+    restoreWalletFromGoogle,
+    returnTo,
+    step,
   ]);
 
   const handleImportWallet = async () => {
@@ -711,7 +768,7 @@ const CreateWalletPage: React.FC = () => {
                 {isAddAccountFlow
                   ? 'A fresh Ethereum-compatible account will be added to your local TITAN wallet list.'
                   : isGoogleLinkedLocalFlow
-                    ? 'The wallet will be generated locally, then linked back to this Google identity for future restore.'
+                    ? 'If this Google account is new, TITAN will create and link a local wallet. If it is already linked, TITAN restores the same wallet instead of making a new one.'
                     : 'A new Ethereum-compatible wallet will be generated for you.'}
               </p>
 
@@ -754,7 +811,7 @@ const CreateWalletPage: React.FC = () => {
               </div>
 
               <Button variant="primary" className="w-full" size="lg" loading={isSubmitting} onClick={() => void handleCreateWallet()}>
-                Create Wallet <ArrowRight size={16} />
+                {isGoogleLinkedLocalFlow ? 'Continue with Google' : 'Create Wallet'} <ArrowRight size={16} />
               </Button>
             </div>
           )}
@@ -785,18 +842,16 @@ const CreateWalletPage: React.FC = () => {
                 )}
               </div>
 
-              {showSeed && (
-                <div className="mb-4 flex flex-wrap gap-3">
-                  <button onClick={copyMnemonic} className="flex items-center gap-2 text-xs text-titan-subtext hover:text-titan-text transition-colors">
-                    {copiedSeed ? <Check size={13} className="text-titan-success" /> : <Copy size={13} />}
-                    {copiedSeed ? 'Copied!' : 'Copy to clipboard'}
-                  </button>
-                  <button onClick={downloadRecoveryKit} className="flex items-center gap-2 text-xs text-titan-subtext hover:text-titan-text transition-colors">
-                    {downloadedBackup ? <Check size={13} className="text-titan-success" /> : <Download size={13} />}
-                    {downloadedBackup ? 'Downloaded' : 'Download recovery kit'}
-                  </button>
-                </div>
-              )}
+              <div className="mb-4 flex flex-wrap gap-3">
+                <button onClick={copyMnemonic} className="flex items-center gap-2 text-xs text-titan-subtext hover:text-titan-text transition-colors">
+                  {copiedSeed ? <Check size={13} className="text-titan-success" /> : <Copy size={13} />}
+                  {copiedSeed ? 'Copied!' : 'Copy recovery phrase'}
+                </button>
+                <button onClick={downloadRecoveryKit} className="flex items-center gap-2 text-xs text-titan-subtext hover:text-titan-text transition-colors">
+                  {downloadedBackup ? <Check size={13} className="text-titan-success" /> : <Download size={13} />}
+                  {downloadedBackup ? 'Downloaded' : 'Download recovery kit'}
+                </button>
+              </div>
 
               <label className="flex items-start gap-3 cursor-pointer mb-5">
                 <input
@@ -814,7 +869,7 @@ const CreateWalletPage: React.FC = () => {
                 variant="primary"
                 className="w-full"
                 size="lg"
-                disabled={!confirmed || !showSeed}
+                disabled={!confirmed}
                 onClick={() => setStep(4)}
               >
                 I've saved it safely <ArrowRight size={16} />

@@ -35,7 +35,7 @@ const OnboardingPage: React.FC = () => {
     {
       id: 'create' as OnboardingOption,
       icon: Key,
-      title: 'Create a new wallet',
+      title: 'Create a local wallet',
       desc: 'Generate a fresh wallet with a secure seed phrase.',
       recommended: true,
     },
@@ -48,9 +48,9 @@ const OnboardingPage: React.FC = () => {
     {
       id: 'google' as OnboardingOption,
       icon: Globe,
-      title: 'Login with Google',
+      title: 'Continue with Google',
       desc: socialEnabled && googleLoginEnabled
-        ? 'Login with Google first, then create or restore a normal local wallet that TITAN can bind to that account.'
+        ? 'Use Google to restore your linked wallet, or create one the first time without changing the normal backup flow.'
         : 'Google login is not configured in this TITAN Wallet deployment yet.',
       recommended: false,
       disabled: !socialEnabled || !googleLoginEnabled,

@@ -660,14 +660,12 @@ async function createOrUpdateLinkedWallet(input) {
       existing.walletName !== input.walletName
       || existing.email !== input.email
       || existing.name !== input.name
-      || existing.address !== input.address
+      || existing.provider !== input.provider
     ) {
       existing.walletName = input.walletName;
       existing.email = input.email;
       existing.name = input.name;
-      existing.address = input.address;
-      existing.encryptedMnemonic = encryptManagedSecret(input.mnemonic, consumerAuthCookieSecret);
-      existing.encryptedPrivateKey = encryptManagedSecret(input.privateKey, consumerAuthCookieSecret);
+      existing.provider = input.provider;
       existing.updatedAt = new Date().toISOString();
       await writeManagedWalletStore(store);
     }

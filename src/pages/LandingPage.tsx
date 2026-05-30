@@ -62,7 +62,7 @@ const FAQItem: React.FC<{ q: string; a: string }> = ({ q, a }) => {
 const LandingPage: React.FC = () => {
   const hasWalletSession = useWalletStore((state) => Boolean(state.isConnected && state.address));
   const primaryWalletHref = hasWalletSession ? '/dashboard' : '/onboarding';
-  const primaryWalletLabel = hasWalletSession ? 'Open Dashboard' : 'Create Wallet';
+  const primaryWalletLabel = hasWalletSession ? 'Open Dashboard' : 'Get Started';
 
   return (
     <div className="min-h-screen bg-titan-bg overflow-x-hidden">
@@ -326,7 +326,7 @@ const LandingPage: React.FC = () => {
             to="/onboarding"
             className="bg-white text-[#06080C] font-bold text-[16px] px-12 py-4.5 rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all duration-150 inline-flex items-center gap-2.5 shadow-lg shadow-white/10 mb-14"
           >
-            Create Wallet — Free <ArrowRight size={18} strokeWidth={2.5} />
+            Get Started — Free <ArrowRight size={18} strokeWidth={2.5} />
           </Link>
 
           <div className="flex items-center justify-center gap-5">
