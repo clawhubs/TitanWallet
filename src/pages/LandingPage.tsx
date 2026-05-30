@@ -6,6 +6,7 @@ import {
 import LandingFooter from '../components/layout/LandingFooter';
 import WalletPreview from '../components/landing/WalletPreview';
 import TrustBar from '../components/landing/TrustBar';
+import LogoMarquee from '../components/landing/LogoMarquee';
 import LayerStack from '../components/landing/LayerStack';
 import { useWalletStore } from '../store/useWalletStore';
 
@@ -157,6 +158,9 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* ── Ecosystem Logo Marquee ────────────────────────────────────── */}
+      <LogoMarquee />
 
       {/* ── Stats Bar ──────────────────────────────────────────────────── */}
       <TrustBar />

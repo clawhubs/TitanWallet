@@ -94,6 +94,24 @@
   .border-glow {
     box-shadow: 0 0 0 1px rgba(78, 205, 196, 0.3), 0 0 20px rgba(78, 205, 196, 0.05);
   }
+
+  .animate-titan-marquee {
+    animation: titan-marquee 34s linear infinite;
+  }
+
+  .animate-titan-marquee:hover {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes titan-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 /* Animations */
