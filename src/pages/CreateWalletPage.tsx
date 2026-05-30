@@ -55,6 +55,7 @@ const CreateWalletPage: React.FC = () => {
   const isAddWalletFlow = intent === 'add-wallet';
   const shouldRedirectExistingSession = useRef(hasWalletSession && !intent && !isImportMode && !isSocialSignupFlow);
   const socialAuthStarted = useRef(false);
+  const googleWalletCreateStarted = useRef(false);
   const [step, setStep] = useState<Step>(1);
   const [showSeed, setShowSeed] = useState(false);
   const [copiedSeed, setCopiedSeed] = useState(false);
@@ -72,6 +73,7 @@ const CreateWalletPage: React.FC = () => {
   const [socialSubmitting, setSocialSubmitting] = useState<'google' | 'apple' | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
   const socialIdentityLabel = socialUserName || socialUserEmail || 'Google account';
+  const googleWalletName = socialUserEmail || socialUserName || 'Google Wallet';
   const isGoogleLinkedLocalFlow = authLane === 'titan-managed' && socialAuthenticated && !isAddAccountFlow && !isAddWalletFlow;
 
   function getManagedAuthErrorMessage(code: string | null) {
@@ -254,9 +256,10 @@ const CreateWalletPage: React.FC = () => {
       setImportError(null);
 
       if (isGoogleLinkedLocalFlow) {
-        const wallet = createWallet(name || socialIdentityLabel);
+        const walletLabel = googleWalletName;
+        const wallet = createWallet(walletLabel);
         await linkWalletToGoogle({
-          walletName: name || socialIdentityLabel,
+          walletName: walletLabel,
           address: wallet.address,
           mnemonic: wallet.mnemonic,
           privateKey: wallet.privateKey,
@@ -270,7 +273,7 @@ const CreateWalletPage: React.FC = () => {
           eventType: 'Google Linked Wallet Creation Proof',
           description: 'Local wallet creation and Google account binding were sealed through the TITAN onboarding flow.',
           source: 'social',
-          walletLabel: name || socialIdentityLabel,
+          walletLabel,
         });
         return;
       }
@@ -291,6 +294,36 @@ const CreateWalletPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  const createGoogleWalletFromEffect = useEffectEvent(() => {
+    void handleCreateWallet();
+  });
+
+  useEffect(() => {
+    if (
+      !isGoogleLinkedLocalFlow
+      || step !== 1
+      || !managedWalletReady
+      || isSubmitting
+      || googleWalletCreateStarted.current
+    ) {
+      return;
+    }
+
+    googleWalletCreateStarted.current = true;
+    const timeoutId = window.setTimeout(() => {
+      createGoogleWalletFromEffect();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    isGoogleLinkedLocalFlow,
+    isSubmitting,
+    managedWalletReady,
+    step,
+  ]);
 
   const handleImportWallet = async () => {
     try {
@@ -495,15 +528,21 @@ const CreateWalletPage: React.FC = () => {
                 </>
               ) : null}
               <div className="space-y-4">
-                <div>
-                  <label className="titan-label block mb-2">Wallet name</label>
-                  <input
-                    className="titan-input font-sans"
-                      placeholder={isGoogleLinkedLocalFlow ? socialIdentityLabel : 'My TITAN Wallet'}
+                {isGoogleLinkedLocalFlow ? (
+                  <div className="rounded-2xl border border-titan-accent/20 bg-titan-accent/5 px-4 py-3 text-xs text-titan-subtext">
+                    <span className="font-medium text-white">Wallet name:</span> {googleWalletName}
+                  </div>
+                ) : (
+                  <div>
+                    <label className="titan-label block mb-2">Wallet name</label>
+                    <input
+                      className="titan-input font-sans"
+                      placeholder="My TITAN Wallet"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
-                </div>
+                  </div>
+                )}
                 {!isGoogleLinkedLocalFlow ? (
                   <>
                     <div>
@@ -539,7 +578,7 @@ const CreateWalletPage: React.FC = () => {
               </div>
               {isGoogleLinkedLocalFlow ? (
                 <div className="mt-4 rounded-2xl border border-titan-accent/20 bg-titan-accent/5 px-4 py-3 text-xs text-titan-subtext">
-                  <span className="font-medium text-white">Google-linked:</span> the wallet is generated locally, then TITAN stores an encrypted recovery copy tied to this Google session. No extra wallet password is needed for this Google flow.
+                  <span className="font-medium text-white">Google-linked:</span> creating your local wallet automatically. No extra wallet password or name step is needed for this Google flow.
                 </div>
               ) : null}
               <Button
@@ -557,7 +596,7 @@ const CreateWalletPage: React.FC = () => {
                   setStep(2);
                 }}
               >
-                {isGoogleLinkedLocalFlow ? 'Create Wallet' : 'Continue'} <ArrowRight size={16} />
+                {isGoogleLinkedLocalFlow ? 'Creating Wallet' : 'Continue'} <ArrowRight size={16} />
               </Button>
             </div>
           )}
