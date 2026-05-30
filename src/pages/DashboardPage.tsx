@@ -20,6 +20,7 @@ import { useWalletStore } from '../store/useWalletStore';
 import { useNetworkStore } from '../store/useNetworkStore';
 import { formatTimeAgo, formatUSD } from '../utils/cn';
 import TokenRow from '../components/ui/TokenRow';
+import ActivityRow from '../components/ui/ActivityRow';
 import TokenDetectionBanner from '../components/dashboard/TokenDetectionBanner';
 import AddTokenModal from '../components/dashboard/AddTokenModal';
 import AssetNetworkPickerModal from '../components/dashboard/AssetNetworkPickerModal';
@@ -27,7 +28,7 @@ import Button from '../components/ui/Button';
 import SwapPanel from '../components/dashboard/SwapPanel';
 import { getHealth } from '../services/security';
 import { listRecords } from '../services/integrity';
-import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRecordsToProofs } from '../utils/integrity';
+import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRecordsToActivity, mapIntegrityRecordsToProofs } from '../utils/integrity';
 import SendTransactionModal from '../components/modals/SendTransactionModal';
 import ReceiveModal from '../components/modals/ReceiveModal';
 import { hasTitanSecurityAccess } from '../config/api';
@@ -84,6 +85,26 @@ function mergeProofEvents(primary: ProofEvent[], secondary: ProofEvent[]) {
   return merged.sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime());
 }
 
+function mergeActivityEvents(
+  primary: ReturnType<typeof mapIntegrityRecordsToActivity>,
+  secondary: ReturnType<typeof mapIntegrityRecordsToActivity>,
+) {
+  const seen = new Set<string>();
+  const merged: ReturnType<typeof mapIntegrityRecordsToActivity> = [];
+
+  [...primary, ...secondary].forEach((activity) => {
+    const key = activity.hash || activity.id;
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    merged.push(activity);
+  });
+
+  return merged.sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime());
+}
+
 function buildProofFeed(proofs: ProofEvent[]) {
   return proofs.slice(0, 4).map((proof) => ({
     label: proof.type,
@@ -92,6 +113,10 @@ function buildProofFeed(proofs: ProofEvent[]) {
       minute: '2-digit',
     }),
   }));
+}
+
+function getProofSourceLabel(proof: ProofEvent) {
+  return proof.txHash ? 'On-chain anchor' : 'Off-chain proof';
 }
 
 type AssetTabId = (typeof ASSET_TABS)[number]['id'];
@@ -165,6 +190,7 @@ const DashboardPage: React.FC = () => {
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showSignModal, setShowSignModal] = useState(false);
   const [proofEvents, setProofEvents] = useState<ReturnType<typeof mapIntegrityRecordsToProofs>>([]);
+  const [walletActivity, setWalletActivity] = useState<ReturnType<typeof mapIntegrityRecordsToActivity>>([]);
   const [proofFeed, setProofFeed] = useState([
     { label: 'No integrity records yet', time: 'Create, sign, send, or swap to start a live trail.' },
   ]);
@@ -271,6 +297,7 @@ const DashboardPage: React.FC = () => {
       if (!walletAddress) {
         if (!disposed) {
           setProofEvents([]);
+          setWalletActivity([]);
           setProofFeed([
             { label: 'No wallet connected', time: 'Create or import a wallet to start a proof trail.' },
           ]);
@@ -278,9 +305,11 @@ const DashboardPage: React.FC = () => {
         return;
       }
 
-      const localProofs = getLocalWalletEvents(walletAddress, activeNetwork.name).proofs;
+      const localEvents = getLocalWalletEvents(walletAddress, activeNetwork.name);
+      const localProofs = localEvents.proofs;
       if (!disposed) {
         setProofEvents(localProofs);
+        setWalletActivity(localEvents.activity);
         setProofFeed(
           localProofs.length
             ? buildProofFeed(localProofs)
@@ -302,8 +331,11 @@ const DashboardPage: React.FC = () => {
         }
 
         const liveProofs = mapIntegrityRecordsToProofs(records.items);
+        const liveActivity = mapIntegrityRecordsToActivity(records.items);
         const mergedProofs = mergeProofEvents(localProofs, liveProofs);
+        const mergedActivity = mergeActivityEvents(localEvents.activity, liveActivity);
         setProofEvents(mergedProofs);
+        setWalletActivity(mergedActivity);
         setProofFeed(
           mergedProofs.length
             ? buildProofFeed(mergedProofs)
@@ -312,6 +344,7 @@ const DashboardPage: React.FC = () => {
       } catch {
         if (!disposed) {
           setProofEvents(localProofs);
+          setWalletActivity(localEvents.activity);
           setProofFeed(
             localProofs.length
               ? buildProofFeed(localProofs)
@@ -340,23 +373,70 @@ const DashboardPage: React.FC = () => {
         : 'Wallet disconnected';
 
   const selectedAssetFilterLabel = assetFilter === 'all' ? 'All popular networks' : assetFilter;
-  const nonTokenTabCopy: Record<Exclude<AssetTabId, 'tokens'>, { title: string; body: string }> = {
-    perps: {
-      title: 'Perps rail not connected yet',
-      body: 'Derivative positions will surface here once TITAN starts tracking perpetual venues on the active wallet.',
-    },
-    defi: {
-      title: 'DeFi positions pending discovery',
-      body: 'Liquidity, lending, and yield strategies will appear here after the next protocol index sync.',
-    },
-    nfts: {
-      title: 'NFT inventory is empty',
-      body: 'Imported collections and security-tagged NFTs will show up in this rail when available.',
-    },
-    activity: {
-      title: 'Activity rail points to the main feed',
-      body: 'Use the Activity page for the full ledger. This compact rail is reserved for wallet-native movement snapshots.',
-    },
+  const assetTabStatusLabel = assetTab === 'tokens'
+    ? `${assetDisplayedTokens.length} visible`
+    : assetTab === 'activity'
+      ? `${walletActivity.length} events`
+      : '0 live';
+
+  const renderDomainEmptyState = (
+    title: string,
+    body: string,
+  ) => (
+    <div className="rounded-[20px] border border-dashed border-white/10 bg-[#15171C] px-5 py-10 text-center">
+      <p className="text-[15px] font-semibold text-white">{title}</p>
+      <p className="mx-auto mt-2 max-w-sm text-sm text-titan-subtext">{body}</p>
+      <p className="mt-4 inline-flex rounded-full border border-titan-border bg-titan-surface px-3 py-1 text-[11px] font-semibold text-titan-subtext">
+        Live data only, no placeholder rows
+      </p>
+    </div>
+  );
+
+  const renderNonTokenAssetTab = () => {
+    if (assetTab === 'activity') {
+      return walletActivity.length ? (
+        <div className="overflow-hidden rounded-[20px] border border-white/6 bg-[#15171C]">
+          {walletActivity.slice(0, 5).map((activity) => (
+            <ActivityRow
+              key={activity.id}
+              activity={activity}
+              onClick={() => navigate('/activity?tab=transactions')}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => navigate('/activity?tab=transactions')}
+            className="w-full border-t border-white/6 px-4 py-3 text-sm font-semibold text-titan-accent transition-colors hover:bg-white/[0.02] hover:text-white"
+          >
+            Open full Activity
+          </button>
+        </div>
+      ) : (
+        renderDomainEmptyState(
+          'No wallet activity yet',
+          'This tab reads only the wallet activity ledger. Sends, receives, swaps, and approvals will appear here after they happen.',
+        )
+      );
+    }
+
+    if (assetTab === 'perps') {
+      return renderDomainEmptyState(
+        'No live Perps positions',
+        'Perps will stay empty until TITAN has actual wallet-owned perpetual positions to display. Activity events are not mixed into this tab.',
+      );
+    }
+
+    if (assetTab === 'defi') {
+      return renderDomainEmptyState(
+        'No live DeFi positions',
+        'DeFi will only show wallet-owned liquidity, lending, staking, or protocol positions. Transaction activity belongs in the Activity tab.',
+      );
+    }
+
+    return renderDomainEmptyState(
+      'No wallet NFTs found',
+      'NFTs will only show collections owned by this wallet after NFT indexing/import is available. No mock NFTs are shown here.',
+    );
   };
 
   const handleSaveCustomNetwork = (network: Network) => {
@@ -429,7 +509,7 @@ const DashboardPage: React.FC = () => {
               <div className="mb-5 flex items-center justify-between px-1">
                 <h2 className="text-[16px] font-bold tracking-wide text-white">Assets</h2>
                 <span className="rounded-md border border-titan-border bg-titan-surface px-2.5 py-1 text-[12px] font-semibold text-titan-subtext">
-                  {assetTab === 'tokens' ? `${assetDisplayedTokens.length} visible` : 'Preview'}
+                  {assetTabStatusLabel}
                 </span>
               </div>
 
@@ -516,10 +596,7 @@ const DashboardPage: React.FC = () => {
                   </>
                 ) : (
                   <div className="px-4 pb-4">
-                    <div className="rounded-[20px] border border-dashed border-white/10 bg-[#15171C] px-5 py-10 text-center">
-                      <p className="text-[15px] font-semibold text-white">{nonTokenTabCopy[assetTab].title}</p>
-                      <p className="mx-auto mt-2 max-w-sm text-sm text-titan-subtext">{nonTokenTabCopy[assetTab].body}</p>
-                    </div>
+                    {renderNonTokenAssetTab()}
                   </div>
                 )}
               </div>
@@ -551,12 +628,23 @@ const DashboardPage: React.FC = () => {
             <section>
               <div className="flex items-center justify-between mb-5 px-1">
                 <h2 className="text-[16px] font-bold text-white tracking-wide">Recent Integrity Events</h2>
-                <button className="text-[12px] font-semibold text-titan-accent hover:text-white transition-colors duration-200">View all</button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/activity?tab=proofs')}
+                  className="text-[12px] font-semibold text-titan-accent hover:text-white transition-colors duration-200"
+                >
+                  View all
+                </button>
               </div>
               <div className="bg-[#0A0D14] border border-titan-border rounded-2xl overflow-hidden shadow-card animate-stagger-up" style={{ animationDelay: '400ms' }}>
                 {proofEvents.length ? (
                   proofEvents.slice(0, 3).map((proof) => (
-                    <div key={proof.id} className="flex items-center justify-between p-5 border-b border-titan-border/40 last:border-0 hover:bg-[#0F1520] transition-colors duration-200 cursor-pointer">
+                    <button
+                      key={proof.id}
+                      type="button"
+                      onClick={() => navigate('/activity?tab=proofs')}
+                      className="flex w-full items-center justify-between p-5 text-left border-b border-titan-border/40 last:border-0 hover:bg-[#0F1520] transition-colors duration-200"
+                    >
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-[#131821] border border-[#1A2233] flex items-center justify-center">
                           <ShieldCheck size={16} className="text-titan-accent" />
@@ -569,9 +657,10 @@ const DashboardPage: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-right">
+                        <p className="mb-1 text-[11px] font-semibold text-titan-accent">{getProofSourceLabel(proof)}</p>
                         <p className="text-[12px] font-medium text-titan-subtext">{proof.layer}</p>
                       </div>
-                    </div>
+                    </button>
                   ))
                 ) : (
                   <div className="px-4 py-10 text-center text-sm text-titan-subtext">

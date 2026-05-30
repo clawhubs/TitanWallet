@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, Bell, Settings, LogOut, Check, ExternalLink, WalletCards } from 'lucide-react';
-import { formatAddress } from '../../utils/cn';
+import { ChevronDown, Bell, Settings, LogOut, Check, ExternalLink, WalletCards, ShieldCheck } from 'lucide-react';
+import { formatAddress, formatTimeAgo } from '../../utils/cn';
 import { useWallet } from '../../hooks/useWallet';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import AccountSwitcherModal from './AccountSwitcherModal';
+import { getLocalWalletEvents } from '../../services/localActivity';
 
 const DashboardHeader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const { disconnectWallet } = useWallet();
   const walletAddress = useWalletStore((state) => state.address);
@@ -21,6 +23,29 @@ const DashboardHeader: React.FC = () => {
   const networks = useNetworkStore((state) => state.networks);
   const setActiveNetwork = useNetworkStore((state) => state.setActiveNetwork);
   const explorerHref = walletAddress ? `${activeNetwork.explorerUrl}/address/${walletAddress}` : activeNetwork.explorerUrl;
+  const notifications = useMemo(() => {
+    if (!walletAddress) {
+      return [];
+    }
+
+    const localEvents = getLocalWalletEvents(walletAddress, activeNetwork.name);
+    return [
+      ...localEvents.proofs.map((proof) => ({
+        id: `proof:${proof.id}`,
+        title: proof.type,
+        desc: proof.txHash ? 'On-chain anchor recorded' : 'Off-chain proof sealed',
+        time: proof.timestamp,
+      })),
+      ...localEvents.securityEvents.map((event, index) => ({
+        id: `security:${event.type}:${index}`,
+        title: event.type,
+        desc: event.desc,
+        time: event.time,
+      })),
+    ]
+      .sort((left, right) => right.time.getTime() - left.time.getTime())
+      .slice(0, 5);
+  }, [activeNetwork.name, walletAddress]);
 
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard' },
@@ -63,7 +88,7 @@ const DashboardHeader: React.FC = () => {
           {/* Network selector */}
           <div className="relative">
             <button
-              onClick={() => { setShowNetworkMenu(!showNetworkMenu); setShowUserMenu(false); }}
+              onClick={() => { setShowNetworkMenu(!showNetworkMenu); setShowUserMenu(false); setShowNotifications(false); }}
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-titan-surface border border-titan-border text-xs font-medium text-titan-text hover:border-titan-accent/30 transition-all"
             >
               <span className="w-2 h-2 rounded-full bg-titan-success" />
@@ -95,6 +120,7 @@ const DashboardHeader: React.FC = () => {
                 setShowAccountSwitcher(true);
                 setShowNetworkMenu(false);
                 setShowUserMenu(false);
+                setShowNotifications(false);
               }}
               className="flex items-center gap-2 rounded-xl border border-titan-border bg-titan-surface px-3 py-1.5 text-left transition-all hover:border-titan-accent/30 hover:text-titan-text"
               data-testid="account-switcher-trigger"
@@ -116,17 +142,77 @@ const DashboardHeader: React.FC = () => {
 
           {/* Bell */}
           {isConnected ? (
-            <button className="w-8 h-8 rounded-xl flex items-center justify-center text-titan-subtext hover:text-titan-text hover:bg-titan-muted/30 transition-all relative">
-              <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-titan-accent" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowNetworkMenu(false);
+                  setShowUserMenu(false);
+                }}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-titan-subtext hover:text-titan-text hover:bg-titan-muted/30 transition-all relative"
+                aria-label="Open notifications"
+              >
+                <Bell size={16} />
+                {notifications.length ? (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-titan-accent" />
+                ) : null}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-2 w-80 titan-card shadow-titan border border-titan-border rounded-xl overflow-hidden z-50">
+                  <div className="flex items-center justify-between border-b border-titan-border px-4 py-3">
+                    <p className="text-sm font-semibold text-white">Notifications</p>
+                    <span className="text-xs text-titan-subtext">{notifications.length} live</span>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto p-2">
+                    {notifications.length ? (
+                      notifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          type="button"
+                          onClick={() => {
+                            setShowNotifications(false);
+                            navigate('/activity?tab=proofs');
+                          }}
+                          className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-titan-muted/30"
+                        >
+                          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-titan-accent/10 text-titan-accent">
+                            <ShieldCheck size={15} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-titan-text">{notification.title}</p>
+                            <p className="mt-0.5 line-clamp-2 text-xs text-titan-subtext">{notification.desc}</p>
+                            <p className="mt-1 text-xs text-titan-tertiary">{formatTimeAgo(notification.time)}</p>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-8 text-center text-sm text-titan-subtext">
+                        No wallet notifications yet.
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNotifications(false);
+                      navigate('/activity');
+                    }}
+                    className="w-full border-t border-titan-border px-4 py-3 text-sm font-semibold text-titan-accent transition-colors hover:bg-titan-muted/30 hover:text-white"
+                  >
+                    Open Activity
+                  </button>
+                </div>
+              )}
+            </div>
           ) : null}
 
           {/* User menu */}
           {isConnected ? (
             <div className="relative">
               <button
-                onClick={() => { setShowUserMenu(!showUserMenu); setShowNetworkMenu(false); }}
+                onClick={() => { setShowUserMenu(!showUserMenu); setShowNetworkMenu(false); setShowNotifications(false); }}
                 className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden hover:opacity-80 transition-all mix-blend-screen"
               >
                 <img src="/titan-logo.png" alt="Profile" className="w-full h-full object-cover scale-[1.5]" />
@@ -152,8 +238,8 @@ const DashboardHeader: React.FC = () => {
       </div>
 
       {/* Click outside to close menus */}
-      {(showNetworkMenu || showUserMenu) && (
-        <div className="fixed inset-0 z-30" onClick={() => { setShowNetworkMenu(false); setShowUserMenu(false); }} />
+      {(showNetworkMenu || showUserMenu || showNotifications) && (
+        <div className="fixed inset-0 z-30" onClick={() => { setShowNetworkMenu(false); setShowUserMenu(false); setShowNotifications(false); }} />
       )}
 
       <AccountSwitcherModal

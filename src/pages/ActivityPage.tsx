@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardHeader from '../components/layout/DashboardHeader';
 import Card, { CardHeader, CardTitle } from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -15,8 +16,17 @@ import { hasTitanSecurityAccess } from '../config/api';
 
 type Tab = 'transactions' | 'proofs' | 'security';
 
+function parseActivityTab(tab: string | null): Tab {
+  return tab === 'proofs' || tab === 'security' || tab === 'transactions' ? tab : 'transactions';
+}
+
+function proofHasAnchor(proof: ReturnType<typeof mapIntegrityRecordsToProofs>[number]) {
+  return Boolean(proof.txHash);
+}
+
 const ActivityPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('transactions');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<Tab>(() => parseActivityTab(searchParams.get('tab')));
   const [filter, setFilter] = useState<string>('all');
   const walletAddress = useWalletStore((state) => state.address);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
@@ -38,6 +48,19 @@ const ActivityPage: React.FC = () => {
   const txFilters = ['all', 'send', 'receive', 'swap', 'approve'];
 
   const recordNetwork = activeNetwork.isTestnet ? 'testnet' : 'mainnet';
+  const proofSourceBadge = proofs.length === 0
+    ? 'No Proofs'
+    : proofs.every(proofHasAnchor)
+      ? 'On-chain Anchors'
+      : proofs.some(proofHasAnchor)
+        ? 'Mixed Proofs'
+        : 'Off-chain Proofs';
+  const proofSourceBadgeVariant = proofs.some(proofHasAnchor) ? 'accent' : 'success';
+
+  const handleSelectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   useEffect(() => {
     let disposed = false;
@@ -133,7 +156,7 @@ const ActivityPage: React.FC = () => {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleSelectTab(tab.id)}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
                 activeTab === tab.id
@@ -188,7 +211,7 @@ const ActivityPage: React.FC = () => {
             <div className="p-5 border-b border-titan-border">
               <CardHeader className="mb-0">
                 <CardTitle>Proof History</CardTitle>
-                <Badge variant="accent" size="sm">On-chain Records</Badge>
+                <Badge variant={proofSourceBadgeVariant} size="sm">{proofSourceBadge}</Badge>
               </CardHeader>
             </div>
             <div className="p-4 space-y-3">
@@ -206,6 +229,9 @@ const ActivityPage: React.FC = () => {
                       <div>
                         <p className="text-sm font-semibold text-titan-text">{proof.type}</p>
                         <p className="text-xs text-titan-accent/80 mt-0.5">{proof.layer}</p>
+                        <p className="mt-1 text-xs font-semibold text-titan-subtext">
+                          {proofHasAnchor(proof) ? 'On-chain anchor' : 'Off-chain proof'}
+                        </p>
                         <p className="text-xs text-titan-subtext mt-1 leading-relaxed">{proof.description}</p>
                         {proof.proofStorageId && (
                           <p className="text-xs font-mono text-titan-subtext/60 mt-1">
@@ -301,7 +327,12 @@ function mergeByKey<T>(primary: T[], secondary: T[], getKey: (item: T) => string
     merged.push(item);
   });
 
-  return merged;
+  return merged.sort((left, right) => getEventTime(right) - getEventTime(left));
+}
+
+function getEventTime(item: unknown) {
+  const candidate = (item as { timestamp?: Date; time?: Date }).timestamp || (item as { timestamp?: Date; time?: Date }).time;
+  return candidate instanceof Date ? candidate.getTime() : 0;
 }
 
 export default ActivityPage;
