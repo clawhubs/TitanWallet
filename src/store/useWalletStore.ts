@@ -10,7 +10,7 @@ export interface WalletSessionInput {
   authProvider?: WalletAuthProvider;
 }
 
-export type WalletSource = 'local' | 'privy';
+export type WalletSource = 'local' | 'privy' | 'managed' | 'google';
 export type WalletAuthProvider = 'google' | 'apple' | null;
 
 export interface WalletAccount {

@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useTitanManagedAuthBridge } from './features/consumer-auth/TitanManagedAuthBridge';
 import LandingPage from './pages/LandingPage';
 import { usePrivyWalletBridge } from './features/privy/PrivyBridge';
 import RequireWallet from './components/routing/RequireWallet';
@@ -66,6 +67,65 @@ const PrivyWalletSessionSync: React.FC = () => {
   return null;
 };
 
+const TitanManagedWalletSessionSync: React.FC = () => {
+  const managed = useTitanManagedAuthBridge();
+  const connect = useWalletStore((state) => state.connect);
+  const removeAccountsBySource = useWalletStore((state) => state.removeAccountsBySource);
+  const restoreWalletFromGoogle = managed.restoreWalletFromGoogle;
+
+  useEffect(() => {
+    if (!managed.enabled || !managed.ready) {
+      return;
+    }
+
+    if (!managed.authenticated) {
+      removeAccountsBySource('google');
+      return;
+    }
+
+    if (!managed.linkedWallet) {
+      return;
+    }
+
+    const state = useWalletStore.getState();
+    const existingAccount = state.accounts.find((account) => account.id === managed.linkedWallet?.address.toLowerCase());
+    const needsActiveResync = state.walletSource === 'google' && state.address !== managed.linkedWallet.address;
+    const needsSecretRestore = !existingAccount?.privateKey || !existingAccount?.mnemonic;
+    const needsMetadataRefresh = Boolean(
+      existingAccount
+      && (
+        existingAccount.source !== 'google'
+        || existingAccount.authProvider !== managed.provider
+        || existingAccount.walletName !== managed.linkedWallet.walletName
+      ),
+    );
+
+    if (!existingAccount || needsActiveResync || needsSecretRestore || (state.walletSource === 'google' && needsMetadataRefresh)) {
+      void restoreWalletFromGoogle().then((wallet) => {
+        connect({
+          address: wallet.address,
+          mnemonic: wallet.mnemonic,
+          privateKey: wallet.privateKey,
+          walletName: wallet.walletName,
+          source: 'google',
+          authProvider: managed.provider,
+        });
+      }).catch(() => {});
+    }
+  }, [
+    connect,
+    managed.authenticated,
+    managed.enabled,
+    managed.linkedWallet,
+    managed.provider,
+    managed.ready,
+    restoreWalletFromGoogle,
+    removeAccountsBySource,
+  ]);
+
+  return null;
+};
+
 const App: React.FC = () => {
   const walletAddress = useWalletStore((state) => state.address);
   const syncWalletScope = useTokenStore((state) => state.syncWalletScope);
@@ -76,6 +136,7 @@ const App: React.FC = () => {
 
   return (
     <BrowserRouter>
+      <TitanManagedWalletSessionSync />
       <PrivyWalletSessionSync />
       <Suspense fallback={<RouteFallback />}>
         <Routes>

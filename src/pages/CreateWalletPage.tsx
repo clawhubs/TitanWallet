@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Copy, Check, ShieldCheck, RefreshCw } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -17,12 +17,22 @@ const CreateWalletPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const {
     createWallet,
+    linkWalletToGoogle,
     importWallet,
+    authLane,
     hasSocialLogin,
     privyReady,
     socialConfigReady,
     googleLoginEnabled,
     appleLoginEnabled,
+    socialAuthenticated,
+    socialUserName,
+    socialUserEmail,
+    socialProviderLabel,
+    managedWalletReady,
+    managedWalletMessage,
+    managedWalletSession,
+    socialProviderErrors,
     loginWithGoogle,
     loginWithApple,
   } = useWallet();
@@ -37,6 +47,7 @@ const CreateWalletPage: React.FC = () => {
   const returnTo = searchParams.get('returnTo') || '/dashboard';
   const intent = searchParams.get('intent');
   const socialProvider = searchParams.get('auth');
+  const socialAuthErrorCode = searchParams.get('error');
   const isSocialSignupFlow = socialProvider === 'google' || socialProvider === 'apple';
   const isRequestedSocialProviderEnabled = socialProvider === 'google'
     ? googleLoginEnabled
@@ -64,27 +75,65 @@ const CreateWalletPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socialSubmitting, setSocialSubmitting] = useState<'google' | 'apple' | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
+  const socialIdentityLabel = socialUserName || socialUserEmail || 'Google account';
+  const isGoogleLinkedLocalFlow = authLane === 'titan-managed' && socialAuthenticated && !isAddAccountFlow && !isAddWalletFlow;
 
-  const getSocialDisabledMessage = useCallback((provider: 'google' | 'apple') => {
+  function getManagedAuthErrorMessage(code: string | null) {
+    switch (code) {
+      case 'google_not_configured':
+        return 'Google auth is not configured in this TITAN Wallet deployment yet. Add the Google client ID, secret, and cookie secret in the wallet server config first.';
+      case 'auth_config_missing':
+        return 'The TITAN-managed auth lane is missing a required server secret. Complete the wallet server auth config first.';
+      case 'oauth_state_mismatch':
+        return 'The Google login session expired or changed tabs. Start the login flow again from TITAN Wallet.';
+      case 'oauth_code_missing':
+        return 'Google returned without an authorization code. Please try the login flow again.';
+      case 'oauth_exchange_failed':
+        return 'Google accepted the sign-in request, but TITAN Wallet could not finish the server exchange.';
+      case 'oauth_userinfo_failed':
+        return 'Google login finished, but TITAN Wallet could not read the user profile response.';
+      default:
+        return null;
+    }
+  }
+
+  function getSocialDisabledMessage(provider: 'google' | 'apple') {
     const label = provider === 'google' ? 'Google' : 'Apple';
 
     if (!hasSocialLogin) {
-      return 'Set `VITE_PRIVY_APP_ID` to enable social wallet login.';
+      return authLane === 'titan-managed'
+        ? 'This wallet deployment has not enabled the TITAN-managed social auth lane yet.'
+        : 'Set `VITE_PRIVY_APP_ID` to enable social wallet login.';
     }
 
     if (!socialConfigReady) {
-      return 'Checking the current Privy app configuration.';
+      return authLane === 'titan-managed'
+        ? 'Checking the TITAN-managed auth configuration.'
+        : 'Checking the current Privy app configuration.';
+    }
+
+    if (authLane === 'titan-managed') {
+      return provider === 'apple'
+        ? 'Apple login is not enabled in the TITAN-managed auth lane yet.'
+        : `Google login is disabled in this TITAN Wallet deployment. ${socialProviderErrors[0] || 'Finish the wallet server Google auth config first.'}`;
     }
 
     return `${label} login is disabled in the current Privy app. Enable ${label} OAuth in the Privy dashboard first.`;
-  }, [hasSocialLogin, socialConfigReady]);
+  }
+  const managedAuthErrorMessage = getManagedAuthErrorMessage(socialAuthErrorCode);
   const requestedSocialProviderError = isSocialSignupFlow && socialConfigReady && !isRequestedSocialProviderEnabled
     ? getSocialDisabledMessage(socialProvider === 'apple' ? 'apple' : 'google')
     : null;
-  const socialLoginHeading = appleLoginEnabled ? 'Google or Apple login creates a TITAN wallet' : 'Google login creates a TITAN wallet';
-  const socialLoginDescription = appleLoginEnabled
-    ? 'As soon as the user logs in, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.'
-    : 'As soon as the user logs in with Google, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.';
+  const socialLoginHeading = authLane === 'titan-managed'
+    ? 'Google login unlocks a local TITAN wallet flow'
+    : appleLoginEnabled
+      ? 'Google or Apple login creates a TITAN wallet'
+      : 'Google login creates a TITAN wallet';
+  const socialLoginDescription = authLane === 'titan-managed'
+    ? 'The Google account is verified first, then the wallet is still created locally in this browser and linked back to that Google session.'
+    : appleLoginEnabled
+      ? 'As soon as the user logs in, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.'
+      : 'As soon as the user logs in with Google, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.';
 
   useEffect(() => {
     if (shouldRedirectExistingSession.current) {
@@ -92,7 +141,7 @@ const CreateWalletPage: React.FC = () => {
     }
   }, [navigate, returnTo]);
 
-  const startSocialAuth = useCallback(async (provider: 'google' | 'apple') => {
+  async function startSocialAuth(provider: 'google' | 'apple') {
     const providerEnabled = provider === 'google' ? googleLoginEnabled : appleLoginEnabled;
     if (!providerEnabled) {
       setSocialError(getSocialDisabledMessage(provider));
@@ -104,7 +153,7 @@ const CreateWalletPage: React.FC = () => {
       setSocialSubmitting(provider);
 
       if (provider === 'google') {
-        await loginWithGoogle();
+        await loginWithGoogle('/create-wallet?auth=google');
       } else {
         await loginWithApple();
       }
@@ -113,13 +162,10 @@ const CreateWalletPage: React.FC = () => {
       setSocialError(message.includes('not allowed') ? getSocialDisabledMessage(provider) : message);
       setSocialSubmitting(null);
     }
-  }, [
-    appleLoginEnabled,
-    getSocialDisabledMessage,
-    googleLoginEnabled,
-    loginWithApple,
-    loginWithGoogle,
-  ]);
+  }
+  const startSocialAuthFromEffect = useEffectEvent((provider: 'google' | 'apple') => {
+    void startSocialAuth(provider);
+  });
 
   useEffect(() => {
     if (
@@ -130,6 +176,7 @@ const CreateWalletPage: React.FC = () => {
       || !privyReady
       || !socialConfigReady
       || hasWalletSession
+      || (authLane === 'titan-managed' && socialAuthenticated)
     ) {
       return;
     }
@@ -140,7 +187,7 @@ const CreateWalletPage: React.FC = () => {
     }
     socialAuthStarted.current = true;
     const timeoutId = window.setTimeout(() => {
-      void startSocialAuth(provider);
+      startSocialAuthFromEffect(provider);
     }, 0);
 
     return () => {
@@ -149,14 +196,15 @@ const CreateWalletPage: React.FC = () => {
   }, [
     googleLoginEnabled,
     appleLoginEnabled,
+    authLane,
     hasSocialLogin,
     hasWalletSession,
     isImportMode,
     isRequestedSocialProviderEnabled,
     privyReady,
     socialConfigReady,
+    socialAuthenticated,
     socialProvider,
-    startSocialAuth,
   ]);
 
   const copyMnemonic = () => {
@@ -165,13 +213,13 @@ const CreateWalletPage: React.FC = () => {
     setTimeout(() => setCopiedSeed(false), 2000);
   };
 
-  const persistWalletProof = useCallback(async (input: {
+  async function persistWalletProof(input: {
     address: string;
     eventType: string;
     description: string;
     source: 'create' | 'import' | 'social';
     walletLabel?: string | null;
-  }) => {
+  }) {
     try {
       setCreationProofStatus('sealing');
       const receipt = await runMilitaryGradeOperation({
@@ -219,7 +267,18 @@ const CreateWalletPage: React.FC = () => {
     } catch {
       setCreationProofStatus('failed');
     }
-  }, [activeNetwork.name, authProvider, environment, name]);
+  }
+  const persistSocialProof = useEffectEvent(() => {
+    void persistWalletProof({
+      address: walletAddress!,
+      eventType: 'Wallet Social Signup Proof',
+      description: `Wallet signup with ${authProvider === 'apple' ? 'Apple' : 'Google'} was sealed through the TITAN onboarding flow.`,
+      source: 'social',
+      walletLabel: walletName || 'Managed Wallet',
+    }).finally(() => {
+      setSocialSubmitting(null);
+    });
+  });
 
   useEffect(() => {
     if (
@@ -236,21 +295,11 @@ const CreateWalletPage: React.FC = () => {
     setCreationProofStatus('idle');
     setCreationProofId(null);
     setStep(4);
-
-    void persistWalletProof({
-      address: walletAddress,
-      eventType: 'Wallet Social Signup Proof',
-      description: `Wallet signup with ${authProvider === 'apple' ? 'Apple' : 'Google'} was sealed through the TITAN onboarding flow.`,
-      source: 'social',
-      walletLabel: walletName || 'Privy Wallet',
-    }).finally(() => {
-      setSocialSubmitting(null);
-    });
+    persistSocialProof();
   }, [
     authProvider,
     hasWalletSession,
     isSocialSignupFlow,
-    persistWalletProof,
     walletAddress,
     walletName,
     walletSource,
@@ -260,12 +309,35 @@ const CreateWalletPage: React.FC = () => {
     try {
       setIsSubmitting(true);
       setCreationProofStatus('idle');
+      setCreationProofId(null);
+      setImportError(null);
+
+      if (isGoogleLinkedLocalFlow) {
+        const wallet = createWallet(name || socialIdentityLabel);
+        await linkWalletToGoogle({
+          walletName: name || socialIdentityLabel,
+          address: wallet.address,
+          mnemonic: wallet.mnemonic,
+          privateKey: wallet.privateKey,
+        });
+        setMnemonicWords(wallet.mnemonic.split(' '));
+        setShowSeed(false);
+        setConfirmed(false);
+        setStep(3);
+        await persistWalletProof({
+          address: wallet.address,
+          eventType: 'Google Linked Wallet Creation Proof',
+          description: 'Local wallet creation and Google account binding were sealed through the TITAN onboarding flow.',
+          source: 'social',
+          walletLabel: name || socialIdentityLabel,
+        });
+        return;
+      }
+
       const wallet = createWallet(name);
       setMnemonicWords(wallet.mnemonic.split(' '));
       setShowSeed(false);
       setConfirmed(false);
-      setCreationProofId(null);
-      setImportError(null);
       setStep(3);
       await persistWalletProof({
         address: wallet.address,
@@ -399,7 +471,9 @@ const CreateWalletPage: React.FC = () => {
               <p className="text-sm text-titan-subtext mb-6">
                 {isAddAccountFlow
                   ? 'Create another self-custodial account and keep it alongside your existing wallets.'
-                  : 'Choose a name and password to protect your wallet locally.'}
+                  : isGoogleLinkedLocalFlow
+                    ? 'Google login is active. Now create a normal local wallet and TITAN will bind it to this Google session.'
+                    : 'Choose a name and password to protect your wallet locally.'}
               </p>
               {!isAddAccountFlow && !isAddWalletFlow ? (
                 <>
@@ -410,19 +484,33 @@ const CreateWalletPage: React.FC = () => {
                         <p className="text-xs text-titan-subtext">{socialLoginDescription}</p>
                       </div>
                       <Badge variant={hasSocialLogin && socialConfigReady ? 'accent' : 'neutral'} size="sm">
-                        {!hasSocialLogin ? 'Not configured' : !socialConfigReady ? 'Checking app' : 'Privy ready'}
+                        {!hasSocialLogin
+                          ? 'Not configured'
+                          : !socialConfigReady
+                            ? 'Checking lane'
+                            : authLane === 'titan-managed'
+                              ? socialProviderLabel
+                              : 'Privy ready'}
                       </Badge>
                     </div>
+                    {authLane === 'titan-managed' && socialAuthenticated ? (
+                      <div className="mb-3 rounded-xl border border-titan-accent/20 bg-titan-accent/5 px-3 py-3 text-xs text-titan-subtext">
+                        <span className="font-medium text-white">Signed in:</span> {socialIdentityLabel}. Finish wallet creation below.
+                        {!managedWalletReady ? (
+                          <span className="mt-1 block text-titan-warning">{managedWalletMessage}</span>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className={`grid grid-cols-1 gap-2 ${appleLoginEnabled ? 'sm:grid-cols-2' : ''}`}>
                       <Button
                         type="button"
                         variant="secondary"
                         className="w-full"
-                        disabled={!hasSocialLogin || !privyReady || !socialConfigReady || !googleLoginEnabled}
+                        disabled={!hasSocialLogin || !privyReady || !socialConfigReady || !googleLoginEnabled || (authLane === 'titan-managed' && socialAuthenticated)}
                         loading={socialSubmitting === 'google'}
                         onClick={() => void startSocialAuth('google')}
                       >
-                        Login Google
+                        {authLane === 'titan-managed' && socialAuthenticated ? 'Google linked' : 'Login Google'}
                       </Button>
                       {appleLoginEnabled ? (
                         <Button
@@ -438,16 +526,28 @@ const CreateWalletPage: React.FC = () => {
                       ) : null}
                     </div>
                     {!hasSocialLogin ? (
-                      <p className="mt-3 text-xs text-titan-subtext">Set `VITE_PRIVY_APP_ID` to enable social wallet login.</p>
+                      <p className="mt-3 text-xs text-titan-subtext">
+                        {authLane === 'titan-managed'
+                          ? 'Enable the TITAN-managed consumer auth lane in this wallet server deployment to offer Google login.'
+                          : 'Set `VITE_PRIVY_APP_ID` to enable social wallet login.'}
+                      </p>
                     ) : null}
                     {hasSocialLogin && !socialConfigReady ? (
-                      <p className="mt-3 text-xs text-titan-subtext">Checking which login providers are enabled in the current Privy app.</p>
+                      <p className="mt-3 text-xs text-titan-subtext">
+                        {authLane === 'titan-managed'
+                          ? 'Checking which login providers are enabled in the TITAN-managed auth lane.'
+                          : 'Checking which login providers are enabled in the current Privy app.'}
+                      </p>
                     ) : null}
                     {hasSocialLogin && socialConfigReady && !googleLoginEnabled && !appleLoginEnabled ? (
-                      <p className="mt-3 text-xs text-titan-danger">The current Privy app has Google and Apple login disabled. Enable them in the Privy dashboard first.</p>
+                      <p className="mt-3 text-xs text-titan-danger">
+                        {authLane === 'titan-managed'
+                          ? socialProviderErrors[0] || 'No social provider is enabled in this TITAN-managed auth lane yet.'
+                          : 'The current Privy app has Google and Apple login disabled. Enable them in the Privy dashboard first.'}
+                      </p>
                     ) : null}
-                    {socialError ? (
-                      <p className="mt-3 text-xs text-titan-danger">{socialError}</p>
+                    {socialError || managedAuthErrorMessage ? (
+                      <p className="mt-3 text-xs text-titan-danger">{socialError || managedAuthErrorMessage}</p>
                     ) : requestedSocialProviderError ? (
                       <p className="mt-3 text-xs text-titan-danger">{requestedSocialProviderError}</p>
                     ) : null}
@@ -464,10 +564,10 @@ const CreateWalletPage: React.FC = () => {
                   <label className="titan-label block mb-2">Wallet name</label>
                   <input
                     className="titan-input font-sans"
-                    placeholder="My TITAN Wallet"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
+                      placeholder={isGoogleLinkedLocalFlow ? socialIdentityLabel : 'My TITAN Wallet'}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
                 </div>
                 <div>
                   <label className="titan-label block mb-2">Password</label>
@@ -498,6 +598,11 @@ const CreateWalletPage: React.FC = () => {
                   )}
                 </div>
               </div>
+              {isGoogleLinkedLocalFlow ? (
+                <div className="mt-4 rounded-2xl border border-titan-accent/20 bg-titan-accent/5 px-4 py-3 text-xs text-titan-subtext">
+                  <span className="font-medium text-white">Google-linked:</span> the wallet is still generated locally in this browser, then TITAN stores an encrypted recovery copy tied to this Google session.
+                </div>
+              ) : null}
               <Button
                 variant="primary"
                 className="w-full mt-6"
@@ -513,11 +618,15 @@ const CreateWalletPage: React.FC = () => {
           {/* Step 2: Confirm */}
           {!isImportMode && step === 2 && (
             <div>
-              <h1 className="text-lg font-bold text-titan-text mb-1">{isAddAccountFlow ? 'Create another account' : 'Create your wallet'}</h1>
+              <h1 className="text-lg font-bold text-titan-text mb-1">
+                {isAddAccountFlow ? 'Create another account' : 'Create your wallet'}
+              </h1>
               <p className="text-sm text-titan-subtext mb-6">
                 {isAddAccountFlow
                   ? 'A fresh Ethereum-compatible account will be added to your local TITAN wallet list.'
-                  : 'A new Ethereum-compatible wallet will be generated for you.'}
+                  : isGoogleLinkedLocalFlow
+                    ? 'The wallet will be generated locally, then linked back to this Google identity for future restore.'
+                    : 'A new Ethereum-compatible wallet will be generated for you.'}
               </p>
 
               <div className="space-y-3 mb-6">
@@ -525,23 +634,37 @@ const CreateWalletPage: React.FC = () => {
                   <ShieldCheck size={16} className="text-titan-success mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-titan-text">Self-custodial</p>
-                    <p className="text-xs text-titan-subtext mt-0.5">Your keys are generated on your device and never leave it unencrypted.</p>
+                    <p className="text-xs text-titan-subtext mt-0.5">
+                      Your keys are generated on your device and never leave it unencrypted.
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-titan-surface rounded-xl border border-titan-border">
                   <ShieldCheck size={16} className="text-titan-success mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-xs font-medium text-titan-text">Wallet rails initialize from creation</p>
-                    <p className="text-xs text-titan-subtext mt-0.5">Secure Compute / TEE, Sovereign Memory, and Nitro are activated as soon as the wallet is created.</p>
+                    <p className="text-xs text-titan-subtext mt-0.5">
+                      Secure Compute / TEE, Sovereign Memory, and Nitro are activated as soon as the wallet is created.
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-titan-muted/20 rounded-xl border border-titan-border">
-                  <RefreshCw size={16} className="text-titan-warning mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-medium text-titan-text">You will receive a 12-word seed phrase</p>
-                    <p className="text-xs text-titan-subtext mt-0.5">Store it securely offline. It's the only way to recover your wallet if you lose access.</p>
+                {isGoogleLinkedLocalFlow ? (
+                  <div className="flex items-start gap-3 p-3 bg-titan-warning/10 rounded-xl border border-titan-warning/20">
+                    <RefreshCw size={16} className="text-titan-warning mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-titan-text">Google restore binding</p>
+                      <p className="text-xs text-titan-subtext mt-0.5">{managedWalletMessage}</p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-start gap-3 p-3 bg-titan-muted/20 rounded-xl border border-titan-border">
+                    <RefreshCw size={16} className="text-titan-warning mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-titan-text">You will receive a 12-word seed phrase</p>
+                      <p className="text-xs text-titan-subtext mt-0.5">Store it securely offline. It's the only way to recover your wallet if you lose access.</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Button variant="primary" className="w-full" size="lg" loading={isSubmitting} onClick={() => void handleCreateWallet()}>
@@ -624,7 +747,9 @@ const CreateWalletPage: React.FC = () => {
               </h1>
               <p className="text-sm text-titan-subtext mb-2">
                 {isSocialSignupFlow
-                  ? `${authProvider === 'apple' ? 'Apple' : 'Google'} login created a new TITAN wallet automatically. This wallet is now active through Privy MPC and protected by the 9 security rails.`
+                  ? authLane === 'titan-managed'
+                    ? `${socialIdentityLabel} is now linked to this local TITAN wallet. Your recovery phrase and private key stay available in Settings just like the original local flow.`
+                    : `${authProvider === 'apple' ? 'Apple' : 'Google'} login created a new TITAN wallet automatically. This wallet is now active through Privy MPC and protected by the 9 security rails.`
                   : isImportMode
                     ? 'Your wallet is ready in this browser tab session. You can reveal the recovery phrase or private key from Settings while the tab stays open.'
                     : isAddAccountFlow
@@ -634,6 +759,9 @@ const CreateWalletPage: React.FC = () => {
               <Badge variant="success" dot className="mb-6">Wallet rails ready</Badge>
               {creationProofStatus === 'sealed' ? (
                 <p className="mb-4 text-xs text-titan-success">Wallet proof sealed successfully: {creationProofId}</p>
+              ) : null}
+              {isGoogleLinkedLocalFlow && managedWalletSession ? (
+                <p className="mb-4 text-xs text-titan-subtext">Google-linked wallet address: {managedWalletSession.address}</p>
               ) : null}
               {creationProofStatus === 'failed' ? (
                 <p className="mb-4 text-xs text-titan-warning">Wallet is ready locally, but the security rail did not return a receipt yet.</p>

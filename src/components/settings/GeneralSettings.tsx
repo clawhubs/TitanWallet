@@ -29,8 +29,10 @@ const GeneralSettings: React.FC = () => {
   const [secretStatus, setSecretStatus] = useState<string | null>(null);
   const hasWalletSession = Boolean(walletAddress);
   const canAnchorCurrentNetwork = canAnchorSecurityLogsOnNetwork(activeNetwork);
-  const isPrivySession = walletSource === 'privy';
-  const authLabel = authProvider === 'google' ? 'Google' : authProvider === 'apple' ? 'Apple' : 'Privy';
+  const isManagedSession = walletSource === 'privy' || walletSource === 'managed';
+  const isTitanManagedSession = walletSource === 'managed';
+  const isGoogleLinkedSession = walletSource === 'google';
+  const authLabel = authProvider === 'google' ? 'Google' : authProvider === 'apple' ? 'Apple' : 'Managed';
 
   const logSecretAction = async (field: 'mnemonic' | 'privateKey', mode: 'copy' | 'reveal') => {
     if (!walletAddress) {
@@ -106,8 +108,10 @@ const GeneralSettings: React.FC = () => {
           <div>
             <h2 className="text-lg font-bold text-white">Wallet Session</h2>
             <p className="text-sm text-titan-subtext">
-              {isPrivySession
-                ? `Manage the active ${authLabel} / Privy MPC wallet session.`
+              {isManagedSession
+                ? `Manage the active ${authLabel} managed wallet session.`
+                : isGoogleLinkedSession
+                  ? 'Manage the active Google-linked local wallet session.'
                 : 'Manage the active in-browser wallet session and local secret export controls.'}
             </p>
           </div>
@@ -127,7 +131,8 @@ const GeneralSettings: React.FC = () => {
                 <ShieldCheck size={14} className="text-titan-success" />
                 <span>{activeNetwork.name} session active</span>
               </div>
-              {isPrivySession ? <Badge variant="accent" size="sm">{authLabel} + Privy MPC</Badge> : null}
+              {isManagedSession ? <Badge variant="accent" size="sm">{authLabel} managed</Badge> : null}
+              {isGoogleLinkedSession ? <Badge variant="accent" size="sm">Google linked</Badge> : null}
             </div>
           </div>
         ) : (
@@ -189,12 +194,16 @@ const GeneralSettings: React.FC = () => {
           <div>
             <h2 className="text-lg font-bold text-white">Wallet Secrets</h2>
             <p className="text-sm text-titan-subtext">
-              {isPrivySession
-                ? 'Privy-managed wallets keep raw secrets outside this app. Export is handled through the Privy secure modal.'
+              {isManagedSession
+                ? 'Managed wallets keep raw secrets outside the browser session. Export stays inside the provider-managed flow.'
+                : isGoogleLinkedSession
+                  ? 'This wallet is still local and self-custodial, but TITAN can restore the same secrets again after you log back in with the linked Google account.'
                 : 'Session-only recovery controls appear only after a wallet is imported or created in this browser.'}
             </p>
           </div>
-          <Badge variant={isPrivySession ? 'accent' : 'warning'} size="sm">{isPrivySession ? 'Privy managed' : 'Tab session'}</Badge>
+          <Badge variant={isManagedSession || isGoogleLinkedSession ? 'accent' : 'warning'} size="sm">
+            {isManagedSession ? 'Managed' : isGoogleLinkedSession ? 'Google linked' : 'Tab session'}
+          </Badge>
         </div>
 
         {hasWalletSession ? (
@@ -208,28 +217,36 @@ const GeneralSettings: React.FC = () => {
                     {walletName} · {formatAddress(walletAddress || '')}
                   </p>
                   <p className="mt-1 text-xs text-titan-subtext">
-                    {isPrivySession
-                      ? `This wallet is authenticated through ${authLabel} and signed by Privy MPC rails. Secret material is not exposed directly to TITAN.`
+                    {isManagedSession
+                      ? `This wallet is authenticated through ${authLabel}. Secret material is not exposed directly to the browser session.`
+                      : isGoogleLinkedSession
+                        ? 'This wallet was created locally, then linked back to your Google login. TITAN can restore the same phrase and private key again after you sign in with that Google account.'
                       : 'TITAN now restores this wallet after a page refresh in the same tab. Export the secrets before you close the tab if you need a fresh import later.'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {isPrivySession ? (
+            {isManagedSession ? (
               <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Export from Privy</p>
-                    <p className="text-xs text-titan-subtext">Open Privy&apos;s secure export modal if you want to reveal or move this embedded wallet.</p>
+                    <p className="text-sm font-semibold text-white">{isTitanManagedSession ? 'Managed export not exposed yet' : 'Provider-managed export'}</p>
+                    <p className="text-xs text-titan-subtext">
+                      {isTitanManagedSession
+                        ? 'This TITAN-managed wallet keeps the secret in the server lane. Export stays disabled until the dedicated managed export flow is wired.'
+                        : 'Open the managed export flow if you want to reveal or move this wallet.'}
+                    </p>
                   </div>
-                  <Button variant="secondary" size="sm" onClick={() => void exportManagedWallet()}>
+                  <Button variant="secondary" size="sm" onClick={() => void exportManagedWallet()} disabled={isTitanManagedSession}>
                     <Eye size={14} />
-                    Open export
+                    {isTitanManagedSession ? 'Locked' : 'Open export'}
                   </Button>
                 </div>
                 <div className="rounded-xl border border-titan-border bg-titan-surface px-4 py-3 text-xs text-titan-subtext">
-                  TITAN does not receive the seed phrase or private key for Privy-managed wallets. Any export or reveal happens inside Privy&apos;s isolated wallet UI.
+                  {isTitanManagedSession
+                    ? 'TITAN does not expose the seed phrase or private key for this managed wallet in the browser. When the Nitro signer/export adapter is ready, it can plug into this same slot.'
+                    : 'TITAN does not receive the seed phrase or private key for provider-managed wallets. Any export or reveal happens inside the provider-controlled flow.'}
                 </div>
               </div>
             ) : (

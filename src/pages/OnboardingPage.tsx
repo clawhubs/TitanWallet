@@ -12,14 +12,18 @@ const OnboardingPage: React.FC = () => {
   const {
     isConnected,
     address,
+    authLane,
     hasSocialLogin,
     socialConfigReady,
     googleLoginEnabled,
     appleLoginEnabled,
+    socialProviderLabel,
+    socialProviderErrors,
   } = useWallet();
   const hasWalletSession = Boolean(isConnected && address);
   const [selected, setSelected] = useState<OnboardingOption>(null);
   const socialEnabled = hasSocialLogin && socialConfigReady;
+  const hasManagedLaneErrors = authLane === 'titan-managed' && socialProviderErrors.length > 0;
 
   useEffect(() => {
     if (hasWalletSession) {
@@ -46,8 +50,12 @@ const OnboardingPage: React.FC = () => {
       icon: Globe,
       title: 'Login with Google',
       desc: socialEnabled && googleLoginEnabled
-        ? 'Google login creates a new TITAN wallet through the Privy MPC flow.'
-        : 'Google login is disabled in the current Privy app.',
+        ? authLane === 'titan-managed'
+          ? 'Login with Google first, then create or restore a normal local wallet that TITAN can bind to that account.'
+          : 'Google login creates a new TITAN wallet through the Privy MPC flow.'
+        : authLane === 'titan-managed'
+          ? 'Google login is not configured in this TITAN Wallet deployment yet.'
+          : 'Google login is disabled in the current Privy app.',
       recommended: false,
       disabled: !socialEnabled || !googleLoginEnabled,
     },
@@ -55,7 +63,9 @@ const OnboardingPage: React.FC = () => {
       id: 'apple' as OnboardingOption,
       icon: Mail,
       title: 'Login with Apple',
-      desc: 'Apple login creates a new TITAN wallet through the Privy MPC flow.',
+      desc: authLane === 'titan-managed'
+        ? 'Apple login is reserved for a later TITAN-managed auth release.'
+        : 'Apple login creates a new TITAN wallet through the Privy MPC flow.',
       disabled: !socialEnabled || !appleLoginEnabled,
     }] : []),
     {
@@ -103,25 +113,34 @@ const OnboardingPage: React.FC = () => {
           <div className="mb-6 text-center">
             <h1 className="text-xl font-bold text-titan-text mb-2">Welcome to TITAN</h1>
             <p className="text-sm text-titan-subtext">
-              {appleLoginEnabled
-                ? 'Choose how you want to get started. Google or Apple login creates a new TITAN wallet automatically.'
-                : 'Choose how you want to get started. Google login creates a new TITAN wallet automatically.'}
+              {authLane === 'titan-managed'
+                ? 'Choose how you want to get started. Google login unlocks account-bound local wallet creation without changing the normal backup flow.'
+                : appleLoginEnabled
+                  ? 'Choose how you want to get started. Google or Apple login creates a new TITAN wallet automatically.'
+                  : 'Choose how you want to get started. Google login creates a new TITAN wallet automatically.'}
             </p>
           </div>
 
           {!hasSocialLogin ? (
             <div className="mb-4 rounded-xl border border-titan-border bg-titan-surface px-4 py-3 text-xs text-titan-subtext">
-              Social login is not configured because `VITE_PRIVY_APP_ID` is missing.
+              Social login is not configured in this wallet deployment yet.
             </div>
           ) : null}
           {hasSocialLogin && !socialConfigReady ? (
             <div className="mb-4 rounded-xl border border-titan-border bg-titan-surface px-4 py-3 text-xs text-titan-subtext">
-              Checking which login providers are enabled in the current Privy app.
+              Checking which login providers are enabled in the active consumer auth lane.
             </div>
           ) : null}
-          {socialEnabled && !googleLoginEnabled && !appleLoginEnabled ? (
+          {hasManagedLaneErrors ? (
             <div className="mb-4 rounded-xl border border-titan-danger/30 bg-titan-danger/5 px-4 py-3 text-xs text-titan-danger">
-              The current Privy app has Google and Apple login disabled. Enable them in the Privy dashboard before offering social signup.
+              {socialProviderErrors[0]}
+            </div>
+          ) : null}
+          {socialEnabled && !googleLoginEnabled && !appleLoginEnabled && !hasManagedLaneErrors ? (
+            <div className="mb-4 rounded-xl border border-titan-danger/30 bg-titan-danger/5 px-4 py-3 text-xs text-titan-danger">
+              {authLane === 'titan-managed'
+                ? `${socialProviderLabel} is active, but no social provider is enabled for end users yet.`
+                : 'The current Privy app has Google and Apple login disabled. Enable them in the Privy dashboard before offering social signup.'}
             </div>
           ) : null}
 
