@@ -54,15 +54,14 @@ async function installApiMocks(context) {
 }
 
 async function assertSocialEntry(page) {
-  await page.getByText('Google or Apple login creates a TITAN wallet').waitFor();
+  await page.getByText('Google login unlocks a local TITAN wallet flow').waitFor();
 
   if (!EXPECT_PRIVY_READY) {
     return;
   }
 
-  await page.getByText('Privy ready').waitFor({ timeout: 20_000 });
-  await expectEnabled(page.getByRole('button', { name: 'Login Google' }), 'Login Google should be enabled when Privy is configured.');
-  await expectEnabled(page.getByRole('button', { name: 'Login Apple' }), 'Login Apple should be enabled when Privy is configured.');
+  await page.getByText('TITAN Managed').waitFor({ timeout: 20_000 });
+  await expectEnabled(page.getByRole('button', { name: 'Login Google' }), 'Login Google should be enabled when TITAN managed auth is configured.');
 }
 
 async function expectEnabled(locator, message) {

@@ -36,11 +36,8 @@ const CreateWalletPage: React.FC = () => {
     loginWithGoogle,
     loginWithApple,
   } = useWallet();
-  const walletAddress = useWalletStore((state) => state.address);
-  const walletName = useWalletStore((state) => state.walletName);
   const authProvider = useWalletStore((state) => state.authProvider);
   const hasWalletSession = useWalletStore((state) => Boolean(state.isConnected && state.address));
-  const walletSource = useWalletStore((state) => state.walletSource);
   const environment = useNetworkStore((state) => state.environment);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const isImportMode = searchParams.get('mode') === 'import';
@@ -58,7 +55,6 @@ const CreateWalletPage: React.FC = () => {
   const isAddWalletFlow = intent === 'add-wallet';
   const shouldRedirectExistingSession = useRef(hasWalletSession && !intent && !isImportMode && !isSocialSignupFlow);
   const socialAuthStarted = useRef(false);
-  const socialProofHandled = useRef(false);
   const [step, setStep] = useState<Step>(1);
   const [showSeed, setShowSeed] = useState(false);
   const [copiedSeed, setCopiedSeed] = useState(false);
@@ -98,42 +94,24 @@ const CreateWalletPage: React.FC = () => {
   }
 
   function getSocialDisabledMessage(provider: 'google' | 'apple') {
-    const label = provider === 'google' ? 'Google' : 'Apple';
-
     if (!hasSocialLogin) {
-      return authLane === 'titan-managed'
-        ? 'This wallet deployment has not enabled the TITAN-managed social auth lane yet.'
-        : 'Set `VITE_PRIVY_APP_ID` to enable social wallet login.';
+      return 'This wallet deployment has not enabled the TITAN-managed social auth lane yet.';
     }
 
     if (!socialConfigReady) {
-      return authLane === 'titan-managed'
-        ? 'Checking the TITAN-managed auth configuration.'
-        : 'Checking the current Privy app configuration.';
+      return 'Checking the TITAN-managed auth configuration.';
     }
 
-    if (authLane === 'titan-managed') {
-      return provider === 'apple'
-        ? 'Apple login is not enabled in the TITAN-managed auth lane yet.'
-        : `Google login is disabled in this TITAN Wallet deployment. ${socialProviderErrors[0] || 'Finish the wallet server Google auth config first.'}`;
-    }
-
-    return `${label} login is disabled in the current Privy app. Enable ${label} OAuth in the Privy dashboard first.`;
+    return provider === 'apple'
+      ? 'Apple login is not enabled in the TITAN-managed auth lane yet.'
+      : `Google login is disabled in this TITAN Wallet deployment. ${socialProviderErrors[0] || 'Finish the wallet server Google auth config first.'}`;
   }
   const managedAuthErrorMessage = getManagedAuthErrorMessage(socialAuthErrorCode);
   const requestedSocialProviderError = isSocialSignupFlow && socialConfigReady && !isRequestedSocialProviderEnabled
     ? getSocialDisabledMessage(socialProvider === 'apple' ? 'apple' : 'google')
     : null;
-  const socialLoginHeading = authLane === 'titan-managed'
-    ? 'Google login unlocks a local TITAN wallet flow'
-    : appleLoginEnabled
-      ? 'Google or Apple login creates a TITAN wallet'
-      : 'Google login creates a TITAN wallet';
-  const socialLoginDescription = authLane === 'titan-managed'
-    ? 'The Google account is verified first, then the wallet is still created locally in this browser and linked back to that Google session.'
-    : appleLoginEnabled
-      ? 'As soon as the user logs in, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.'
-      : 'As soon as the user logs in with Google, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.';
+  const socialLoginHeading = 'Google login unlocks a local TITAN wallet flow';
+  const socialLoginDescription = 'The Google account is verified first, then the wallet is still created locally in this browser and linked back to that Google session.';
 
   useEffect(() => {
     if (shouldRedirectExistingSession.current) {
@@ -268,43 +246,6 @@ const CreateWalletPage: React.FC = () => {
       setCreationProofStatus('failed');
     }
   }
-  const persistSocialProof = useEffectEvent(() => {
-    void persistWalletProof({
-      address: walletAddress!,
-      eventType: 'Wallet Social Signup Proof',
-      description: `Wallet signup with ${authProvider === 'apple' ? 'Apple' : 'Google'} was sealed through the TITAN onboarding flow.`,
-      source: 'social',
-      walletLabel: walletName || 'Managed Wallet',
-    }).finally(() => {
-      setSocialSubmitting(null);
-    });
-  });
-
-  useEffect(() => {
-    if (
-      !isSocialSignupFlow
-      || !hasWalletSession
-      || walletSource !== 'privy'
-      || !walletAddress
-      || socialProofHandled.current
-    ) {
-      return;
-    }
-
-    socialProofHandled.current = true;
-    setCreationProofStatus('idle');
-    setCreationProofId(null);
-    setStep(4);
-    persistSocialProof();
-  }, [
-    authProvider,
-    hasWalletSession,
-    isSocialSignupFlow,
-    walletAddress,
-    walletName,
-    walletSource,
-  ]);
-
   const handleCreateWallet = async () => {
     try {
       setIsSubmitting(true);
@@ -488,9 +429,7 @@ const CreateWalletPage: React.FC = () => {
                           ? 'Not configured'
                           : !socialConfigReady
                             ? 'Checking lane'
-                            : authLane === 'titan-managed'
-                              ? socialProviderLabel
-                              : 'Privy ready'}
+                            : socialProviderLabel}
                       </Badge>
                     </div>
                     {authLane === 'titan-managed' && socialAuthenticated ? (
@@ -527,23 +466,17 @@ const CreateWalletPage: React.FC = () => {
                     </div>
                     {!hasSocialLogin ? (
                       <p className="mt-3 text-xs text-titan-subtext">
-                        {authLane === 'titan-managed'
-                          ? 'Enable the TITAN-managed consumer auth lane in this wallet server deployment to offer Google login.'
-                          : 'Set `VITE_PRIVY_APP_ID` to enable social wallet login.'}
+                        Enable the TITAN-managed consumer auth lane in this wallet server deployment to offer Google login.
                       </p>
                     ) : null}
                     {hasSocialLogin && !socialConfigReady ? (
                       <p className="mt-3 text-xs text-titan-subtext">
-                        {authLane === 'titan-managed'
-                          ? 'Checking which login providers are enabled in the TITAN-managed auth lane.'
-                          : 'Checking which login providers are enabled in the current Privy app.'}
+                        Checking which login providers are enabled in the TITAN-managed auth lane.
                       </p>
                     ) : null}
                     {hasSocialLogin && socialConfigReady && !googleLoginEnabled && !appleLoginEnabled ? (
                       <p className="mt-3 text-xs text-titan-danger">
-                        {authLane === 'titan-managed'
-                          ? socialProviderErrors[0] || 'No social provider is enabled in this TITAN-managed auth lane yet.'
-                          : 'The current Privy app has Google and Apple login disabled. Enable them in the Privy dashboard first.'}
+                        {socialProviderErrors[0] || 'No social provider is enabled in this TITAN-managed auth lane yet.'}
                       </p>
                     ) : null}
                     {socialError || managedAuthErrorMessage ? (
@@ -747,9 +680,7 @@ const CreateWalletPage: React.FC = () => {
               </h1>
               <p className="text-sm text-titan-subtext mb-2">
                 {isSocialSignupFlow
-                  ? authLane === 'titan-managed'
-                    ? `${socialIdentityLabel} is now linked to this local TITAN wallet. Your recovery phrase and private key stay available in Settings just like the original local flow.`
-                    : `${authProvider === 'apple' ? 'Apple' : 'Google'} login created a new TITAN wallet automatically. This wallet is now active through Privy MPC and protected by the 9 security rails.`
+                  ? `${socialIdentityLabel} is now linked to this local TITAN wallet. Your recovery phrase and private key stay available in Settings just like the original local flow.`
                   : isImportMode
                     ? 'Your wallet is ready in this browser tab session. You can reveal the recovery phrase or private key from Settings while the tab stays open.'
                     : isAddAccountFlow

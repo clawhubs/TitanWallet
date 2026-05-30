@@ -14,7 +14,6 @@
     "smoke:onboarding": "node scripts/playwright-onboarding-smoke.mjs"
   },
   "dependencies": {
-    "@privy-io/react-auth": "^3.28.0",
     "@solana-program/memo": "^0.11.1",
     "@solana-program/system": "^0.12.2",
     "@solana-program/token": "^0.13.0",

@@ -2,7 +2,6 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useTitanManagedAuthBridge } from './features/consumer-auth/TitanManagedAuthBridge';
 import LandingPage from './pages/LandingPage';
-import { usePrivyWalletBridge } from './features/privy/PrivyBridge';
 import RequireWallet from './components/routing/RequireWallet';
 import { useWalletStore } from './store/useWalletStore';
 import { useTokenStore } from './store/useTokenStore';
@@ -14,58 +13,6 @@ const SecurityPage = lazy(() => import('./pages/SecurityPage'));
 const ActivityPage = lazy(() => import('./pages/ActivityPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const DeveloperDocsPage = lazy(() => import('./features/developer/DeveloperDocsPage'));
-
-const PrivyWalletSessionSync: React.FC = () => {
-  const privy = usePrivyWalletBridge();
-  const connect = useWalletStore((state) => state.connect);
-  const removeAccountsBySource = useWalletStore((state) => state.removeAccountsBySource);
-
-  useEffect(() => {
-    if (!privy.enabled || !privy.ready) {
-      return;
-    }
-
-    if (!privy.authenticated || !privy.walletAddress) {
-      removeAccountsBySource('privy');
-      return;
-    }
-
-    const state = useWalletStore.getState();
-    const accountId = privy.walletAddress.toLowerCase();
-    const existingAccount = state.accounts.find((account) => account.id === accountId);
-    const needsActiveResync = state.walletSource === 'privy' && state.address !== privy.walletAddress;
-    const needsMetadataRefresh = Boolean(
-      existingAccount
-      && (
-        existingAccount.source !== 'privy'
-        || existingAccount.authProvider !== privy.authProvider
-        || existingAccount.walletName !== (privy.walletName || 'Privy Wallet')
-      ),
-    );
-
-    if (!existingAccount || needsActiveResync || (state.walletSource === 'privy' && needsMetadataRefresh)) {
-      connect({
-        address: privy.walletAddress,
-        mnemonic: null,
-        privateKey: null,
-        walletName: privy.walletName || 'Privy Wallet',
-        source: 'privy',
-        authProvider: privy.authProvider,
-      });
-    }
-  }, [
-    connect,
-    privy.authProvider,
-    privy.authenticated,
-    privy.enabled,
-    privy.ready,
-    privy.walletAddress,
-    privy.walletName,
-    removeAccountsBySource,
-  ]);
-
-  return null;
-};
 
 const TitanManagedWalletSessionSync: React.FC = () => {
   const managed = useTitanManagedAuthBridge();
@@ -137,7 +84,6 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <TitanManagedWalletSessionSync />
-      <PrivyWalletSessionSync />
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />

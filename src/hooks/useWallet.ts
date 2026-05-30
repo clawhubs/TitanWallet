@@ -1,6 +1,5 @@
 import { useTitanManagedAuthBridge } from '../features/consumer-auth/TitanManagedAuthBridge';
-import { BrowserProvider, parseEther, type TransactionRequest } from 'ethers';
-import { usePrivyWalletBridge } from '../features/privy/PrivyBridge';
+import type { TransactionRequest } from 'ethers';
 import { useWalletStore } from '../store/useWalletStore';
 import { useNetworkStore } from '../store/useNetworkStore';
 import {
@@ -29,8 +28,7 @@ export function useWallet() {
   const disconnect = useWalletStore((state) => state.disconnect);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const managedAuth = useTitanManagedAuthBridge();
-  const privy = usePrivyWalletBridge();
-  const authLane = managedAuth.enabled ? 'titan-managed' : privy.enabled ? 'privy' : 'none';
+  const authLane = managedAuth.enabled ? 'titan-managed' : 'none';
 
   function createWallet(name?: string) {
     const wallet = createNewWallet();
@@ -78,9 +76,7 @@ export function useWallet() {
       return getWalletFromPrivateKey(privateKey, activeNetwork.rpcUrl);
     }
 
-    const provider = await privy.getEthereumProvider();
-    const browserProvider = new BrowserProvider(provider, activeNetwork.chainId);
-    return browserProvider.getSigner();
+    throw new Error('No local private key is available for this wallet session. Restore or create the wallet again before signing.');
   }
 
   async function signTextMessage(message: string) {
@@ -88,7 +84,7 @@ export function useWallet() {
       return signMessage(message, privateKey);
     }
 
-    return privy.signMessage(message);
+    throw new Error('No local private key is available for this wallet session. Restore or create the wallet again before signing.');
   }
 
   async function signTx(transaction: Parameters<typeof signTransaction>[0] | TransactionRequest) {
@@ -96,10 +92,7 @@ export function useWallet() {
       return signTransaction(transaction, privateKey, activeNetwork.rpcUrl);
     }
 
-    return privy.signTransaction({
-      ...transaction,
-      chainId: Number(transaction.chainId ?? activeNetwork.chainId),
-    });
+    throw new Error('No local private key is available for this wallet session. Restore or create the wallet again before signing.');
   }
 
   async function sendNativeAsset(input: { to: string; amount: string }) {
@@ -112,23 +105,7 @@ export function useWallet() {
       });
     }
 
-    const value = parseEther(input.amount || '0');
-    const result = await privy.sendTransaction({
-      to: input.to,
-      value,
-      chainId: activeNetwork.chainId,
-    });
-
-    return {
-      hash: result.hash,
-      from: privy.walletAddress || '',
-      to: input.to,
-      amount: input.amount,
-      signedTransaction: null,
-      nonce: null,
-      chainId: activeNetwork.chainId,
-      gasLimit: null,
-    };
+    throw new Error('No local private key is available for this wallet session. Restore or create the wallet again before sending.');
   }
 
   async function waitForTxReceipt(hash: string, timeoutMs?: number) {
@@ -140,10 +117,6 @@ export function useWallet() {
   }
 
   async function disconnectWallet() {
-    if (walletSource === 'privy') {
-      await privy.logout();
-    }
-
     if (walletSource === 'managed') {
       await managedAuth.logout();
     }
@@ -168,25 +141,25 @@ export function useWallet() {
     activeNetwork,
     authLane,
     hasSocialLogin: authLane !== 'none',
-    privyReady: authLane === 'titan-managed' ? managedAuth.ready : privy.ready,
-    socialConfigReady: authLane === 'titan-managed' ? managedAuth.loginMethods.loaded : privy.loginMethods.loaded,
-    googleLoginEnabled: authLane === 'titan-managed' ? managedAuth.loginMethods.google : privy.loginMethods.google,
-    appleLoginEnabled: authLane === 'titan-managed' ? managedAuth.loginMethods.apple : privy.loginMethods.apple,
-    socialAuthenticated: authLane === 'titan-managed' ? managedAuth.authenticated : privy.authenticated,
-    socialUserName: authLane === 'titan-managed' ? managedAuth.userName : null,
-    socialUserEmail: authLane === 'titan-managed' ? managedAuth.userEmail : null,
-    socialProviderLabel: authLane === 'titan-managed' ? managedAuth.label : 'Privy',
-    managedWalletReady: authLane === 'titan-managed' ? managedAuth.managedWalletReady : true,
-    managedWalletMessage: authLane === 'titan-managed' ? managedAuth.managedWalletMessage : '',
-    managedWalletSession: authLane === 'titan-managed' ? managedAuth.linkedWallet : null,
-    socialProviderErrors: authLane === 'titan-managed' ? managedAuth.errors : [],
+    privyReady: managedAuth.ready,
+    socialConfigReady: managedAuth.loginMethods.loaded,
+    googleLoginEnabled: managedAuth.loginMethods.google,
+    appleLoginEnabled: managedAuth.loginMethods.apple,
+    socialAuthenticated: managedAuth.authenticated,
+    socialUserName: managedAuth.userName,
+    socialUserEmail: managedAuth.userEmail,
+    socialProviderLabel: managedAuth.label,
+    managedWalletReady: managedAuth.managedWalletReady,
+    managedWalletMessage: managedAuth.managedWalletMessage,
+    managedWalletSession: managedAuth.linkedWallet,
+    socialProviderErrors: managedAuth.errors,
     createWallet,
     linkWalletToGoogle,
     restoreWalletFromGoogle,
     importWallet,
-    loginWithGoogle: authLane === 'titan-managed' ? managedAuth.loginWithGoogle : privy.loginWithGoogle,
-    loginWithApple: authLane === 'titan-managed' ? noopUnsupportedSocialLogin : privy.loginWithApple,
-    exportManagedWallet: walletSource === 'privy' ? privy.exportWallet : noopUnsupportedManagedExport,
+    loginWithGoogle: managedAuth.loginWithGoogle,
+    loginWithApple: noopUnsupportedSocialLogin,
+    exportManagedWallet: noopUnsupportedManagedExport,
     switchAccount,
     removeAccount,
     disconnectWallet,

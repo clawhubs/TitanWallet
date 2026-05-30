@@ -29,7 +29,7 @@ const GeneralSettings: React.FC = () => {
   const [secretStatus, setSecretStatus] = useState<string | null>(null);
   const hasWalletSession = Boolean(walletAddress);
   const canAnchorCurrentNetwork = canAnchorSecurityLogsOnNetwork(activeNetwork);
-  const isManagedSession = walletSource === 'privy' || walletSource === 'managed';
+  const isManagedSession = walletSource === 'managed';
   const isTitanManagedSession = walletSource === 'managed';
   const isGoogleLinkedSession = walletSource === 'google';
   const authLabel = authProvider === 'google' ? 'Google' : authProvider === 'apple' ? 'Apple' : 'Managed';

@@ -50,12 +50,8 @@ const OnboardingPage: React.FC = () => {
       icon: Globe,
       title: 'Login with Google',
       desc: socialEnabled && googleLoginEnabled
-        ? authLane === 'titan-managed'
-          ? 'Login with Google first, then create or restore a normal local wallet that TITAN can bind to that account.'
-          : 'Google login creates a new TITAN wallet through the Privy MPC flow.'
-        : authLane === 'titan-managed'
-          ? 'Google login is not configured in this TITAN Wallet deployment yet.'
-          : 'Google login is disabled in the current Privy app.',
+        ? 'Login with Google first, then create or restore a normal local wallet that TITAN can bind to that account.'
+        : 'Google login is not configured in this TITAN Wallet deployment yet.',
       recommended: false,
       disabled: !socialEnabled || !googleLoginEnabled,
     },
@@ -63,9 +59,7 @@ const OnboardingPage: React.FC = () => {
       id: 'apple' as OnboardingOption,
       icon: Mail,
       title: 'Login with Apple',
-      desc: authLane === 'titan-managed'
-        ? 'Apple login is reserved for a later TITAN-managed auth release.'
-        : 'Apple login creates a new TITAN wallet through the Privy MPC flow.',
+      desc: 'Apple login is reserved for a later TITAN-managed auth release.',
       disabled: !socialEnabled || !appleLoginEnabled,
     }] : []),
     {
@@ -115,9 +109,7 @@ const OnboardingPage: React.FC = () => {
             <p className="text-sm text-titan-subtext">
               {authLane === 'titan-managed'
                 ? 'Choose how you want to get started. Google login unlocks account-bound local wallet creation without changing the normal backup flow.'
-                : appleLoginEnabled
-                  ? 'Choose how you want to get started. Google or Apple login creates a new TITAN wallet automatically.'
-                  : 'Choose how you want to get started. Google login creates a new TITAN wallet automatically.'}
+                : 'Choose how you want to get started. Create or import a local wallet in this browser.'}
             </p>
           </div>
 
@@ -140,7 +132,7 @@ const OnboardingPage: React.FC = () => {
             <div className="mb-4 rounded-xl border border-titan-danger/30 bg-titan-danger/5 px-4 py-3 text-xs text-titan-danger">
               {authLane === 'titan-managed'
                 ? `${socialProviderLabel} is active, but no social provider is enabled for end users yet.`
-                : 'The current Privy app has Google and Apple login disabled. Enable them in the Privy dashboard before offering social signup.'}
+                : 'The active consumer auth lane has no social provider enabled for end users yet.'}
             </div>
           ) : null}
 

@@ -128,7 +128,7 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                         {account.balanceUSD > 0 ? formatUSD(account.balanceUSD) : '$0.00'}
                       </p>
                       <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-titan-subtext">
-                        {account.source === 'privy' || account.source === 'managed'
+                        {account.source === 'managed'
                           ? 'Managed'
                           : account.source === 'google'
                             ? 'Google linked'
@@ -149,11 +149,11 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                         <button
                           type="button"
                           onClick={() => handleRemoveAccount(account.id)}
-                          disabled={accounts.length === 1 || account.source === 'privy' || account.source === 'managed' || account.source === 'google'}
+                          disabled={accounts.length === 1 || account.source === 'managed' || account.source === 'google'}
                           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-titan-danger transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <Trash2 size={14} />
-                          {account.source === 'privy' || account.source === 'managed'
+                          {account.source === 'managed'
                             ? 'Managed account'
                             : account.source === 'google'
                               ? 'Bound to Google'
