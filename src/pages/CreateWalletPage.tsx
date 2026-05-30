@@ -1,6 +1,6 @@
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, Copy, Check, ShieldCheck, RefreshCw } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Copy, Check, ShieldCheck, RefreshCw, Download } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { useWallet } from '../hooks/useWallet';
@@ -37,6 +37,9 @@ const CreateWalletPage: React.FC = () => {
     loginWithApple,
   } = useWallet();
   const authProvider = useWalletStore((state) => state.authProvider);
+  const walletAddress = useWalletStore((state) => state.address);
+  const currentWalletName = useWalletStore((state) => state.walletName);
+  const walletPrivateKey = useWalletStore((state) => state.privateKey);
   const hasWalletSession = useWalletStore((state) => Boolean(state.isConnected && state.address));
   const environment = useNetworkStore((state) => state.environment);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
@@ -59,6 +62,7 @@ const CreateWalletPage: React.FC = () => {
   const [step, setStep] = useState<Step>(1);
   const [showSeed, setShowSeed] = useState(false);
   const [copiedSeed, setCopiedSeed] = useState(false);
+  const [downloadedBackup, setDownloadedBackup] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -191,6 +195,46 @@ const CreateWalletPage: React.FC = () => {
     navigator.clipboard.writeText(mnemonicWords.join(' '));
     setCopiedSeed(true);
     setTimeout(() => setCopiedSeed(false), 2000);
+  };
+
+  const downloadRecoveryKit = () => {
+    const mnemonic = mnemonicWords.join(' ');
+    const fallbackName = isGoogleLinkedLocalFlow ? googleWalletName : name || currentWalletName || 'TITAN Wallet';
+    const fileSlug = fallbackName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .slice(0, 48) || 'titan-wallet';
+    const content = [
+      'TITAN Wallet Recovery Kit',
+      '',
+      'Keep this file offline. Anyone with these secrets can control this wallet.',
+      '',
+      `Generated: ${new Date().toISOString()}`,
+      `Wallet name: ${fallbackName}`,
+      `Address: ${walletAddress || 'Not available'}`,
+      '',
+      'Recovery phrase:',
+      mnemonic || 'Not available',
+      '',
+      'Private key:',
+      walletPrivateKey || 'Not available',
+      '',
+      'Security note:',
+      'Do not upload this file to public storage or share it with support, admins, or apps.',
+    ].join('\n');
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `titan-recovery-${fileSlug}.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    setDownloadedBackup(true);
+    window.setTimeout(() => setDownloadedBackup(false), 2000);
   };
 
   async function persistWalletProof(input: {
@@ -686,10 +730,16 @@ const CreateWalletPage: React.FC = () => {
               </div>
 
               {showSeed && (
-                <button onClick={copyMnemonic} className="flex items-center gap-2 text-xs text-titan-subtext hover:text-titan-text transition-colors mb-4">
-                  {copiedSeed ? <Check size={13} className="text-titan-success" /> : <Copy size={13} />}
-                  {copiedSeed ? 'Copied!' : 'Copy to clipboard'}
-                </button>
+                <div className="mb-4 flex flex-wrap gap-3">
+                  <button onClick={copyMnemonic} className="flex items-center gap-2 text-xs text-titan-subtext hover:text-titan-text transition-colors">
+                    {copiedSeed ? <Check size={13} className="text-titan-success" /> : <Copy size={13} />}
+                    {copiedSeed ? 'Copied!' : 'Copy to clipboard'}
+                  </button>
+                  <button onClick={downloadRecoveryKit} className="flex items-center gap-2 text-xs text-titan-subtext hover:text-titan-text transition-colors">
+                    {downloadedBackup ? <Check size={13} className="text-titan-success" /> : <Download size={13} />}
+                    {downloadedBackup ? 'Downloaded' : 'Download recovery kit'}
+                  </button>
+                </div>
               )}
 
               <label className="flex items-start gap-3 cursor-pointer mb-5">
