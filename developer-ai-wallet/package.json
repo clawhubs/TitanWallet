@@ -16,6 +16,11 @@
   "dependencies": {
     "ethers": "^6.16.0"
   },
+  "overrides": {
+    "ethers": {
+      "ws": "^8.21.0"
+    }
+  },
   "devDependencies": {
     "@types/node": "^24.12.3",
     "typescript": "~6.0.2"

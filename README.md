@@ -62,6 +62,12 @@ Server-side / developer auth notes:
 - The current app can safely use Google / Apple login in the browser while any privileged verification stays in your backend or agent runtime
 - For third-party developers building their own app on top of TITAN rails, they must bring their own Privy app and credentials rather than reuse the TITAN Wallet Privy app
 
+## Dependency security note
+
+We pin `ws` through npm `overrides` so the wallet stays on patched `8.21.x` without forcing a breaking downgrade of `ethers`, `viem`, or Privy's wallet stack.
+
+`uuid` may still appear in `npm audit` as a moderate transitive issue through MetaMask / WalletConnect dependencies pulled in by the wallet connector stack. We are intentionally leaving that as a documented upstream exception until Privy / `x402` / `wagmi` / connector dependencies publish a compatible non-breaking upgrade path.
+
 ## Production build
 
 ```bash

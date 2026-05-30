@@ -54,7 +54,7 @@ async function installApiMocks(context) {
 }
 
 async function assertSocialEntry(page) {
-  await page.getByText('Login Google/Apple = Buat Wallet TITAN').waitFor();
+  await page.getByText('Google or Apple login creates a TITAN wallet').waitFor();
 
   if (!EXPECT_PRIVY_READY) {
     return;

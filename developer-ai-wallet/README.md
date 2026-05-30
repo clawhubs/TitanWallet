@@ -6,6 +6,12 @@ The AI is BYOK: bring your own model, agent, planner, or local runtime. This pac
 
 If a developer wants Privy-based Google / Apple login inside their own app, they must bring their own Privy app credentials. They must not reuse the TITAN Wallet Privy app.
 
+## Dependency security note
+
+This package pins `ws` through npm `overrides` so we stay on the patched `8.21.x` line without forcing a breaking downgrade of `ethers`.
+
+If `npm audit` still reports `uuid`, treat that as an upstream wallet-connector exception in the main wallet app rather than a direct SDK flaw in this package.
+
 ## Source Of Authority
 
 The owner wallet must be created or imported in TITAN Wallet first:

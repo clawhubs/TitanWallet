@@ -35,15 +35,15 @@ const OnboardingPage: React.FC = () => {
     {
       id: 'google' as OnboardingOption,
       icon: Globe,
-      title: 'Login Google = Buat Wallet TITAN',
-      desc: 'Login Google langsung membuat wallet TITAN baru dengan jalur Privy MPC.',
+      title: 'Login with Google',
+      desc: 'Google login creates a new TITAN wallet through the Privy MPC flow.',
       recommended: false,
     },
     {
       id: 'apple' as OnboardingOption,
       icon: Mail,
-      title: 'Login Apple = Buat Wallet TITAN',
-      desc: 'Sign in with Apple langsung membuat wallet TITAN baru dengan jalur Privy MPC.',
+      title: 'Login with Apple',
+      desc: 'Apple login creates a new TITAN wallet through the Privy MPC flow.',
     },
     {
       id: 'passkey' as OnboardingOption,
@@ -89,7 +89,7 @@ const OnboardingPage: React.FC = () => {
         <div className="titan-card p-6">
           <div className="mb-6 text-center">
             <h1 className="text-xl font-bold text-titan-text mb-2">Welcome to TITAN</h1>
-            <p className="text-sm text-titan-subtext">Pilih cara masuk. Login Google atau Apple langsung berarti buat wallet TITAN baru.</p>
+            <p className="text-sm text-titan-subtext">Choose how you want to get started. Google or Apple login creates a new TITAN wallet automatically.</p>
           </div>
 
           {/* No install badge */}

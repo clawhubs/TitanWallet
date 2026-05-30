@@ -347,8 +347,8 @@ const CreateWalletPage: React.FC = () => {
                   <div className="mb-6 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-white">Login Google/Apple = Buat Wallet TITAN</p>
-                        <p className="text-xs text-titan-subtext">Begitu user login, TITAN langsung membuat wallet baru lewat Privy MPC lalu mengaktifkan 9 layer security rail.</p>
+                        <p className="text-sm font-semibold text-white">Google or Apple login creates a TITAN wallet</p>
+                        <p className="text-xs text-titan-subtext">As soon as the user logs in, TITAN creates a new wallet through Privy MPC and turns on the 9 wallet security rails.</p>
                       </div>
                       <Badge variant={hasSocialLogin ? 'accent' : 'neutral'} size="sm">
                         {hasSocialLogin ? 'Privy ready' : 'Not configured'}
@@ -555,7 +555,7 @@ const CreateWalletPage: React.FC = () => {
               </h1>
               <p className="text-sm text-titan-subtext mb-2">
                 {isSocialSignupFlow
-                  ? `Login ${authProvider === 'apple' ? 'Apple' : 'Google'} Anda sudah langsung membuat wallet TITAN baru. Wallet ini sekarang aktif di Privy MPC dan diamankan oleh 9 security rails.`
+                  ? `${authProvider === 'apple' ? 'Apple' : 'Google'} login created a new TITAN wallet automatically. This wallet is now active through Privy MPC and protected by the 9 security rails.`
                   : isImportMode
                     ? 'Your wallet is ready in this browser tab session. You can reveal the recovery phrase or private key from Settings while the tab stays open.'
                     : isAddAccountFlow
