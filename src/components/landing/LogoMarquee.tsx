@@ -26,7 +26,7 @@ const marqueeItems = [...logos, ...logos];
 const LogoMark: React.FC<{ item: LogoItem }> = ({ item }) => {
   return (
     <span className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ${item.markClassName || 'bg-white'}`}>
-      <img src={item.src} alt={`${item.name} logo`} className="h-full w-full object-contain" />
+      <img src={item.src} alt="" aria-hidden="true" className="h-full w-full object-contain" />
     </span>
   );
 };
@@ -37,7 +37,6 @@ const LogoMarquee: React.FC = () => {
       <div className="mx-auto max-w-6xl px-6">
         <div className="mb-4 flex items-center justify-between gap-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-titan-accent">Live ecosystem rails</p>
-          <p className="hidden text-[12px] font-medium text-titan-subtext sm:block">Official provider and token logo assets, cached locally in TITAN Wallet.</p>
         </div>
       </div>
       <div className="relative overflow-hidden">

@@ -1,36 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useWalletStore } from '../../store/useWalletStore';
-import { getWalletStats } from '../../services/walletStats';
+import React from 'react';
 
 const TrustBar: React.FC = () => {
-  const localAccountsOpened = useWalletStore((state) => state.accounts.length);
-  const [totalWalletsCreated, setTotalWalletsCreated] = useState<number | null>(null);
-  const walletOpenedValue = totalWalletsCreated !== null
-    ? totalWalletsCreated.toLocaleString('en-US')
-    : localAccountsOpened > 0
-      ? localAccountsOpened.toLocaleString('en-US')
-      : 'Live';
-
-  useEffect(() => {
-    let disposed = false;
-
-    void getWalletStats()
-      .then((stats) => {
-        if (!disposed) {
-          setTotalWalletsCreated(stats.totalWalletsCreated);
-        }
-      })
-      .catch(() => {
-        if (!disposed) {
-          setTotalWalletsCreated(null);
-        }
-      });
-
-    return () => {
-      disposed = true;
-    };
-  }, []);
-
   return (
     <div className="w-full border-y border-titan-border bg-[#0A0D14] py-6 px-4">
       <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-12 gap-y-6 animate-fade-in animate-delay-400">
@@ -45,8 +15,8 @@ const TrustBar: React.FC = () => {
         </div>
         <div className="hidden sm:block w-px h-6 bg-titan-border" />
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-center sm:text-left">
-          <span className="text-white font-mono font-bold text-lg sm:text-xl leading-none">{walletOpenedValue}</span>
-          <span className="text-titan-subtext text-[11px] font-semibold uppercase tracking-[0.15em] leading-none">Wallets Created</span>
+          <span className="text-white font-mono font-bold text-lg sm:text-xl leading-none">Live</span>
+          <span className="text-titan-subtext text-[11px] font-semibold uppercase tracking-[0.15em] leading-none">Wallet Creation</span>
         </div>
         <div className="hidden sm:block w-px h-6 bg-titan-border" />
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-center sm:text-left">
