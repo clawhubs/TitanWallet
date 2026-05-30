@@ -9,8 +9,40 @@ import { useWalletStore } from '../store/useWalletStore';
 import { runMilitaryGradeOperation } from '../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../data/walletActionLayers';
 import { addLocalWalletProof } from '../services/localActivity';
+import { createNewWallet } from '../services/wallet';
 
 type Step = 1 | 2 | 3 | 4;
+
+const GOOGLE_WALLET_CREATE_LOCK_PREFIX = 'titan-google-wallet-create:';
+
+function buildGoogleWalletCreateLockKey(identity: string | null) {
+  const normalized = identity?.trim().toLowerCase();
+  return normalized ? `${GOOGLE_WALLET_CREATE_LOCK_PREFIX}${normalized}` : null;
+}
+
+function readGoogleWalletCreateLock(lockKey: string | null) {
+  if (!lockKey || typeof window === 'undefined') {
+    return null;
+  }
+
+  return window.sessionStorage.getItem(lockKey);
+}
+
+function writeGoogleWalletCreateLock(lockKey: string | null, status: 'in-flight' | 'done') {
+  if (!lockKey || typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.setItem(lockKey, status);
+}
+
+function clearGoogleWalletCreateLock(lockKey: string | null) {
+  if (!lockKey || typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.removeItem(lockKey);
+}
 
 const CreateWalletPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +69,7 @@ const CreateWalletPage: React.FC = () => {
     loginWithApple,
   } = useWallet();
   const authProvider = useWalletStore((state) => state.authProvider);
+  const connectWallet = useWalletStore((state) => state.connect);
   const walletAddress = useWalletStore((state) => state.address);
   const currentWalletName = useWalletStore((state) => state.walletName);
   const walletPrivateKey = useWalletStore((state) => state.privateKey);
@@ -78,6 +111,7 @@ const CreateWalletPage: React.FC = () => {
   const [socialError, setSocialError] = useState<string | null>(null);
   const socialIdentityLabel = socialUserName || socialUserEmail || 'Google account';
   const googleWalletName = socialUserEmail || socialUserName || 'Google Wallet';
+  const googleWalletCreateLockKey = buildGoogleWalletCreateLockKey(socialUserEmail || socialUserName);
   const isGoogleLinkedLocalFlow = authLane === 'titan-managed' && socialAuthenticated && !isAddAccountFlow && !isAddWalletFlow;
 
   function getManagedAuthErrorMessage(code: string | null) {
@@ -292,7 +326,7 @@ const CreateWalletPage: React.FC = () => {
       setCreationProofStatus('failed');
     }
   }
-  const handleCreateWallet = async () => {
+  const handleCreateWallet = async (options?: { lockAlreadyAcquired?: boolean }) => {
     try {
       setIsSubmitting(true);
       setCreationProofStatus('idle');
@@ -300,25 +334,48 @@ const CreateWalletPage: React.FC = () => {
       setImportError(null);
 
       if (isGoogleLinkedLocalFlow) {
+        if (readGoogleWalletCreateLock(googleWalletCreateLockKey) && !options?.lockAlreadyAcquired) {
+          return;
+        }
+
+        if (!options?.lockAlreadyAcquired) {
+          writeGoogleWalletCreateLock(googleWalletCreateLockKey, 'in-flight');
+        }
+
         const walletLabel = googleWalletName;
-        const wallet = createWallet(walletLabel);
-        await linkWalletToGoogle({
-          walletName: walletLabel,
-          address: wallet.address,
-          mnemonic: wallet.mnemonic,
-          privateKey: wallet.privateKey,
-        });
-        setMnemonicWords(wallet.mnemonic.split(' '));
-        setShowSeed(false);
-        setConfirmed(false);
-        setStep(3);
-        await persistWalletProof({
-          address: wallet.address,
-          eventType: 'Google Linked Wallet Creation Proof',
-          description: 'Local wallet creation and Google account binding were sealed through the TITAN onboarding flow.',
-          source: 'social',
-          walletLabel,
-        });
+        const wallet = createNewWallet();
+
+        try {
+          await linkWalletToGoogle({
+            walletName: walletLabel,
+            address: wallet.address,
+            mnemonic: wallet.mnemonic,
+            privateKey: wallet.privateKey,
+          });
+          connectWallet({
+            address: wallet.address,
+            mnemonic: wallet.mnemonic,
+            privateKey: wallet.privateKey,
+            walletName: walletLabel,
+            source: 'google',
+            authProvider: 'google',
+          });
+          setMnemonicWords(wallet.mnemonic.split(' '));
+          setShowSeed(false);
+          setConfirmed(false);
+          setStep(3);
+          writeGoogleWalletCreateLock(googleWalletCreateLockKey, 'done');
+          await persistWalletProof({
+            address: wallet.address,
+            eventType: 'Google Linked Wallet Creation Proof',
+            description: 'Local wallet creation and Google account binding were sealed through the TITAN onboarding flow.',
+            source: 'social',
+            walletLabel,
+          });
+        } catch (error) {
+          clearGoogleWalletCreateLock(googleWalletCreateLockKey);
+          throw error;
+        }
         return;
       }
 
@@ -339,8 +396,8 @@ const CreateWalletPage: React.FC = () => {
     }
   };
 
-  const createGoogleWalletFromEffect = useEffectEvent(() => {
-    void handleCreateWallet();
+  const createGoogleWalletFromEffect = useEffectEvent((lockAlreadyAcquired?: boolean) => {
+    void handleCreateWallet({ lockAlreadyAcquired });
   });
 
   useEffect(() => {
@@ -348,25 +405,24 @@ const CreateWalletPage: React.FC = () => {
       !isGoogleLinkedLocalFlow
       || step !== 1
       || !managedWalletReady
+      || Boolean(managedWalletSession?.address)
       || isSubmitting
       || googleWalletCreateStarted.current
+      || Boolean(readGoogleWalletCreateLock(googleWalletCreateLockKey))
     ) {
       return;
     }
 
     googleWalletCreateStarted.current = true;
-    const timeoutId = window.setTimeout(() => {
-      createGoogleWalletFromEffect();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
+    writeGoogleWalletCreateLock(googleWalletCreateLockKey, 'in-flight');
+    createGoogleWalletFromEffect(true);
   }, [
     isGoogleLinkedLocalFlow,
     isSubmitting,
     managedWalletReady,
+    managedWalletSession,
     step,
+    googleWalletCreateLockKey,
   ]);
 
   const handleImportWallet = async () => {

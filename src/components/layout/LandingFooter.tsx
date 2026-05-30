@@ -10,8 +10,8 @@ const LandingFooter: React.FC = () => {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-titan-accent/10 border border-titan-accent/30 flex items-center justify-center">
-                <span className="text-titan-accent font-bold text-sm">T</span>
+              <div className="w-8 h-8 rounded-xl bg-titan-accent/10 border border-titan-accent/30 flex items-center justify-center overflow-hidden mix-blend-screen">
+                <img src="/titan-logo.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
               </div>
               <span className="font-bold text-titan-text text-base">TITAN Wallet</span>
             </div>

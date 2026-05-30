@@ -42,8 +42,8 @@ const WalletPreview: React.FC = () => {
         {/* Header bar */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#1A2233]/40">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-titan-accent/10 border border-titan-accent/20 flex items-center justify-center">
-              <span className="text-titan-accent font-bold text-sm">T</span>
+            <div className="w-8 h-8 rounded-xl bg-titan-accent/10 border border-titan-accent/20 flex items-center justify-center overflow-hidden mix-blend-screen">
+              <img src="/titan-logo.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
             </div>
             <span className="text-[13px] font-semibold text-white">TITAN</span>
           </div>
