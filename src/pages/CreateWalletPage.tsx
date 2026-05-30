@@ -10,6 +10,7 @@ import { runMilitaryGradeOperation } from '../services/militaryGrade';
 import { WALLET_ACTION_LAYERS } from '../data/walletActionLayers';
 import { addLocalWalletProof } from '../services/localActivity';
 import { createNewWallet } from '../services/wallet';
+import { registerWalletOpened } from '../services/walletStats';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -381,6 +382,11 @@ const CreateWalletPage: React.FC = () => {
               source: 'google',
               authProvider: 'google',
             });
+            void registerWalletOpened({
+              address: wallet.address,
+              source: 'google',
+              walletName: walletLabel,
+            });
           }
 
           setMnemonicWords(restoredWallet.mnemonic.split(' '));
@@ -409,6 +415,11 @@ const CreateWalletPage: React.FC = () => {
       }
 
       const wallet = createWallet(name);
+      void registerWalletOpened({
+        address: wallet.address,
+        source: isAddAccountFlow ? 'add-account' : isAddWalletFlow ? 'add-wallet' : 'create',
+        walletName: name || 'TITAN Wallet',
+      });
       setMnemonicWords(wallet.mnemonic.split(' '));
       setShowSeed(false);
       setConfirmed(false);
@@ -523,6 +534,11 @@ const CreateWalletPage: React.FC = () => {
       setCreationProofStatus('idle');
       setCreationProofId(null);
       const wallet = importWallet(importSecret, name || 'Imported TITAN Wallet');
+      void registerWalletOpened({
+        address: wallet.address,
+        source: isAddWalletFlow ? 'add-wallet' : 'import',
+        walletName: name || 'Imported TITAN Wallet',
+      });
       setMnemonicWords(wallet.mnemonic ? wallet.mnemonic.split(' ') : []);
       setShowSeed(false);
       setConfirmed(false);

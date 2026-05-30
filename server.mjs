@@ -44,6 +44,7 @@ const managedWalletMessage =
   process.env.TITAN_MANAGED_WALLET_MESSAGE?.trim()
   || 'Google auth is active. Wallets are still created locally in the browser, then linked back to the Google session for recovery.';
 const managedWalletStorePath = join(__dirname, '.data', 'managed-wallets.json');
+const walletStatsStorePath = join(__dirname, '.data', 'wallet-stats.json');
 
 const server = createServer(async (request, response) => {
   try {
@@ -93,6 +94,31 @@ const server = createServer(async (request, response) => {
         user: null,
         linkedWallet: null,
       });
+      return;
+    }
+
+    if (requestPath === '/api/public/wallet-stats') {
+      if (request.method !== 'GET') {
+        writeJson(response, 405, { error: 'Method not allowed' });
+        return;
+      }
+
+      writeJson(response, 200, await getWalletStats());
+      return;
+    }
+
+    if (requestPath === '/api/public/wallet-opened') {
+      if (request.method !== 'POST') {
+        writeJson(response, 405, { error: 'Method not allowed' });
+        return;
+      }
+
+      const body = await readJsonBody(request);
+      writeJson(response, 200, await registerWalletOpened({
+        address: typeof body?.address === 'string' ? body.address : '',
+        source: typeof body?.source === 'string' ? body.source : 'create',
+        walletName: typeof body?.walletName === 'string' ? body.walletName : null,
+      }));
       return;
     }
 
@@ -720,6 +746,11 @@ async function createOrUpdateLinkedWallet(input) {
 
   store.wallets.unshift(record);
   await writeManagedWalletStore(store);
+  await registerWalletOpened({
+    address: record.address,
+    source: 'google',
+    walletName: record.walletName,
+  });
   return record;
 }
 
@@ -747,6 +778,93 @@ async function readManagedWalletStore() {
 async function writeManagedWalletStore(store) {
   await mkdir(join(__dirname, '.data'), { recursive: true });
   await writeFile(managedWalletStorePath, JSON.stringify(store, null, 2), 'utf8');
+}
+
+async function getWalletStats() {
+  const store = await readWalletStatsStore();
+  const walletHashes = new Set(
+    store.wallets
+      .map((wallet) => wallet.walletHash)
+      .filter(Boolean),
+  );
+
+  const managedStore = await readManagedWalletStore();
+  managedStore.wallets.forEach((wallet) => {
+    const normalizedAddress = normalizeWalletAddress(wallet.address);
+    if (normalizedAddress) {
+      walletHashes.add(hashWalletAddress(normalizedAddress));
+    }
+  });
+
+  return {
+    totalWalletsCreated: walletHashes.size,
+  };
+}
+
+async function registerWalletOpened(input) {
+  const normalizedAddress = normalizeWalletAddress(input.address);
+  if (!normalizedAddress) {
+    return getWalletStats();
+  }
+
+  const walletHash = hashWalletAddress(normalizedAddress);
+  const store = await readWalletStatsStore();
+  const existing = store.wallets.find((wallet) => wallet.walletHash === walletHash);
+
+  if (existing) {
+    existing.lastSeenAt = new Date().toISOString();
+    existing.source = input.source || existing.source || 'create';
+    existing.walletName = sanitizeStatsLabel(input.walletName) || existing.walletName || null;
+  } else {
+    const now = new Date().toISOString();
+    store.wallets.unshift({
+      walletHash,
+      source: input.source || 'create',
+      walletName: sanitizeStatsLabel(input.walletName),
+      createdAt: now,
+      lastSeenAt: now,
+    });
+  }
+
+  await writeWalletStatsStore(store);
+  return getWalletStats();
+}
+
+async function readWalletStatsStore() {
+  try {
+    const content = await readFile(walletStatsStorePath, 'utf8');
+    const parsed = JSON.parse(content);
+    return {
+      wallets: Array.isArray(parsed.wallets) ? parsed.wallets : [],
+    };
+  } catch {
+    return { wallets: [] };
+  }
+}
+
+async function writeWalletStatsStore(store) {
+  await mkdir(join(__dirname, '.data'), { recursive: true });
+  await writeFile(walletStatsStorePath, JSON.stringify({
+    wallets: store.wallets.slice(0, 100000),
+  }, null, 2), 'utf8');
+}
+
+function normalizeWalletAddress(address) {
+  const normalized = typeof address === 'string' ? address.trim().toLowerCase() : '';
+  return /^0x[0-9a-f]{40}$/.test(normalized) ? normalized : '';
+}
+
+function hashWalletAddress(address) {
+  return createHash('sha256').update(address).digest('hex');
+}
+
+function sanitizeStatsLabel(label) {
+  if (typeof label !== 'string') {
+    return null;
+  }
+
+  const trimmed = label.trim();
+  return trimmed ? trimmed.slice(0, 80) : null;
 }
 
 function encryptManagedSecret(secret, keyMaterial) {
