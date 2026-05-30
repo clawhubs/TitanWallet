@@ -7,7 +7,6 @@ import LandingFooter from '../components/layout/LandingFooter';
 import WalletPreview from '../components/landing/WalletPreview';
 import TrustBar from '../components/landing/TrustBar';
 import LogoMarquee from '../components/landing/LogoMarquee';
-import LayerStack from '../components/landing/LayerStack';
 import { useWalletStore } from '../store/useWalletStore';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -64,6 +63,31 @@ const useCases = [
   },
 ];
 
+const humanRails = [
+  'Integrity Auditor',
+  'Secure Compute / TEE',
+  'Sovereign Memory',
+  '0G Storage Proof Layer',
+  'Zero-Knowledge Proof Layer',
+  'ProofRegistry Anchor',
+  'Programmable Governance',
+  'Cross-Agent Neural Handshake',
+  'AWS Nitro Enclaves',
+];
+
+const agentRails = [
+  'Hallucination Blacklist',
+  'Integrity Auditor',
+  'Secure Compute / TEE',
+  'Sovereign Memory',
+  '0G Storage Proof Layer',
+  'Zero-Knowledge Proof Layer',
+  'ProofRegistry Anchor',
+  'Programmable Governance',
+  'Cross-Agent Neural Handshake',
+  'AWS Nitro Enclaves',
+];
+
 const faqs = [
   { q: 'Do I need to install anything?', a: 'No. TITAN Wallet runs entirely in your browser. No extension, no app, no setup — just open the website and your wallet is ready.' },
   { q: 'How is my private key protected?', a: 'The wallet routes sensitive operations through the Secure Compute / TEE lane, keeps wallet context inside Sovereign Memory, and can escalate high-sensitivity paths into AWS Nitro Enclaves.' },
@@ -91,6 +115,91 @@ const FAQItem: React.FC<{ q: string; a: string }> = ({ q, a }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+const RailComparisonCard: React.FC<{
+  title: string;
+  subtitle: string;
+  rails: string[];
+  tone: 'human' | 'agent';
+  footerTitle: string;
+  footerText: string;
+  ctaHref: string;
+  ctaLabel: string;
+}> = ({ title, subtitle, rails, tone, footerTitle, footerText, ctaHref, ctaLabel }) => {
+  const isAgent = tone === 'agent';
+  const Icon = isAgent ? Bot : User;
+  const accent = isAgent ? 'text-[#C35CFF]' : 'text-titan-accent';
+  const border = isAgent ? 'border-[#8B3DFF]/40 hover:border-[#C35CFF]/60' : 'border-titan-accent/35 hover:border-titan-accent/60';
+  const glow = isAgent ? 'from-[#8B3DFF]/25 via-[#4A1E85]/10' : 'from-titan-accent/20 via-titan-accent/10';
+  const shieldBg = isAgent ? 'bg-[#8B3DFF]/10 border-[#8B3DFF]/30' : 'bg-titan-accent/10 border-titan-accent/25';
+
+  return (
+    <Link
+      to={ctaHref}
+      className={`group relative overflow-hidden rounded-[28px] border ${border} bg-[#090D15] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated`}
+    >
+      <div className={`absolute inset-0 bg-gradient-to-br ${glow} to-transparent opacity-70`} />
+      <div className="absolute -bottom-24 left-8 h-48 w-48 rounded-full bg-white/[0.03] blur-3xl" />
+
+      <div className="relative">
+        <div className="mb-5 text-center">
+          <p className={`text-[18px] font-black uppercase tracking-[0.08em] ${accent}`}>{title}</p>
+          <p className="mt-1 text-[14px] font-medium text-white">{subtitle}</p>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-[0.9fr_1.2fr] md:items-center">
+          <div className="relative flex min-h-[220px] items-center justify-center rounded-3xl border border-white/10 bg-black/20">
+            <div className={`absolute h-40 w-28 rounded-full ${isAgent ? 'bg-[#8B3DFF]/25' : 'bg-titan-accent/20'} blur-3xl`} />
+            <div className={`absolute bottom-7 h-4 w-32 rounded-full ${isAgent ? 'bg-[#8B3DFF]/35' : 'bg-titan-accent/35'} blur-md`} />
+            <div className={`relative flex h-32 w-32 items-center justify-center rounded-full border ${shieldBg}`}>
+              <div className={`absolute h-44 w-44 rounded-full border ${isAgent ? 'border-[#8B3DFF]/15' : 'border-titan-accent/15'}`} />
+              <Icon size={58} className={accent} strokeWidth={1.4} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {rails.map((rail, index) => {
+              const number = String(index + 1).padStart(2, '0');
+              const isNew = isAgent && index === 0;
+              return (
+                <div
+                  key={`${tone}-${rail}`}
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 transition-colors duration-200 group-hover:border-white/15"
+                >
+                  <span className={`w-9 shrink-0 rounded-lg border ${shieldBg} py-1 text-center font-mono text-[12px] font-bold ${accent}`}>
+                    {number}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-white">{rail}</span>
+                  {isNew ? (
+                    <span className="rounded-md border border-[#C35CFF]/40 bg-[#C35CFF]/10 px-2 py-0.5 text-[10px] font-black text-[#E6B6FF]">
+                      NEW
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${shieldBg}`}>
+              <ShieldCheck size={18} className={accent} />
+            </div>
+            <div>
+              <p className={`text-[14px] font-bold ${accent}`}>{footerTitle}</p>
+              <p className="text-[13px] text-titan-subtext">{footerText}</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-white transition-colors duration-200 group-hover:text-titan-accent">
+            {ctaLabel}
+            <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform duration-200" />
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 };
 
@@ -273,34 +382,56 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* ── Wallet Rails Architecture ─────────────────────────────────── */}
-      <section id="security" className="py-28 px-6">
+      <section id="security" className="px-6 py-20">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-20 items-start">
-            
-            {/* Left — Copy */}
-            <div className="lg:col-span-5 lg:sticky lg:top-32">
-              <div className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-titan-accent/10 border border-titan-accent/20 mb-8">
+          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="mb-4 inline-flex items-center px-3.5 py-1.5 rounded-full bg-titan-accent/10 border border-titan-accent/20">
                 <span className="text-[11px] font-bold text-titan-accent uppercase tracking-[0.12em]">Architecture</span>
               </div>
-              <h2 className="text-[40px] sm:text-[44px] font-bold text-white tracking-tight leading-[1.08] mb-7">
-                Nine wallet rails.
-                <br />One hardened
-                <br />execution path.
+              <h2 className="text-[34px] sm:text-[42px] font-black text-white tracking-tight leading-[1.05]">
+                Two security modes.
+                <br />
+                One TITAN rail system.
               </h2>
-              <p className="text-[16px] text-titan-subtext leading-[1.7] mb-4">
-                The wallet shows the same layer names used across TITAN X, but only the rails that actually matter to wallet actions stay in the path.
-              </p>
-              <p className="text-[14px] text-titan-subtext/70 mb-8">
-                Send, sign, connect, and proof flows can escalate from secure compute into storage, proof, governance, handshake, and Nitro continuity.
-              </p>
-              <Link to="/security" className="inline-flex items-center gap-2.5 text-[14px] font-semibold text-white hover:text-titan-accent transition-colors duration-200 group">
-                View Security Center <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform duration-200" />
-              </Link>
             </div>
+            <p className="max-w-md text-[14px] leading-[1.7] text-titan-subtext">
+              Human wallets stay simple with 9 wallet rails. AI agent wallets add the hallucination blacklist rail for controlled autonomous execution.
+            </p>
+          </div>
 
-            {/* Right — Visual Stack */}
-            <div className="lg:col-span-7">
-              <LayerStack />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <RailComparisonCard
+              title="For Humans - 9-Layer Security"
+              subtitle="Simple. Secure. Built for everyday users."
+              rails={humanRails}
+              tone="human"
+              footerTitle="Your keys. Your recovery. Your wallet."
+              footerText="9 layers protecting what is yours."
+              ctaHref="/security"
+              ctaLabel="View Security Center"
+            />
+            <RailComparisonCard
+              title="For AI Agents - 10-Layer Rails"
+              subtitle="Powerful rails. Verifiable execution. Full control."
+              rails={agentRails}
+              tone="agent"
+              footerTitle="Controlled agents. Verified actions."
+              footerText="10 layers securing every execution."
+              ctaHref={hasWalletSession ? '/settings?tab=developer' : '/developer/docs'}
+              ctaLabel={hasWalletSession ? 'Open Agent Setup' : 'Read Developer Docs'}
+            />
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 gap-3 rounded-2xl border border-titan-border bg-titan-surface/50 p-4 text-[12px] text-titan-subtext sm:grid-cols-3">
+            <div>
+              <span className="text-white font-semibold">Consumer wallet:</span> create, sign, send, scan, and verify.
+            </div>
+            <div>
+              <span className="text-white font-semibold">Agent wallet:</span> capability tokens, policies, and audit trails.
+            </div>
+            <div>
+              <span className="text-white font-semibold">Proof path:</span> storage, ZK envelope, registry anchor, and Nitro continuity.
             </div>
           </div>
         </div>
