@@ -439,7 +439,7 @@ async function getConsumerAuthSession(request) {
 }
 
 function getRequestOrigin(request) {
-  const protocol = request.headers['x-forwarded-proto'] || 'http';
+  const protocol = getRequestProtocol(request);
   return `${protocol}://${request.headers.host || 'localhost'}`;
 }
 
@@ -474,7 +474,7 @@ function redirectWithAuthError(response, request, code, returnTo) {
 }
 
 function serializeCookie(name, value, request, options = {}) {
-  const protocol = request.headers['x-forwarded-proto'] || 'http';
+  const protocol = getRequestProtocol(request);
   const isSecure = protocol === 'https';
   const segments = [
     `${name}=${value}`,
@@ -492,6 +492,43 @@ function serializeCookie(name, value, request, options = {}) {
   }
 
   return segments.join('; ');
+}
+
+function getRequestProtocol(request) {
+  const forwardedProto = firstHeaderToken(request.headers['x-forwarded-proto']);
+  if (forwardedProto) {
+    return forwardedProto;
+  }
+
+  const forwardedHeader = firstHeaderToken(request.headers.forwarded);
+  if (forwardedHeader) {
+    const match = forwardedHeader.match(/proto=([^;]+)/i);
+    if (match?.[1]) {
+      return match[1].trim().toLowerCase();
+    }
+  }
+
+  const hostHeader = `${request.headers.host || ''}`.trim().toLowerCase();
+  if (hostHeader && !hostHeader.startsWith('localhost') && !hostHeader.startsWith('127.0.0.1')) {
+    return 'https';
+  }
+
+  return 'http';
+}
+
+function firstHeaderToken(value) {
+  if (Array.isArray(value)) {
+    return firstHeaderToken(value[0] || '');
+  }
+
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .split(',')
+    .map((token) => token.trim().toLowerCase())
+    .find(Boolean) || '';
 }
 
 function parseCookies(cookieHeader = '') {
