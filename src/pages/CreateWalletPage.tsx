@@ -108,6 +108,7 @@ const CreateWalletPage: React.FC = () => {
   const [importSecret, setImportSecret] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dashboardRedirectCountdown, setDashboardRedirectCountdown] = useState<number | null>(null);
   const [socialSubmitting, setSocialSubmitting] = useState<'google' | 'apple' | null>(null);
   const [socialError, setSocialError] = useState<string | null>(null);
   const socialIdentityLabel = socialUserName || socialUserEmail || 'Google account';
@@ -120,6 +121,11 @@ const CreateWalletPage: React.FC = () => {
     && walletAddress
     && managedWalletSession.address.toLowerCase() === walletAddress.toLowerCase(),
   );
+
+  function openSuccessStep() {
+    setDashboardRedirectCountdown(3);
+    setStep(4);
+  }
 
   function getManagedAuthErrorMessage(code: string | null) {
     switch (code) {
@@ -380,7 +386,11 @@ const CreateWalletPage: React.FC = () => {
           setMnemonicWords(restoredWallet.mnemonic.split(' '));
           setShowSeed(false);
           setConfirmed(false);
-          setStep(linkedAddress === createdAddress ? 3 : 4);
+          if (linkedAddress === createdAddress) {
+            setStep(3);
+          } else {
+            openSuccessStep();
+          }
           writeGoogleWalletCreateLock(googleWalletCreateLockKey, 'done');
           if (linkedAddress === createdAddress) {
             await persistWalletProof({
@@ -482,6 +492,30 @@ const CreateWalletPage: React.FC = () => {
     step,
   ]);
 
+  useEffect(() => {
+    if (step !== 4 || dashboardRedirectCountdown === null) {
+      return;
+    }
+    const countdownInterval = window.setInterval(() => {
+      setDashboardRedirectCountdown((current) => {
+        if (current === null) {
+          return null;
+        }
+
+        return current > 1 ? current - 1 : 1;
+      });
+    }, 1000);
+
+    const redirectTimeout = window.setTimeout(() => {
+      navigate(returnTo, { replace: true });
+    }, 3000);
+
+    return () => {
+      window.clearInterval(countdownInterval);
+      window.clearTimeout(redirectTimeout);
+    };
+  }, [dashboardRedirectCountdown, navigate, returnTo, step]);
+
   const handleImportWallet = async () => {
     try {
       setIsSubmitting(true);
@@ -492,7 +526,7 @@ const CreateWalletPage: React.FC = () => {
       setMnemonicWords(wallet.mnemonic ? wallet.mnemonic.split(' ') : []);
       setShowSeed(false);
       setConfirmed(false);
-      setStep(4);
+      openSuccessStep();
       await persistWalletProof({
         address: wallet.address,
         eventType: 'Wallet Import Proof',
@@ -870,7 +904,7 @@ const CreateWalletPage: React.FC = () => {
                 className="w-full"
                 size="lg"
                 disabled={!confirmed}
-                onClick={() => setStep(4)}
+                onClick={openSuccessStep}
               >
                 I've saved it safely <ArrowRight size={16} />
               </Button>
@@ -900,6 +934,11 @@ const CreateWalletPage: React.FC = () => {
                     : isAddAccountFlow
                       ? 'Your new account is now stored alongside your other TITAN wallet accounts in this browser session.'
                       : 'Your TITAN Wallet is ready. The wallet security rails are active for this tab session.'}
+              </p>
+              <p className="text-xs text-titan-subtext mb-4">
+                {creationProofStatus === 'sealing'
+                  ? 'Finalizing the TITAN proof rail now. Your wallet is already ready and the dashboard will open automatically.'
+                  : `Opening dashboard automatically in ${dashboardRedirectCountdown ?? 3}s.`}
               </p>
               <Badge variant="success" dot className="mb-6">Wallet rails ready</Badge>
               {creationProofStatus === 'sealed' ? (
@@ -931,7 +970,7 @@ const CreateWalletPage: React.FC = () => {
               </div>
 
               <Button variant="primary" className="w-full" size="lg" onClick={() => navigate(returnTo)}>
-                Open Dashboard <ArrowRight size={16} />
+                Open Dashboard Now <ArrowRight size={16} />
               </Button>
             </div>
           )}
