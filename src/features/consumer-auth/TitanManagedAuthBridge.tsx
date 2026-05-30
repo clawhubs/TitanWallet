@@ -56,6 +56,7 @@ interface TitanManagedAuthValue {
   errors: string[];
   loginWithGoogle: (returnTo?: string) => void;
   linkWalletToGoogle: (input: { walletName: string; address: string; mnemonic: string; privateKey: string }) => Promise<NonNullable<TitanManagedAuthSession['linkedWallet']>>;
+  renameLinkedWallet: (walletName: string) => Promise<NonNullable<TitanManagedAuthSession['linkedWallet']>>;
   restoreWalletFromGoogle: () => Promise<{ walletName: string; address: string; mnemonic: string; privateKey: string; createdAt: string; custody: string }>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
@@ -104,6 +105,9 @@ const defaultValue: TitanManagedAuthValue = {
   loginWithGoogle: () => {},
   linkWalletToGoogle: async () => {
     throw new Error('Google wallet linking is unavailable.');
+  },
+  renameLinkedWallet: async () => {
+    throw new Error('Google wallet rename is unavailable.');
   },
   restoreWalletFromGoogle: async () => {
     throw new Error('Google wallet restore is unavailable.');
@@ -218,6 +222,20 @@ export const TitanManagedAuthProvider: React.FC<{ children: React.ReactNode }> =
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(input),
+      });
+      await refreshSession();
+      return result.wallet;
+    },
+    renameLinkedWallet: async (walletName) => {
+      const result = await readJson<{
+        wallet: NonNullable<TitanManagedAuthSession['linkedWallet']>;
+      }>('/api/consumer-wallet/google/rename', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ walletName }),
       });
       await refreshSession();
       return result.wallet;

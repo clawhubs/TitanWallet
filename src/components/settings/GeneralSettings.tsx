@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Copy, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Copy, Eye, EyeOff, Pencil, ShieldCheck } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import { useWallet } from '../../hooks/useWallet';
@@ -16,23 +16,60 @@ const GeneralSettings: React.FC = () => {
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const walletAddress = useWalletStore((state) => state.address);
   const walletName = useWalletStore((state) => state.walletName);
+  const activeAccountId = useWalletStore((state) => state.activeAccountId);
   const mnemonic = useWalletStore((state) => state.mnemonic);
   const privateKey = useWalletStore((state) => state.privateKey);
   const walletSource = useWalletStore((state) => state.walletSource);
   const authProvider = useWalletStore((state) => state.authProvider);
-  const { exportManagedWallet } = useWallet();
+  const renameAccount = useWalletStore((state) => state.renameAccount);
+  const { exportManagedWallet, renameGoogleLinkedWallet } = useWallet();
   const anchorOnChain = useSecurityPreferencesStore((state) => state.anchorOnChain);
   const setAnchorOnChain = useSecurityPreferencesStore((state) => state.setAnchorOnChain);
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [showPrivateKey, setShowPrivateKey] = useState(false);
   const [copiedField, setCopiedField] = useState<'mnemonic' | 'privateKey' | null>(null);
   const [secretStatus, setSecretStatus] = useState<string | null>(null);
+  const [draftWalletName, setDraftWalletName] = useState({
+    accountId: activeAccountId,
+    value: walletName,
+  });
+  const [nameStatus, setNameStatus] = useState<string | null>(null);
+  const [isSavingWalletName, setIsSavingWalletName] = useState(false);
   const hasWalletSession = Boolean(walletAddress);
   const canAnchorCurrentNetwork = canAnchorSecurityLogsOnNetwork(activeNetwork);
   const isManagedSession = walletSource === 'managed';
   const isTitanManagedSession = walletSource === 'managed';
   const isGoogleLinkedSession = walletSource === 'google';
   const authLabel = authProvider === 'google' ? 'Google' : authProvider === 'apple' ? 'Apple' : 'Managed';
+  const currentDraftWalletName = draftWalletName.accountId === activeAccountId
+    ? draftWalletName.value
+    : walletName;
+
+  async function handleSaveWalletName() {
+    if (!activeAccountId) {
+      return;
+    }
+
+    const nextName = currentDraftWalletName.trim();
+    if (!nextName) {
+      setNameStatus('Wallet name cannot be empty.');
+      return;
+    }
+
+    try {
+      setIsSavingWalletName(true);
+      setNameStatus(null);
+      if (isGoogleLinkedSession) {
+        await renameGoogleLinkedWallet(nextName);
+      }
+      renameAccount(activeAccountId, nextName);
+      setNameStatus('Wallet name updated.');
+    } catch (error) {
+      setNameStatus(error instanceof Error ? error.message : 'Unable to update the wallet name right now.');
+    } finally {
+      setIsSavingWalletName(false);
+    }
+  }
 
   const logSecretAction = async (field: 'mnemonic' | 'privateKey', mode: 'copy' | 'reveal') => {
     if (!walletAddress) {
@@ -121,19 +158,55 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {hasWalletSession ? (
-          <div className="flex flex-col gap-3 rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-white">{walletName}</p>
-              <p className="mt-1 font-mono text-xs text-titan-subtext">{formatAddress(walletAddress || '', 10)}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-titan-subtext">
-              <div className="flex items-center gap-2">
-                <ShieldCheck size={14} className="text-titan-success" />
-                <span>{activeNetwork.name} session active</span>
+          <div className="rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-white">{walletName}</p>
+                <p className="mt-1 font-mono text-xs text-titan-subtext">{formatAddress(walletAddress || '', 10)}</p>
               </div>
-              {isManagedSession ? <Badge variant="accent" size="sm">{authLabel} managed</Badge> : null}
-              {isGoogleLinkedSession ? <Badge variant="accent" size="sm">Google linked</Badge> : null}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-titan-subtext">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-titan-success" />
+                  <span>{activeNetwork.name} session active</span>
+                </div>
+                {isManagedSession ? <Badge variant="accent" size="sm">{authLabel} managed</Badge> : null}
+                {isGoogleLinkedSession ? <Badge variant="accent" size="sm">Google linked</Badge> : null}
+              </div>
             </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-titan-subtext">
+                  <Pencil size={12} />
+                  Wallet name
+                </label>
+                <input
+                  value={currentDraftWalletName}
+                  onChange={(event) => {
+                    setDraftWalletName({
+                      accountId: activeAccountId,
+                      value: event.target.value,
+                    });
+                    setNameStatus(null);
+                  }}
+                  className="titan-input"
+                  placeholder="Wallet name"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                size="md"
+                loading={isSavingWalletName}
+                disabled={!currentDraftWalletName.trim() || currentDraftWalletName.trim() === walletName}
+                onClick={() => void handleSaveWalletName()}
+              >
+                Save name
+              </Button>
+            </div>
+
+            {nameStatus ? (
+              <p className="mt-3 text-xs text-titan-subtext">{nameStatus}</p>
+            ) : null}
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-titan-border px-4 py-10 text-center">

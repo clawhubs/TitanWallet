@@ -41,6 +41,7 @@ interface WalletStore {
   authProvider: WalletAuthProvider;
   connect: (wallet: WalletSessionInput) => void;
   switchAccount: (accountId: string) => void;
+  renameAccount: (accountId: string, walletName: string) => void;
   removeAccount: (accountId: string) => void;
   removeAccountsBySource: (source: WalletSource) => void;
   disconnect: () => void;
@@ -230,6 +231,30 @@ export const useWalletStore = create<WalletStore>()(
             ...state,
             accounts: state.accounts.map((entry) => (entry.id === accountId ? nextAccount : entry)),
             ...buildActiveWalletState(nextAccount),
+          };
+        }),
+      renameAccount: (accountId, walletName) =>
+        set((state) => {
+          const normalizedName = normalizeWalletName(walletName);
+          const account = state.accounts.find((entry) => entry.id === accountId);
+          if (!account) {
+            return state;
+          }
+
+          const nextAccount = {
+            ...account,
+            walletName: normalizedName,
+            lastUsedAt: new Date().toISOString(),
+          };
+
+          return {
+            ...state,
+            accounts: state.accounts.map((entry) => (entry.id === accountId ? nextAccount : entry)),
+            ...(state.activeAccountId === accountId
+              ? {
+                  walletName: normalizedName,
+                }
+              : {}),
           };
         }),
       removeAccount: (accountId) =>

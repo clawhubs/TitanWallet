@@ -165,6 +165,36 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (requestPath === '/api/consumer-wallet/google/rename') {
+      if (request.method !== 'POST') {
+        writeJson(response, 405, { error: 'Method not allowed' });
+        return;
+      }
+
+      const session = readSignedCookie(request, consumerAuthCookieName, consumerAuthCookieSecret);
+      if (!session?.sub) {
+        writeJson(response, 401, { error: 'Login required' });
+        return;
+      }
+
+      const wallet = await getManagedWalletByOwnerSub(session.sub);
+      if (!wallet) {
+        writeJson(response, 404, { error: 'No wallet linked to this Google account yet.' });
+        return;
+      }
+
+      const body = await readJsonBody(request);
+      wallet.walletName = normalizeManagedWalletName(body?.walletName, session.name, session.email);
+      wallet.updatedAt = new Date().toISOString();
+
+      const store = await readManagedWalletStore();
+      store.wallets = store.wallets.map((entry) => (entry.ownerSub === session.sub ? wallet : entry));
+      await writeManagedWalletStore(store);
+
+      writeJson(response, 200, { wallet: toManagedWalletSummary(wallet) });
+      return;
+    }
+
     if (requestPath === '/api/consumer-auth/logout') {
       if (request.method !== 'POST') {
         writeJson(response, 405, { error: 'Method not allowed' });

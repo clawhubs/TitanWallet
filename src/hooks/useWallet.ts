@@ -58,6 +58,10 @@ export function useWallet() {
     return managedAuth.linkWalletToGoogle(input);
   }
 
+  async function renameGoogleLinkedWallet(walletName: string) {
+    return managedAuth.renameLinkedWallet(walletName);
+  }
+
   async function restoreWalletFromGoogle() {
     const wallet = await managedAuth.restoreWalletFromGoogle();
     connect({
@@ -155,6 +159,7 @@ export function useWallet() {
     socialProviderErrors: managedAuth.errors,
     createWallet,
     linkWalletToGoogle,
+    renameGoogleLinkedWallet,
     restoreWalletFromGoogle,
     importWallet,
     loginWithGoogle: managedAuth.loginWithGoogle,
