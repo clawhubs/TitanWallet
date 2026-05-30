@@ -37,6 +37,22 @@ npm install
 npm run build
 npm run mcp`;
 
+const SDK_SNIPPET = `import { TitanAgentWalletClient } from "@titan/agent-wallet";
+
+const client = new TitanAgentWalletClient({
+  baseUrl: "https://wallet.yieldboostai.xyz/api",
+  militaryBaseUrl: "https://wallet.yieldboostai.xyz",
+  ownerWalletAddress: process.env.TITAN_AGENT_WALLET_OWNER,
+  projectId: process.env.TITAN_AGENT_WALLET_PROJECT_ID,
+  agentWalletId: process.env.TITAN_AGENT_WALLET_ID,
+  capabilityToken: process.env.TITAN_AGENT_WALLET_CAPABILITY,
+});
+
+await client.checkIntent({
+  intent: "Pay approved vendor invoice",
+  actor: "my-local-agent",
+});`;
+
 const DeveloperSettings: React.FC = () => {
   const { address, signTextMessage } = useWallet();
   const [ownerSession, setOwnerSession] = useState<OwnerSession | null>(null);
@@ -253,141 +269,137 @@ const DeveloperSettings: React.FC = () => {
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <Badge variant="accent" dot>BYO Privy</Badge>
-            <Badge variant="neutral">Google / Apple</Badge>
-            <Badge variant="neutral">Own app keys</Badge>
-          </div>
-          <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-xl font-bold text-white">Bring Your Own Privy</h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-titan-subtext">
-                TITAN rails can wrap a developer&apos;s product, but the developer must use their own Privy App ID, App Secret, and JWKS URL. They should not share the consumer Privy app from TITAN Wallet.
+              <div className="mb-3 flex flex-wrap gap-2">
+                <Badge variant="accent">Build order</Badge>
+                <Badge variant="success" dot>Owner wallet bound</Badge>
+                <Badge variant="neutral">Capability-first</Badge>
+              </div>
+              <h3 className="text-xl font-bold text-white">Project, agent wallet, then capability</h3>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-titan-subtext">
+                This is the core TITAN developer system. First bind the owner wallet in this browser session, then create the
+                project, create the agent wallet under that project, and finally issue the capability that the SDK, CLI, and MCP
+                runtime will all reuse.
               </p>
             </div>
             <div className="rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-3 text-right">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-titan-subtext">Boundary</p>
-              <p className="mt-1 text-sm font-semibold text-white">Separate Privy app</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-titan-subtext">Shared identity</p>
+              <p className="mt-1 text-sm font-semibold text-white">{activeCapability ? 'Capability live' : 'Create the 3 steps first'}</p>
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-3">
-            {[
-              'Each developer product owns its own Privy credentials.',
-              'TITAN capability tokens stay separate from Privy auth.',
-              'JWT verification should point at the developer-owned JWKS URL.',
-            ].map((item) => (
-              <div key={item} className="rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4 text-sm text-titan-subtext">
-                {item}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-titan-border bg-[#05080D] p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-white">Privy env example</p>
-                <p className="text-xs text-titan-subtext">Use this only in the developer&apos;s own app or backend.</p>
-              </div>
-              <Button variant="secondary" size="sm" onClick={() => void copyText(BYO_PRIVY_SNIPPET, 'BYO Privy snippet copied.')}>
-                <Clipboard size={14} /> Copy
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="rounded-3xl border border-titan-border bg-[#0A0D14] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-titan-accent">1. Project</p>
+              <p className="mt-3 text-sm font-semibold text-white">AI Agent Project</p>
+              <input className="titan-input mt-4" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
+              <Button className="mt-4 w-full" disabled={busy || !ownerSession} onClick={() => void createProject()}>
+                <Plus size={15} /> Create project
               </Button>
+              <p className="mt-3 break-all text-xs text-titan-subtext">{activeProject?.id || 'No project yet.'}</p>
             </div>
-            <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
-              <code>{BYO_PRIVY_SNIPPET}</code>
-            </pre>
+
+            <div className="rounded-3xl border border-titan-border bg-[#0A0D14] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-titan-accent">2. Agent Wallet</p>
+              <p className="mt-3 text-sm font-semibold text-white">Autonomous Wallet Agent</p>
+              <input className="titan-input mt-4" value={agentName} onChange={(event) => setAgentName(event.target.value)} />
+              <Button className="mt-4 w-full" disabled={busy || !activeProject} onClick={() => void createAgentWallet()}>
+                <KeyRound size={15} /> Create agent wallet
+              </Button>
+              <p className="mt-3 break-all text-xs text-titan-subtext">{activeAgentWallet?.id || 'Create a project first.'}</p>
+            </div>
+
+            <div className="rounded-3xl border border-titan-border bg-[#0A0D14] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-titan-accent">3. Capability</p>
+              <p className="mt-3 text-sm font-semibold text-white">Reusable runtime token</p>
+              <div className="mt-4 grid gap-2">
+                <input className="titan-input" value={maxValueWei} onChange={(event) => setMaxValueWei(event.target.value)} />
+                <input className="titan-input" value={dailyLimitWei} onChange={(event) => setDailyLimitWei(event.target.value)} />
+                <input className="titan-input" value={allowedChainIds} onChange={(event) => setAllowedChainIds(event.target.value)} />
+                <input className="titan-input" placeholder="Allowlist addresses, comma-separated" value={allowedDestinations} onChange={(event) => setAllowedDestinations(event.target.value)} />
+              </div>
+              <Button className="mt-4 w-full" disabled={busy || !activeAgentWallet} onClick={() => void issueCapability()}>
+                <Plus size={15} /> Issue capability
+              </Button>
+              <p className="mt-3 break-all text-xs text-titan-subtext">{activeCapability?.id || 'Create an agent wallet first.'}</p>
+            </div>
           </div>
         </div>
 
         <div className="grid gap-4">
           <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Badge variant="success" dot>MCP ready</Badge>
-              <Badge variant="neutral">Local server</Badge>
-              <Badge variant="neutral">Tool bridge</Badge>
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Badge variant="accent" dot>One system</Badge>
+              <Badge variant="neutral">BYO Privy wiring</Badge>
+              <Badge variant="success" dot>MCP bridge</Badge>
             </div>
-            <h3 className="text-xl font-bold text-white">Run TITAN tools inside an external AI runtime</h3>
+            <h3 className="text-xl font-bold text-white">How the developer stack stays connected</h3>
             <p className="mt-2 text-sm leading-6 text-titan-subtext">
-              Boot the MCP server from `developer-ai-wallet` and expose health, layers, intent checks, memory seal, and native send flows into the developer&apos;s own host runtime.
+              Project, agent wallet, and capability are the main system. BYO Privy and MCP do not sit outside of it. They wire
+              the same owner-bound identity into the developer app and the external runtime.
             </p>
 
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {['Health + layers', 'Intent + rail', 'Seal + send'].map((label) => (
-                <div key={label} className="rounded-2xl border border-titan-border bg-[#0A0D14] px-3 py-3 text-center text-xs font-medium text-titan-text">
-                  {label}
+            <div className="mt-5 grid gap-3">
+              {[
+                {
+                  title: 'Owner wallet session',
+                  detail: 'The wallet in this browser signs the developer challenge and becomes the root owner for the project.',
+                },
+                {
+                  title: 'BYO Privy',
+                  detail: 'Google or Apple login in the developer app should use the developer-owned Privy app, then map into this same TITAN flow.',
+                },
+                {
+                  title: 'MCP / SDK / CLI',
+                  detail: 'All runtime tools reuse the same TITAN_AGENT_WALLET_* env values and the same capability token from step 3.',
+                },
+              ].map((item) => (
+                <div key={item.title} className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-titan-subtext">{item.detail}</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-5 rounded-2xl border border-titan-border bg-[#05080D] p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">Boot command</p>
-                  <p className="text-xs text-titan-subtext">Build once, then expose the local MCP process with the same TITAN capability env used by the SDK and CLI.</p>
+            <div className="mt-5 grid gap-4 xl:grid-cols-2">
+              <div className="rounded-2xl border border-titan-border bg-[#05080D] p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Privy env example</p>
+                    <p className="text-xs text-titan-subtext">This stays in the developer&apos;s own app or backend.</p>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={() => void copyText(BYO_PRIVY_SNIPPET, 'BYO Privy snippet copied.')}>
+                    <Clipboard size={14} /> Copy
+                  </Button>
                 </div>
-                <Button variant="secondary" size="sm" onClick={() => void copyText(MCP_BOOT_SNIPPET, 'MCP boot command copied.')}>
-                  <Clipboard size={14} /> Copy
-                </Button>
+                <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
+                  <code>{BYO_PRIVY_SNIPPET}</code>
+                </pre>
               </div>
-              <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
-                <code>{MCP_BOOT_SNIPPET}</code>
-              </pre>
-            </div>
-          </div>
 
-          <div className="rounded-3xl border border-titan-border bg-[#0A0D14] p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-titan-subtext">Docs and Setup</p>
-                <h3 className="mt-2 text-lg font-bold text-white">Privy boundary and MCP wiring</h3>
-                <p className="mt-2 text-sm text-titan-subtext">The docs page now explains BYO Privy, capability binding, MCP boot, and MCP config in one place.</p>
+              <div className="rounded-2xl border border-titan-border bg-[#05080D] p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">MCP boot</p>
+                    <p className="text-xs text-titan-subtext">Run the packaged tool bridge after the same capability env is loaded.</p>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={() => void copyText(MCP_BOOT_SNIPPET, 'MCP boot command copied.')}>
+                    <Clipboard size={14} /> Copy
+                  </Button>
+                </div>
+                <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
+                  <code>{MCP_BOOT_SNIPPET}</code>
+                </pre>
               </div>
-              <BookOpen size={18} className="mt-1 text-titan-accent" />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Badge variant="accent">Capability docs</Badge>
-              <Badge variant="neutral">Privy boundary</Badge>
-              <Badge variant="neutral">MCP config</Badge>
-            </div>
-            <Link to="/developer/docs" className="mt-4 inline-flex text-sm font-semibold text-titan-accent hover:text-white">
+
+            <Link to="/developer/docs" className="mt-5 inline-flex text-sm font-semibold text-titan-accent hover:text-white">
               Open docs
             </Link>
           </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-          <h3 className="text-base font-bold text-white">1. Project</h3>
-          <input className="titan-input mt-4" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
-          <Button className="mt-4 w-full" disabled={busy || !ownerSession} onClick={() => void createProject()}>
-            <Plus size={15} /> Create project
-          </Button>
-          <p className="mt-3 break-all text-xs text-titan-subtext">{activeProject?.id || 'No project yet.'}</p>
-        </div>
-
-        <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-          <h3 className="text-base font-bold text-white">2. Agent Wallet</h3>
-          <input className="titan-input mt-4" value={agentName} onChange={(event) => setAgentName(event.target.value)} />
-          <Button className="mt-4 w-full" disabled={busy || !activeProject} onClick={() => void createAgentWallet()}>
-            <KeyRound size={15} /> Create agent wallet
-          </Button>
-          <p className="mt-3 break-all text-xs text-titan-subtext">{activeAgentWallet?.id || 'Create a project first.'}</p>
-        </div>
-
-        <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-          <h3 className="text-base font-bold text-white">3. Capability</h3>
-          <div className="mt-4 grid gap-2">
-            <input className="titan-input" value={maxValueWei} onChange={(event) => setMaxValueWei(event.target.value)} />
-            <input className="titan-input" value={dailyLimitWei} onChange={(event) => setDailyLimitWei(event.target.value)} />
-            <input className="titan-input" value={allowedChainIds} onChange={(event) => setAllowedChainIds(event.target.value)} />
-            <input className="titan-input" placeholder="Allowlist addresses, comma-separated" value={allowedDestinations} onChange={(event) => setAllowedDestinations(event.target.value)} />
-          </div>
-          <Button className="mt-4 w-full" disabled={busy || !activeAgentWallet} onClick={() => void issueCapability()}>
-            <Plus size={15} /> Issue capability
-          </Button>
         </div>
       </section>
 
@@ -472,6 +484,16 @@ const DeveloperSettings: React.FC = () => {
                 <code>{mcpConfigSnippet}</code>
               </pre>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-white">Example SDK call</p>
+              <p className="mt-1 text-xs text-titan-subtext">The SDK, CLI, and MCP server all sit on top of the same identity created above.</p>
+            </div>
+            <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
+              <code>{SDK_SNIPPET}</code>
+            </pre>
           </div>
 
           <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">

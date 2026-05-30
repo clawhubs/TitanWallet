@@ -83,22 +83,12 @@ const LandingPage: React.FC = () => {
             <a href="#faq" className="text-[13px] text-titan-subtext hover:text-white transition-colors duration-200">FAQ</a>
           </nav>
 
-          <div className="flex items-center gap-2">
-            {hasWalletSession ? (
-              <Link
-                to="/dashboard"
-                className="hidden rounded-xl border border-titan-border bg-titan-surface px-4 py-2.5 text-[13px] font-semibold text-titan-text transition-colors duration-200 hover:border-titan-accent/30 hover:bg-[#182030] sm:inline-flex"
-              >
-                Dashboard
-              </Link>
-            ) : null}
-            <Link
-              to={primaryWalletHref}
-              className="bg-white text-[#06080C] font-semibold text-[13px] px-5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
-            >
-              {primaryWalletLabel}
-            </Link>
-          </div>
+          <Link
+            to={primaryWalletHref}
+            className="bg-white text-[#06080C] font-semibold text-[13px] px-5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
+          >
+            {hasWalletSession ? 'Dashboard' : primaryWalletLabel}
+          </Link>
         </div>
       </header>
 
