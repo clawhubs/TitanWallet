@@ -4,11 +4,13 @@
   "private": true,
   "type": "module",
   "bin": {
-    "titan-agent-wallet": "./dist/cli.js"
+    "titan-agent-wallet": "./dist/src/cli.js",
+    "titan-agent-wallet-mcp": "./dist/src/mcp.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "smoke": "node dist/tests/smoke.js",
+    "mcp": "node dist/src/mcp.js",
     "dev:docs": "python3 -m http.server 8097 --directory docs"
   },
   "dependencies": {

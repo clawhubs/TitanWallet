@@ -4,6 +4,8 @@ Developer kit for autonomous wallets protected by the TITAN 10-layer rail.
 
 The AI is BYOK: bring your own model, agent, planner, or local runtime. This package only handles wallet-bound capability, policy checks, proof, seal, handshake, and optional security log anchoring.
 
+If a developer wants Privy-based Google / Apple login inside their own app, they must bring their own Privy app credentials. They must not reuse the TITAN Wallet Privy app.
+
 ## Source Of Authority
 
 The owner wallet must be created or imported in TITAN Wallet first:
@@ -43,6 +45,22 @@ npm install
 npm run build
 ```
 
+## Bring Your Own Privy
+
+Privy is optional for developers integrating the TITAN wallet rail.
+
+- TITAN Wallet's consumer app can use its own Privy app
+- A third-party developer product must use its own Privy App ID, App Secret, and JWKS URL
+- TITAN capability tokens and TITAN wallet rails are separate from any developer-owned Privy app
+
+Example:
+
+```bash
+export PRIVY_APP_ID="your_privy_app_id"
+export PRIVY_APP_SECRET="your_privy_app_secret"
+export PRIVY_JWKS_URL="https://auth.privy.io/api/v1/apps/<your-app-id>/jwks.json"
+```
+
 ## SDK
 
 ```ts
@@ -77,6 +95,55 @@ node dist/cli.js health
 node dist/cli.js layers
 node dist/cli.js check-intent --intent "Pay approved vendor invoice"
 node dist/cli.js run --action agent-simulate --intent "Prepare capped transfer"
+```
+
+## MCP
+
+This package also ships with a local MCP server that uses the same SDK identity and capability env as the CLI. MCP is not a separate auth system.
+
+Build and run:
+
+```bash
+npm run build
+node dist/src/mcp.js
+```
+
+Example MCP config:
+
+```json
+{
+  "mcpServers": {
+    "titan-agent-wallet": {
+      "command": "node",
+      "args": ["/absolute/path/to/developer-ai-wallet/dist/src/mcp.js"],
+      "env": {
+        "TITAN_AGENT_WALLET_BASE_URL": "https://wallet.yieldboostai.xyz/api",
+        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://wallet.yieldboostai.xyz",
+        "TITAN_AGENT_WALLET_PROJECT_ID": "proj_...",
+        "TITAN_AGENT_WALLET_ID": "aw_...",
+        "TITAN_AGENT_WALLET_CAPABILITY": "titan_cap_..."
+      }
+    }
+  }
+}
+```
+
+Programmatic use from the SDK package:
+
+```ts
+import {
+  createTitanAgentWalletClientFromEnv,
+  TitanAgentWalletMcpServer,
+} from "@titan/agent-wallet";
+
+const client = createTitanAgentWalletClientFromEnv(process.env);
+const mcpServer = new TitanAgentWalletMcpServer(client);
+
+await mcpServer.handleRequest({
+  jsonrpc: "2.0",
+  id: 1,
+  method: "tools/list",
+});
 ```
 
 ## Optional Agent Send

@@ -135,7 +135,7 @@
         <div>
           <p class="muted">TITAN Developer Wallet</p>
           <h1>Agent Wallet Docs</h1>
-          <p>Playground first, then SDK and CLI. Bring your own AI runtime; TITAN supplies the wallet rails.</p>
+          <p>Playground first, then SDK, CLI, and MCP. Bring your own AI runtime; TITAN supplies the wallet rails, and if you want Privy in your own app you bring your own Privy app too.</p>
         </div>
         <div class="badge">10-layer autonomous wallet</div>
       </header>
@@ -181,6 +181,16 @@
 
       <div class="grid stack">
         <section class="panel">
+          <h2>Bring Your Own Privy</h2>
+          <p>TITAN Wallet uses its own Privy app only for the consumer wallet on this site.</p>
+          <p>If you want Google / Apple login or embedded MPC wallets in your own app, you must use your own Privy App ID, App Secret, and JWKS endpoint.</p>
+          <p>Do not reuse the TITAN Wallet Privy app across outside developer products.</p>
+          <pre><code>export PRIVY_APP_ID="your_privy_app_id"
+export PRIVY_APP_SECRET="your_privy_app_secret"
+export PRIVY_JWKS_URL="https://auth.privy.io/api/v1/apps/&lt;your-app-id&gt;/jwks.json"</code></pre>
+        </section>
+
+        <section class="panel">
           <h2>SDK</h2>
           <p>Use the SDK inside your own agent service. The wallet key stays with the developer runtime.</p>
           <pre><code>import { TitanAgentWalletClient } from "@titan/agent-wallet";
@@ -217,6 +227,42 @@ node dist/cli.js send \
   --to "0x..." \
   --value-eth "0.001" \
   --intent "Pay approved vendor invoice"</code></pre>
+        </section>
+      </div>
+
+      <div class="grid stack">
+        <section class="panel">
+          <h2>MCP</h2>
+          <p>The <code>developer-ai-wallet</code> package includes a local MCP server. It uses the same TITAN capability env as the SDK and CLI. MCP is not a separate auth lane.</p>
+          <p>If your product also uses Privy, that remains your own separate developer-owned Privy app.</p>
+          <pre><code>cd developer-ai-wallet
+npm install
+npm run build
+npm run mcp
+
+node dist/src/mcp.js</code></pre>
+          <p class="muted">Exposed tools: <span class="ok">titan_health</span>, <span class="ok">titan_layers</span>, <span class="ok">titan_check_intent</span>, <span class="ok">titan_run_ten_layer_rail</span>, <span class="ok">titan_seal_memory</span>, <span class="ok">titan_send_native</span>.</p>
+        </section>
+
+        <section class="panel">
+          <h2>MCP Host Config</h2>
+          <p>Point your MCP host at the built package and pass the same capability env copied from TITAN Wallet Settings - Developer.</p>
+          <pre><code>{
+  "mcpServers": {
+    "titan-agent-wallet": {
+      "command": "node",
+      "args": ["/absolute/path/to/developer-ai-wallet/dist/src/mcp.js"],
+      "env": {
+        "TITAN_AGENT_WALLET_BASE_URL": "https://wallet.yieldboostai.xyz/api",
+        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://wallet.yieldboostai.xyz",
+        "TITAN_AGENT_WALLET_OWNER": "0x...",
+        "TITAN_AGENT_WALLET_PROJECT_ID": "proj_...",
+        "TITAN_AGENT_WALLET_ID": "aw_...",
+        "TITAN_AGENT_WALLET_CAPABILITY": "titan_cap_..."
+      }
+    }
+  }
+}</code></pre>
         </section>
       </div>
 

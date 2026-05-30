@@ -371,8 +371,8 @@ async function assertNetwork(page, network) {
     }
   }
 
-  const banner = page.locator('text=/wallet asset|catalog is loaded/i').first();
-  await banner.waitFor({ state: 'visible', timeout: 3000 });
+  const visibleCount = page.locator('text=/\\d+ visible/i').first();
+  await visibleCount.waitFor({ state: 'visible', timeout: 3000 });
 
   console.log(`PASS ${network.name}`);
 }

@@ -43,6 +43,24 @@ Important values:
 - `VITE_TITAN_DEV_PORTAL_URL`
 - `VITE_TITAN_API_KEY`
 - `VITE_TITAN_API_ENV`
+- `VITE_PRIVY_APP_ID`
+
+## Privy social auth
+
+This wallet can optionally use Privy for Google / Apple authentication and embedded MPC wallet creation.
+
+Frontend:
+
+- Set `VITE_PRIVY_APP_ID` in `.env.local`
+- The React app never needs the Privy App Secret
+
+Server-side / developer auth notes:
+
+- Keep `PRIVY_APP_SECRET` only on the server
+- Verify Privy-issued JWTs against the app JWKS endpoint:
+  `https://auth.privy.io/api/v1/apps/<your-privy-app-id>/jwks.json`
+- The current app can safely use Google / Apple login in the browser while any privileged verification stays in your backend or agent runtime
+- For third-party developers building their own app on top of TITAN rails, they must bring their own Privy app and credentials rather than reuse the TITAN Wallet Privy app
 
 ## Production build
 

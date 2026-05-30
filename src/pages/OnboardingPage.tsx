@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { useWalletStore } from '../store/useWalletStore';
 
-type OnboardingOption = 'create' | 'import' | 'passkey' | 'email' | null;
+type OnboardingOption = 'create' | 'import' | 'google' | 'apple' | 'passkey' | 'email' | null;
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +33,19 @@ const OnboardingPage: React.FC = () => {
       desc: 'Restore from seed phrase or private key.',
     },
     {
+      id: 'google' as OnboardingOption,
+      icon: Globe,
+      title: 'Login Google = Buat Wallet TITAN',
+      desc: 'Login Google langsung membuat wallet TITAN baru dengan jalur Privy MPC.',
+      recommended: false,
+    },
+    {
+      id: 'apple' as OnboardingOption,
+      icon: Mail,
+      title: 'Login Apple = Buat Wallet TITAN',
+      desc: 'Sign in with Apple langsung membuat wallet TITAN baru dengan jalur Privy MPC.',
+    },
+    {
       id: 'passkey' as OnboardingOption,
       icon: Fingerprint,
       title: 'Continue with Passkey',
@@ -53,6 +66,8 @@ const OnboardingPage: React.FC = () => {
   const handleContinue = () => {
     if (selected === 'create') navigate('/create-wallet');
     else if (selected === 'import') navigate('/create-wallet?mode=import');
+    else if (selected === 'google') navigate('/create-wallet?auth=google');
+    else if (selected === 'apple') navigate('/create-wallet?auth=apple');
   };
 
   return (
@@ -74,7 +89,7 @@ const OnboardingPage: React.FC = () => {
         <div className="titan-card p-6">
           <div className="mb-6 text-center">
             <h1 className="text-xl font-bold text-titan-text mb-2">Welcome to TITAN</h1>
-            <p className="text-sm text-titan-subtext">Choose how you want to get started. No extension or app required.</p>
+            <p className="text-sm text-titan-subtext">Pilih cara masuk. Login Google atau Apple langsung berarti buat wallet TITAN baru.</p>
           </div>
 
           {/* No install badge */}

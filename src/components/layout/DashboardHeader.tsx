@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Bell, Settings, LogOut, Check, ExternalLink, WalletCards } from 'lucide-react';
 import { formatAddress } from '../../utils/cn';
+import { useWallet } from '../../hooks/useWallet';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import AccountSwitcherModal from './AccountSwitcherModal';
@@ -12,10 +13,10 @@ const DashboardHeader: React.FC = () => {
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const { disconnectWallet } = useWallet();
   const walletAddress = useWalletStore((state) => state.address);
   const isConnected = useWalletStore((state) => state.isConnected);
   const walletName = useWalletStore((state) => state.walletName);
-  const disconnect = useWalletStore((state) => state.disconnect);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const networks = useNetworkStore((state) => state.networks);
   const setActiveNetwork = useNetworkStore((state) => state.setActiveNetwork);
@@ -140,7 +141,7 @@ const DashboardHeader: React.FC = () => {
                     <ExternalLink size={14} className="text-titan-subtext" /> Explorer
                   </a>
                   <div className="border-t border-titan-border my-1" />
-                  <button onClick={() => { disconnect(); navigate('/create-wallet'); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-titan-muted/30 text-sm text-titan-danger transition-all">
+                  <button onClick={() => { void disconnectWallet().then(() => navigate('/create-wallet')); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-titan-muted/30 text-sm text-titan-danger transition-all">
                     <LogOut size={14} /> Disconnect
                   </button>
                 </div>

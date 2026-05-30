@@ -149,7 +149,7 @@ const SecurityPage: React.FC = () => {
       disposed = true;
       window.clearInterval(interval);
     };
-  }, [recordNetwork, walletAddress]);
+  }, [activeNetwork.chainId, activeNetwork.name, recordNetwork, walletAddress]);
 
   const activeLayerCount = countActiveTitanLayers(layers);
   const hasWalletSession = Boolean(walletAddress);

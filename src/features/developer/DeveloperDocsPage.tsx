@@ -29,6 +29,15 @@ const ZERO_G_PC_MODELS = [
   'openai/whisper-large-v3',
 ];
 
+const MCP_TOOLS = [
+  'titan_health',
+  'titan_layers',
+  'titan_check_intent',
+  'titan_run_ten_layer_rail',
+  'titan_seal_memory',
+  'titan_send_native',
+];
+
 const DeveloperDocsPage: React.FC = () => {
   const [walletAddress, setWalletAddress] = useState('0x8a3c7524Aaed081825aC88eC7f4cCECFc583ee7D');
   const [intent, setIntent] = useState('Autonomous agent prepares a capped wallet operation for an approved workflow.');
@@ -80,12 +89,14 @@ const DeveloperDocsPage: React.FC = () => {
             </Link>
             <h1 className="text-3xl font-bold text-white">Developer AI Wallet Docs</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-titan-subtext">
-              Build autonomous wallet flows with TITAN rails. Bring your own AI runtime; use the wallet owner session in Settings to create API access.
+              Build autonomous wallet flows with TITAN rails. Bring your own AI runtime, and if you want Privy auth in your own product, bring your own Privy app too.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant="accent">Playground first</Badge>
             <Badge variant="success" dot>10 layers</Badge>
+            <Badge variant="neutral">BYO Privy</Badge>
+            <Badge variant="neutral">MCP ready</Badge>
           </div>
         </div>
 
@@ -139,6 +150,23 @@ const DeveloperDocsPage: React.FC = () => {
 
           <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
             <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+              <ShieldCheck size={18} className="text-titan-accent" /> Bring Your Own Privy
+            </h2>
+            <div className="mt-4 space-y-3 text-sm text-titan-subtext">
+              <p>TITAN Wallet uses its own Privy app only for the consumer wallet experience on this site.</p>
+              <p>If a developer wants Google / Apple login or embedded MPC wallets inside their own app, they must use their own Privy App ID, App Secret, and JWKS endpoint.</p>
+              <p>Do not reuse the TITAN Wallet Privy app or share one Privy API across outside developer products.</p>
+            </div>
+            <pre className="mt-4 overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+              <code>{`# Example only: each developer uses their own Privy app
+export PRIVY_APP_ID="your_privy_app_id"
+export PRIVY_APP_SECRET="your_privy_app_secret"
+export PRIVY_JWKS_URL="https://auth.privy.io/api/v1/apps/<your-app-id>/jwks.json"`}</code>
+            </pre>
+          </section>
+
+          <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
               <ShieldCheck size={18} className="text-titan-accent" /> 10 Layers
             </h2>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -184,6 +212,57 @@ node dist/cli.js run \\
             </pre>
           </div>
         </section>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
+            <h2 className="text-lg font-bold text-white">MCP server</h2>
+            <div className="mt-4 space-y-3 text-sm text-titan-subtext">
+              <p>The `developer-ai-wallet` package now includes a local MCP server so the developer can expose TITAN wallet tools directly into their own coding or agent runtime.</p>
+              <p>MCP is not a separate auth lane. It reuses the same `TITAN_AGENT_WALLET_*` env values, owner wallet binding, project, agent wallet, and capability token that the SDK and CLI already use.</p>
+              <p>If a developer wants Google / Apple login in their own app, they still bring their own Privy app. Privy auth and TITAN capability remain separate layers.</p>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {MCP_TOOLS.map((tool) => (
+                <div key={tool} className="rounded-xl border border-titan-border bg-[#0A0D14] px-3 py-2 text-xs text-titan-text">
+                  {tool}
+                </div>
+              ))}
+            </div>
+            <pre className="mt-4 overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+              <code>{`cd developer-ai-wallet
+npm install
+npm run build
+npm run mcp
+
+node dist/src/mcp.js`}</code>
+            </pre>
+          </section>
+
+          <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
+            <h2 className="text-lg font-bold text-white">MCP config example</h2>
+            <pre className="mt-4 overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+              <code>{`{
+  "mcpServers": {
+    "titan-agent-wallet": {
+      "command": "node",
+      "args": ["/absolute/path/to/developer-ai-wallet/dist/src/mcp.js"],
+      "env": {
+        "TITAN_AGENT_WALLET_BASE_URL": "https://wallet.yieldboostai.xyz/api",
+        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://wallet.yieldboostai.xyz",
+        "TITAN_AGENT_WALLET_OWNER": "0x...",
+        "TITAN_AGENT_WALLET_PROJECT_ID": "proj_...",
+        "TITAN_AGENT_WALLET_ID": "aw_...",
+        "TITAN_AGENT_WALLET_CAPABILITY": "titan_cap_..."
+      }
+    }
+  }
+}`}</code>
+            </pre>
+            <p className="mt-4 text-sm text-titan-subtext">
+              Use the same capability token here that you copied from <span className="text-white">Settings - Developer</span>. Do not invent a separate MCP secret.
+            </p>
+          </section>
+        </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">

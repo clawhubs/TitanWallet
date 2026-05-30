@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Copy, Check, ShieldCheck, RefreshCw } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -15,16 +15,31 @@ type Step = 1 | 2 | 3 | 4;
 const CreateWalletPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { createWallet, importWallet } = useWallet();
+  const {
+    createWallet,
+    importWallet,
+    hasSocialLogin,
+    privyReady,
+    loginWithGoogle,
+    loginWithApple,
+  } = useWallet();
+  const walletAddress = useWalletStore((state) => state.address);
+  const walletName = useWalletStore((state) => state.walletName);
+  const authProvider = useWalletStore((state) => state.authProvider);
   const hasWalletSession = useWalletStore((state) => Boolean(state.isConnected && state.address));
+  const walletSource = useWalletStore((state) => state.walletSource);
   const environment = useNetworkStore((state) => state.environment);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
   const isImportMode = searchParams.get('mode') === 'import';
   const returnTo = searchParams.get('returnTo') || '/dashboard';
   const intent = searchParams.get('intent');
+  const socialProvider = searchParams.get('auth');
+  const isSocialSignupFlow = socialProvider === 'google' || socialProvider === 'apple';
   const isAddAccountFlow = intent === 'add-account';
   const isAddWalletFlow = intent === 'add-wallet';
-  const shouldRedirectExistingSession = useRef(hasWalletSession && !intent && !isImportMode);
+  const shouldRedirectExistingSession = useRef(hasWalletSession && !intent && !isImportMode && !isSocialSignupFlow);
+  const socialAuthStarted = useRef(false);
+  const socialProofHandled = useRef(false);
   const [step, setStep] = useState<Step>(1);
   const [showSeed, setShowSeed] = useState(false);
   const [copiedSeed, setCopiedSeed] = useState(false);
@@ -39,6 +54,8 @@ const CreateWalletPage: React.FC = () => {
   const [importSecret, setImportSecret] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [socialSubmitting, setSocialSubmitting] = useState<'google' | 'apple' | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
 
   useEffect(() => {
     if (shouldRedirectExistingSession.current) {
@@ -46,48 +63,90 @@ const CreateWalletPage: React.FC = () => {
     }
   }, [navigate, returnTo]);
 
+  const startSocialAuth = async (provider: 'google' | 'apple') => {
+    try {
+      setSocialError(null);
+      setSocialSubmitting(provider);
+
+      if (provider === 'google') {
+        await loginWithGoogle();
+      } else {
+        await loginWithApple();
+      }
+    } catch (error) {
+      setSocialError(error instanceof Error ? error.message : 'Unable to start social login.');
+      setSocialSubmitting(null);
+    }
+  };
+
+  const startSocialAuthFromEffect = useEffectEvent((provider: 'google' | 'apple') => {
+    void startSocialAuth(provider);
+  });
+
+  useEffect(() => {
+    if (
+      isImportMode
+      || !socialProvider
+      || socialAuthStarted.current
+      || !hasSocialLogin
+      || !privyReady
+      || hasWalletSession
+    ) {
+      return;
+    }
+
+    const provider = socialProvider === 'apple' ? 'apple' : 'google';
+    socialAuthStarted.current = true;
+    startSocialAuthFromEffect(provider);
+  }, [hasSocialLogin, hasWalletSession, isImportMode, privyReady, socialProvider]);
+
   const copyMnemonic = () => {
     navigator.clipboard.writeText(mnemonicWords.join(' '));
     setCopiedSeed(true);
     setTimeout(() => setCopiedSeed(false), 2000);
   };
 
-  const persistWalletProof = async (input: {
+  const persistWalletProof = useCallback(async (input: {
     address: string;
-    privateKey: string;
     eventType: string;
     description: string;
-    source: 'create' | 'import';
+    source: 'create' | 'import' | 'social';
+    walletLabel?: string | null;
   }) => {
     try {
       setCreationProofStatus('sealing');
-      await runMilitaryGradeOperation({
-        action: input.source === 'create' ? 'create-wallet' : 'import-wallet',
+      const receipt = await runMilitaryGradeOperation({
+        action: input.source === 'import' ? 'import-wallet' : 'create-wallet',
         walletAddress: input.address,
         network: environment,
         intent:
-          input.source === 'create'
-            ? 'Protect a new wallet creation flow inside the TITAN military-grade lane.'
-            : 'Protect a wallet import flow inside the TITAN military-grade lane.',
+          input.source === 'import'
+            ? 'Protect a wallet import flow inside the TITAN military-grade lane.'
+            : input.source === 'social'
+              ? 'Protect a social signup wallet creation flow inside the TITAN military-grade lane.'
+              : 'Protect a new wallet creation flow inside the TITAN military-grade lane.',
         metadata: {
           event_type: input.eventType,
           description: input.description,
-          wallet_name: name || null,
+          wallet_name: input.walletLabel ?? name ?? null,
           source: input.source,
+          auth_provider: input.source === 'social' ? authProvider : null,
         },
       });
+      const proofId = receipt.request_id || `local-${input.source}-${Date.now()}`;
+      setCreationProofId(proofId);
       setCreationProofStatus('sealed');
       addLocalWalletProof({
         walletAddress: input.address,
         network: activeNetwork.name,
         proof: {
-          id: `local-${input.source}-${input.address.toLowerCase()}-${Date.now()}`,
+          id: proofId,
           layer: 'Sovereign Memory',
           type: input.eventType,
           description: input.description,
           timestamp: new Date(),
           status: 'verified',
-          proofStorageId: `local-${input.source}-${input.address.slice(2, 10)}`,
+          proofStorageId: receipt['0g_storage_url'] || proofId,
         },
         securityEvents: [
           {
@@ -101,7 +160,42 @@ const CreateWalletPage: React.FC = () => {
     } catch {
       setCreationProofStatus('failed');
     }
-  };
+  }, [activeNetwork.name, authProvider, environment, name]);
+
+  useEffect(() => {
+    if (
+      !isSocialSignupFlow
+      || !hasWalletSession
+      || walletSource !== 'privy'
+      || !walletAddress
+      || socialProofHandled.current
+    ) {
+      return;
+    }
+
+    socialProofHandled.current = true;
+    setCreationProofStatus('idle');
+    setCreationProofId(null);
+    setStep(4);
+
+    void persistWalletProof({
+      address: walletAddress,
+      eventType: 'Wallet Social Signup Proof',
+      description: `Wallet signup with ${authProvider === 'apple' ? 'Apple' : 'Google'} was sealed through the TITAN onboarding flow.`,
+      source: 'social',
+      walletLabel: walletName || 'Privy Wallet',
+    }).finally(() => {
+      setSocialSubmitting(null);
+    });
+  }, [
+    authProvider,
+    hasWalletSession,
+    isSocialSignupFlow,
+    persistWalletProof,
+    walletAddress,
+    walletName,
+    walletSource,
+  ]);
 
   const handleCreateWallet = async () => {
     try {
@@ -116,10 +210,10 @@ const CreateWalletPage: React.FC = () => {
       setStep(3);
       await persistWalletProof({
         address: wallet.address,
-        privateKey: wallet.privateKey,
         eventType: 'Wallet Creation Proof',
         description: 'Wallet creation was sealed through the TITAN onboarding flow.',
         source: 'create',
+        walletLabel: name || 'TITAN Wallet',
       });
     } finally {
       setIsSubmitting(false);
@@ -139,10 +233,10 @@ const CreateWalletPage: React.FC = () => {
       setStep(4);
       await persistWalletProof({
         address: wallet.address,
-        privateKey: wallet.privateKey,
         eventType: 'Wallet Import Proof',
         description: 'Wallet import was sealed through the TITAN onboarding flow.',
         source: 'import',
+        walletLabel: name || 'Imported TITAN Wallet',
       });
     } catch (error) {
       setImportError(error instanceof Error ? error.message : 'Unable to import this wallet secret.');
@@ -248,6 +342,54 @@ const CreateWalletPage: React.FC = () => {
                   ? 'Create another self-custodial account and keep it alongside your existing wallets.'
                   : 'Choose a name and password to protect your wallet locally.'}
               </p>
+              {!isAddAccountFlow && !isAddWalletFlow ? (
+                <>
+                  <div className="mb-6 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-white">Login Google/Apple = Buat Wallet TITAN</p>
+                        <p className="text-xs text-titan-subtext">Begitu user login, TITAN langsung membuat wallet baru lewat Privy MPC lalu mengaktifkan 9 layer security rail.</p>
+                      </div>
+                      <Badge variant={hasSocialLogin ? 'accent' : 'neutral'} size="sm">
+                        {hasSocialLogin ? 'Privy ready' : 'Not configured'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        disabled={!hasSocialLogin || !privyReady}
+                        loading={socialSubmitting === 'google'}
+                        onClick={() => void startSocialAuth('google')}
+                      >
+                        Login Google
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        disabled={!hasSocialLogin || !privyReady}
+                        loading={socialSubmitting === 'apple'}
+                        onClick={() => void startSocialAuth('apple')}
+                      >
+                        Login Apple
+                      </Button>
+                    </div>
+                    {!hasSocialLogin ? (
+                      <p className="mt-3 text-xs text-titan-subtext">Set `VITE_PRIVY_APP_ID` to enable social wallet login.</p>
+                    ) : null}
+                    {socialError ? (
+                      <p className="mt-3 text-xs text-titan-danger">{socialError}</p>
+                    ) : null}
+                  </div>
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="h-px flex-1 bg-titan-border" />
+                    <span className="text-[11px] uppercase tracking-[0.2em] text-titan-subtext">or self-custody</span>
+                    <div className="h-px flex-1 bg-titan-border" />
+                  </div>
+                </>
+              ) : null}
               <div className="space-y-4">
                 <div>
                   <label className="titan-label block mb-2">Wallet name</label>
@@ -403,14 +545,22 @@ const CreateWalletPage: React.FC = () => {
                 <ShieldCheck size={32} className="text-titan-success" />
               </div>
               <h1 className="text-xl font-bold text-titan-text mb-2">
-                {isImportMode ? 'Wallet imported.' : isAddAccountFlow ? 'Account added.' : 'Wallet created.'}
+                {isSocialSignupFlow
+                  ? 'Wallet TITAN created from social login.'
+                  : isImportMode
+                    ? 'Wallet imported.'
+                    : isAddAccountFlow
+                      ? 'Account added.'
+                      : 'Wallet created.'}
               </h1>
               <p className="text-sm text-titan-subtext mb-2">
-                {isImportMode
-                  ? 'Your wallet is ready in this browser tab session. You can reveal the recovery phrase or private key from Settings while the tab stays open.'
-                  : isAddAccountFlow
-                    ? 'Your new account is now stored alongside your other TITAN wallet accounts in this browser session.'
-                    : 'Your TITAN Wallet is ready. The wallet security rails are active for this tab session.'}
+                {isSocialSignupFlow
+                  ? `Login ${authProvider === 'apple' ? 'Apple' : 'Google'} Anda sudah langsung membuat wallet TITAN baru. Wallet ini sekarang aktif di Privy MPC dan diamankan oleh 9 security rails.`
+                  : isImportMode
+                    ? 'Your wallet is ready in this browser tab session. You can reveal the recovery phrase or private key from Settings while the tab stays open.'
+                    : isAddAccountFlow
+                      ? 'Your new account is now stored alongside your other TITAN wallet accounts in this browser session.'
+                      : 'Your TITAN Wallet is ready. The wallet security rails are active for this tab session.'}
               </p>
               <Badge variant="success" dot className="mb-6">Wallet rails ready</Badge>
               {creationProofStatus === 'sealed' ? (

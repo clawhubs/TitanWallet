@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("node:fs");
 const path = require("node:path");
 const solc = require("/home/cucu/Coder/YiledBoost Ai/node_modules/solc");

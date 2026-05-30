@@ -6,7 +6,12 @@ export interface WalletSessionInput {
   mnemonic: string | null;
   privateKey: string | null;
   walletName?: string;
+  source?: WalletSource;
+  authProvider?: WalletAuthProvider;
 }
+
+export type WalletSource = 'local' | 'privy';
+export type WalletAuthProvider = 'google' | 'apple' | null;
 
 export interface WalletAccount {
   id: string;
@@ -14,6 +19,8 @@ export interface WalletAccount {
   mnemonic: string | null;
   privateKey: string | null;
   walletName: string;
+  source: WalletSource;
+  authProvider: WalletAuthProvider;
   balanceETH: string;
   balanceUSD: number;
   createdAt: string;
@@ -30,9 +37,12 @@ interface WalletStore {
   mnemonic: string | null;
   privateKey: string | null;
   walletName: string;
+  walletSource: WalletSource | null;
+  authProvider: WalletAuthProvider;
   connect: (wallet: WalletSessionInput) => void;
   switchAccount: (accountId: string) => void;
   removeAccount: (accountId: string) => void;
+  removeAccountsBySource: (source: WalletSource) => void;
   disconnect: () => void;
   setBalance: (eth: string, usd: number) => void;
 }
@@ -47,6 +57,8 @@ const initialState = {
   mnemonic: null,
   privateKey: null,
   walletName: 'TITAN Wallet',
+  walletSource: null,
+  authProvider: null,
 };
 
 const STORAGE_KEY = 'titan-wallet-session-store';
@@ -112,6 +124,8 @@ function buildWalletAccount(
     mnemonic: wallet.mnemonic,
     privateKey: wallet.privateKey,
     walletName: normalizeWalletName(wallet.walletName),
+    source: wallet.source || existing?.source || 'local',
+    authProvider: wallet.authProvider ?? existing?.authProvider ?? null,
     balanceETH: existing?.balanceETH || '0.0',
     balanceUSD: existing?.balanceUSD || 0,
     createdAt: existing?.createdAt || timestamp,
@@ -129,6 +143,8 @@ function buildActiveWalletState(account: WalletAccount) {
     mnemonic: account.mnemonic,
     privateKey: account.privateKey,
     walletName: account.walletName,
+    walletSource: account.source,
+    authProvider: account.authProvider,
   };
 }
 
@@ -143,12 +159,16 @@ function extractLegacyAccount(state: Partial<WalletStore>) {
       mnemonic: state.mnemonic || null,
       privateKey: state.privateKey || null,
       walletName: state.walletName,
+      source: state.walletSource || 'local',
+      authProvider: state.authProvider ?? null,
     }, {
       id: getAccountId(state.address),
       address: state.address,
       mnemonic: state.mnemonic || null,
       privateKey: state.privateKey || null,
       walletName: normalizeWalletName(state.walletName),
+      source: state.walletSource || 'local',
+      authProvider: state.authProvider ?? null,
       balanceETH: state.balanceETH || '0.0',
       balanceUSD: state.balanceUSD || 0,
       createdAt: new Date().toISOString(),
@@ -163,6 +183,8 @@ function normalizePersistedAccounts(accounts: WalletAccount[] | undefined, legac
       ...account,
       id: account.id || getAccountId(account.address),
       walletName: normalizeWalletName(account.walletName),
+      source: account.source || 'local',
+      authProvider: account.authProvider ?? null,
       balanceETH: account.balanceETH || '0.0',
       balanceUSD: account.balanceUSD || 0,
       createdAt: account.createdAt || new Date().toISOString(),
@@ -231,6 +253,27 @@ export const useWalletStore = create<WalletStore>()(
             accounts,
           };
         }),
+      removeAccountsBySource: (source) =>
+        set((state) => {
+          const accounts = state.accounts.filter((account) => account.source !== source);
+          if (!accounts.length) {
+            return initialState;
+          }
+
+          if (state.walletSource === source) {
+            const nextActiveAccount = accounts[0];
+            return {
+              ...state,
+              accounts,
+              ...buildActiveWalletState(nextActiveAccount),
+            };
+          }
+
+          return {
+            ...state,
+            accounts,
+          };
+        }),
       disconnect: () => set(initialState),
       setBalance: (eth, usd) =>
         set((state) => ({
@@ -278,6 +321,8 @@ export const useWalletStore = create<WalletStore>()(
         mnemonic: state.mnemonic,
         privateKey: state.privateKey,
         walletName: state.walletName,
+        walletSource: state.walletSource,
+        authProvider: state.authProvider,
         balanceETH: state.balanceETH,
         balanceUSD: state.balanceUSD,
       }),
