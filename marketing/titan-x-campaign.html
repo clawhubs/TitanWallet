@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TITAN Wallet X Campaign</title>
+    <style>
+      :root {
+        --bg: #05070b;
+        --panel: #10151d;
+        --panel-2: #151a22;
+        --line: #243242;
+        --text: #f6f8fb;
+        --muted: #8da0b7;
+        --cyan: #4edbd4;
+        --green: #4bd083;
+        --amber: #f0b85a;
+        --red: #ff5f6d;
+        --blue: #6ca8ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #0b0d10;
+        color: var(--text);
+        font-family: "Space Grotesk", "Aptos Display", "Segoe UI", sans-serif;
+      }
+
+      .sheet {
+        display: grid;
+        gap: 32px;
+        padding: 32px;
+      }
+
+      .artboard {
+        position: relative;
+        width: 1600px;
+        height: 900px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(78, 219, 212, 0.18), transparent 26%),
+          radial-gradient(circle at 82% 22%, rgba(108, 168, 255, 0.14), transparent 28%),
+          linear-gradient(135deg, #05070b 0%, #080d12 48%, #05070b 100%);
+        border: 1px solid #1c2632;
+      }
+
+      .grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.28;
+        background-image:
+          linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 44px 44px;
+        mask-image: linear-gradient(90deg, transparent, black 14%, black 86%, transparent);
+      }
+
+      .brand {
+        position: absolute;
+        top: 58px;
+        left: 72px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+      }
+
+      .brand img {
+        width: 48px;
+        height: 48px;
+        object-fit: cover;
+        transform: scale(1.45);
+        mix-blend-mode: screen;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        height: 38px;
+        padding: 0 16px;
+        border: 1px solid rgba(78, 219, 212, 0.35);
+        border-radius: 999px;
+        background: rgba(78, 219, 212, 0.08);
+        color: var(--cyan);
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--green);
+        box-shadow: 0 0 20px rgba(75, 208, 131, 0.8);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 88px;
+        line-height: 0.94;
+        letter-spacing: -0.04em;
+        max-width: 760px;
+      }
+
+      h1 span {
+        color: var(--cyan);
+      }
+
+      .sub {
+        margin: 28px 0 0;
+        max-width: 660px;
+        color: var(--muted);
+        font-size: 28px;
+        line-height: 1.32;
+      }
+
+      .left {
+        position: absolute;
+        top: 158px;
+        left: 72px;
+      }
+
+      .rail {
+        position: absolute;
+        left: 72px;
+        bottom: 70px;
+        display: flex;
+        gap: 14px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        height: 44px;
+        padding: 0 16px;
+        border: 1px solid rgba(141, 160, 183, 0.24);
+        border-radius: 999px;
+        background: rgba(16, 21, 29, 0.82);
+        color: #d9e4f0;
+        font-size: 17px;
+        font-weight: 750;
+      }
+
+      .phone {
+        position: absolute;
+        right: 92px;
+        top: 98px;
+        width: 470px;
+        height: 704px;
+        border: 1px solid #2a3b4f;
+        border-radius: 44px;
+        background: linear-gradient(180deg, #111821, #080c12);
+        box-shadow: 0 36px 110px rgba(0, 0, 0, 0.46), 0 0 80px rgba(78, 219, 212, 0.08);
+        padding: 34px;
+      }
+
+      .phone-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 34px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(75, 208, 131, 0.24);
+        background: rgba(75, 208, 131, 0.08);
+        color: #7df0a9;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        background: #fff;
+        color: #4285f4;
+        font-size: 26px;
+        font-weight: 950;
+      }
+
+      .wallet-card {
+        border: 1px solid #243242;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 24px;
+        margin-bottom: 18px;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .value {
+        margin-top: 8px;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 850;
+      }
+
+      .phrase {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .word {
+        border: 1px solid rgba(78, 219, 212, 0.15);
+        border-radius: 14px;
+        background: rgba(78, 219, 212, 0.06);
+        padding: 12px 10px;
+        color: #c8d6e4;
+        font-size: 14px;
+        font-weight: 750;
+      }
+
+      .word strong {
+        color: var(--cyan);
+        margin-right: 5px;
+      }
+
+      .action {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .button {
+        height: 56px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        font-size: 17px;
+        font-weight: 900;
+      }
+
+      .primary {
+        background: var(--cyan);
+        color: #061012;
+      }
+
+      .secondary {
+        border: 1px solid #314255;
+        background: rgba(255,255,255,0.04);
+        color: #e5edf6;
+      }
+
+      .stack {
+        position: absolute;
+        right: 88px;
+        top: 168px;
+        width: 650px;
+      }
+
+      .flow-card {
+        border: 1px solid #26374b;
+        border-radius: 30px;
+        background: rgba(16, 21, 29, 0.86);
+        padding: 30px;
+        margin-bottom: 18px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+      }
+
+      .flow-title {
+        font-size: 24px;
+        font-weight: 920;
+      }
+
+      .flow-copy {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.36;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .step {
+        min-height: 112px;
+        border: 1px solid rgba(78, 219, 212, 0.18);
+        border-radius: 22px;
+        background: rgba(78, 219, 212, 0.055);
+        padding: 18px;
+      }
+
+      .step-num {
+        color: var(--cyan);
+        font-size: 18px;
+        font-weight: 950;
+      }
+
+      .step-text {
+        margin-top: 8px;
+        color: #edf6ff;
+        font-size: 18px;
+        font-weight: 820;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .mini {
+        border: 1px solid #29394c;
+        border-radius: 24px;
+        background: rgba(255,255,255,0.035);
+        padding: 22px;
+      }
+
+      .mini .title {
+        color: var(--amber);
+        font-size: 17px;
+        font-weight: 950;
+        text-transform: uppercase;
+      }
+
+      .mini .body {
+        margin-top: 12px;
+        color: #d8e4ef;
+        font-size: 21px;
+        font-weight: 850;
+        line-height: 1.18;
+      }
+
+      .footer-mark {
+        position: absolute;
+        right: 74px;
+        bottom: 54px;
+        color: #5f738b;
+        font-size: 18px;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <section class="artboard" id="consumer-google">
+        <div class="grain"></div>
+        <div class="brand">
+          <img src="../public/titan-logo.png" alt="TITAN" />
+          <div>TITAN WALLET</div>
+        </div>
+        <div class="left">
+          <div class="eyebrow"><span class="dot"></span> Consumer Wallet</div>
+          <h1>Google login. <span>Real seed phrase.</span> No custody theater.</h1>
+          <p class="sub">Create a wallet with Google, keep the recovery phrase, download a recovery kit, and restore the same wallet later.</p>
+        </div>
+        <div class="rail">
+          <div class="pill">Local keys</div>
+          <div class="pill">Encrypted recovery copy</div>
+          <div class="pill">Proof logs</div>
+          <div class="pill">No Privy runtime</div>
+        </div>
+        <div class="phone">
+          <div class="phone-header">
+            <div class="avatar">G</div>
+            <div class="badge"><span class="dot"></span> Google linked</div>
+          </div>
+          <div class="wallet-card">
+            <div class="label">Wallet name</div>
+            <div class="value">user@gmail.com</div>
+          </div>
+          <div class="wallet-card">
+            <div class="label">Recovery phrase</div>
+            <div class="phrase">
+              <div class="word"><strong>1</strong> token</div>
+              <div class="word"><strong>2</strong> vault</div>
+              <div class="word"><strong>3</strong> orbit</div>
+              <div class="word"><strong>4</strong> proof</div>
+              <div class="word"><strong>5</strong> shield</div>
+              <div class="word"><strong>6</strong> signal</div>
+              <div class="word"><strong>7</strong> local</div>
+              <div class="word"><strong>8</strong> secure</div>
+              <div class="word"><strong>9</strong> restore</div>
+            </div>
+            <div class="action">
+              <div class="button secondary">Reveal</div>
+              <div class="button primary">Download kit</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer-mark">wallet.yieldboostai.xyz</div>
+      </section>
+
+      <section class="artboard" id="developer-privy">
+        <div class="grain"></div>
+        <div class="brand">
+          <img src="../public/titan-logo.png" alt="TITAN" />
+          <div>TITAN DEVELOPER</div>
+        </div>
+        <div class="left">
+          <div class="eyebrow"><span class="dot"></span> Developer Stack</div>
+          <h1>BYO Privy for apps. <span>TITAN rails for agents.</span></h1>
+          <p class="sub">Developers bring their own Privy keys, then connect AI agent wallets into TITAN project, capability, MCP, and security rails.</p>
+        </div>
+        <div class="stack">
+          <div class="flow-card">
+            <div class="flow-title">One clean boundary</div>
+            <div class="flow-copy">Consumer wallet uses TITAN Google auth. Developer products keep their own Privy app, JWKS, users, and policies.</div>
+            <div class="steps">
+              <div class="step">
+                <div class="step-num">01</div>
+                <div class="step-text">Create AI project</div>
+              </div>
+              <div class="step">
+                <div class="step-num">02</div>
+                <div class="step-text">Issue agent wallet</div>
+              </div>
+              <div class="step">
+                <div class="step-num">03</div>
+                <div class="step-text">Grant capability</div>
+              </div>
+            </div>
+          </div>
+          <div class="split">
+            <div class="mini">
+              <div class="title">Why today</div>
+              <div class="body">AI apps need wallet login without sharing one vendor account across every builder.</div>
+            </div>
+            <div class="mini">
+              <div class="title">What stays separate</div>
+              <div class="body">Privy auth keys, user base, OAuth policy, and product-level risk.</div>
+            </div>
+          </div>
+        </div>
+        <div class="rail">
+          <div class="pill">BYO Privy</div>
+          <div class="pill">MCP tools</div>
+          <div class="pill">Agent wallet</div>
+          <div class="pill">Capability token</div>
+        </div>
+        <div class="footer-mark">developer-ready wallet infrastructure</div>
+      </section>
+    </div>
+  </body>
+</html>
