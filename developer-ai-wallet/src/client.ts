@@ -7,6 +7,11 @@ import {
   type CapabilityIntentCheckResult,
   type CapabilityProofLogItem,
   type CapabilitySnapshot,
+  type DemoApiKeySnapshot,
+  type DemoConfigSnapshot,
+  type DemoIntentResult,
+  type DemoLogsResult,
+  type DemoSecurityLogItem,
   type NativeSendInput,
   type NativeSendResult,
   type TitanAgentWalletConfig,
@@ -102,6 +107,78 @@ export class TitanAgentWalletClient {
       agent_wallet_id: this.identity.agentWalletId,
     }, {
       includeCapabilityToken: true,
+    });
+  }
+
+  async getDemoStatus() {
+    return this.control<{
+      success: boolean;
+      demo: DemoConfigSnapshot;
+      live_anchor_ready: boolean;
+    }>({
+      action: 'demo_status',
+    });
+  }
+
+  async createDemoApiKey(input: { label?: string } = {}) {
+    return this.control<{
+      success: boolean;
+      api_key: string;
+      key: DemoApiKeySnapshot;
+      demo: DemoConfigSnapshot;
+    }>({
+      action: 'demo_create_api_key',
+      label: input.label || 'Developer API Demo Key',
+    });
+  }
+
+  async runDemoIntent(input: {
+    demoApiKey?: string;
+    scenario?: 'allowed' | 'blocked';
+    intent: string;
+    action: string;
+    amount: string;
+    recipient: string;
+  }): Promise<DemoIntentResult> {
+    return this.control<DemoIntentResult>({
+      action: 'demo_check_intent',
+      demo_api_key: input.demoApiKey || this.identity.demoApiKey,
+      scenario: input.scenario || 'custom',
+      intent: input.intent,
+      requested_action: input.action,
+      amount: input.amount,
+      recipient: input.recipient,
+    });
+  }
+
+  async getDemoLogs(input: {
+    demoApiKey?: string;
+    limit?: number;
+  } = {}): Promise<DemoLogsResult> {
+    return this.control<DemoLogsResult>({
+      action: 'demo_get_logs',
+      demo_api_key: input.demoApiKey || this.identity.demoApiKey,
+      limit: input.limit,
+    });
+  }
+
+  async anchorDemoSecurityLog(input: {
+    demoApiKey?: string;
+    ownerRunToken: string;
+  }) {
+    return this.control<{
+      success: boolean;
+      proof_log: CapabilityProofLogItem;
+      security_log: DemoSecurityLogItem;
+      anchor: {
+        txHash: string;
+        logId: string | null;
+        explorerUrl: string;
+      };
+    }>({
+      action: 'demo_anchor_security_log',
+      demo_api_key: input.demoApiKey || this.identity.demoApiKey,
+      owner_run_token: input.ownerRunToken,
     });
   }
 

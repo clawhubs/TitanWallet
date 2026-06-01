@@ -53,13 +53,13 @@ const useCases = [
   },
   {
     icon: Bot,
-    title: 'AI agent wallet',
-    desc: 'Open the developer setup for project, agent wallet, and capability-token wiring.',
-    connectedHref: '/settings?tab=developer',
-    guestHref: '/developer/docs',
-    connectedCta: 'Open developer setup',
-    guestCta: 'Read developer docs',
-    rail: 'Agent rail',
+    title: 'Developer API demo',
+    desc: 'Run the allowed-vs-blocked intent demo with API key, proof log, security log, and 10-layer evidence.',
+    connectedHref: '/developer/demo',
+    guestHref: '/developer/demo',
+    connectedCta: 'Run API demo',
+    guestCta: 'Run API demo',
+    rail: 'Agent intent rail',
   },
 ];
 
@@ -281,6 +281,12 @@ const LandingPage: React.FC = () => {
               >
                 <Shield size={16} /> View Security
               </a>
+              <Link
+                to="/developer/demo"
+                className="bg-titan-surface border border-titan-accent/30 text-titan-accent font-semibold text-[15px] px-8 py-4 rounded-xl hover:bg-titan-accent/10 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+              >
+                <Bot size={16} /> Developer API Demo
+              </Link>
             </div>
 
             {/* Microcopy */}

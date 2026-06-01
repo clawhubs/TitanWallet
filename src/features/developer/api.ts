@@ -1,4 +1,12 @@
-import type { DeveloperDashboard, OwnerSession } from './types';
+import type {
+  DeveloperDashboard,
+  DeveloperDemoApiKey,
+  DeveloperDemoConfig,
+  DeveloperDemoIntentResult,
+  DeveloperDemoLogs,
+  DeveloperSecurityLog,
+  OwnerSession,
+} from './types';
 
 const CONTROL_ENDPOINT = '/api/agent-wallet/control';
 
@@ -118,6 +126,80 @@ export async function setDeveloperAgentWalletStatus(input: {
     agent_wallet_id: input.agentWalletId,
     status: input.status,
   }, input.ownerSessionToken);
+}
+
+export async function getDeveloperDemoStatus() {
+  return post<{
+    success: boolean;
+    demo: DeveloperDemoConfig;
+    live_anchor_ready: boolean;
+  }>({
+    action: 'demo_status',
+  });
+}
+
+export async function createDeveloperDemoApiKey(input: {
+  label?: string;
+} = {}) {
+  return post<{
+    success: boolean;
+    api_key: string;
+    key: DeveloperDemoApiKey;
+    demo: DeveloperDemoConfig;
+  }>({
+    action: 'demo_create_api_key',
+    label: input.label || 'Developer API Demo Key',
+  });
+}
+
+export async function runDeveloperDemoIntent(input: {
+  demoApiKey: string;
+  scenario: 'allowed' | 'blocked';
+  intent: string;
+  action: string;
+  amount: string;
+  recipient: string;
+}) {
+  return post<DeveloperDemoIntentResult>({
+    action: 'demo_check_intent',
+    demo_api_key: input.demoApiKey,
+    scenario: input.scenario,
+    intent: input.intent,
+    requested_action: input.action,
+    amount: input.amount,
+    recipient: input.recipient,
+  });
+}
+
+export async function getDeveloperDemoLogs(input: {
+  demoApiKey: string;
+  limit?: number;
+}) {
+  return post<DeveloperDemoLogs>({
+    action: 'demo_get_logs',
+    demo_api_key: input.demoApiKey,
+    limit: input.limit || 30,
+  });
+}
+
+export async function anchorDeveloperDemoSecurityLog(input: {
+  demoApiKey: string;
+  ownerRunToken: string;
+}) {
+  return post<{
+    success: boolean;
+    proof_log: unknown;
+    security_log: DeveloperSecurityLog;
+    anchor: {
+      txHash: string;
+      logId: string | null;
+      explorerUrl: string;
+    };
+  }>({
+    action: 'demo_anchor_security_log',
+    demo_api_key: input.demoApiKey,
+    owner_run_token: input.ownerRunToken,
+  });
 }
 
 async function post<T>(body: Record<string, unknown>, ownerSessionToken?: string): Promise<T> {

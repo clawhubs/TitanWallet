@@ -100,6 +100,67 @@ export const TITAN_AGENT_WALLET_MCP_TOOLS: TitanAgentWalletMcpTool[] = [
     },
   },
   {
+    name: 'titan_demo_create_api_key',
+    description: 'Create a simulation-only API key for the TITAN Agent Intent Demo.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        label: { type: 'string' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'titan_demo_status',
+    description: 'Read TITAN Agent Intent Demo capability and live-anchor readiness.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'titan_demo_run',
+    description: 'Run the TITAN Agent Intent Demo allowed/blocked policy check and record proof plus security logs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        demoApiKey: { type: 'string' },
+        scenario: { type: 'string', enum: ['allowed', 'blocked'] },
+        intent: { type: 'string' },
+        action: { type: 'string' },
+        amount: { type: 'string' },
+        recipient: { type: 'string' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'titan_demo_logs',
+    description: 'Read TITAN Agent Intent Demo proof logs and security logs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        demoApiKey: { type: 'string' },
+        limit: { type: 'number' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'titan_demo_anchor_security_log',
+    description: 'Owner-only live 0G mainnet security anchor for the TITAN Agent Intent Demo.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        demoApiKey: { type: 'string' },
+        ownerRunToken: { type: 'string' },
+      },
+      required: ['ownerRunToken'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'titan_revoke_capability',
     description: 'Revoke a TITAN capability with an owner session token.',
     inputSchema: {
@@ -190,6 +251,7 @@ export function createTitanAgentWalletClientFromEnv(env: NodeJS.ProcessEnv = pro
     projectId: env.TITAN_AGENT_WALLET_PROJECT_ID,
     agentWalletId: env.TITAN_AGENT_WALLET_ID,
     capabilityToken: env.TITAN_AGENT_WALLET_CAPABILITY,
+    demoApiKey: env.TITAN_AGENT_WALLET_DEMO_API_KEY,
   });
 }
 
@@ -266,6 +328,56 @@ export class TitanAgentWalletMcpServer {
         agentWalletId: optionalString(args.agentWalletId),
         limit: optionalNumber(args.limit),
         ownerSessionToken: optionalString(args.ownerSessionToken),
+      }));
+    }
+
+    if (name === 'titan_demo_create_api_key') {
+      return toToolResult(await this.client.createDemoApiKey({
+        label: optionalString(args.label),
+      }));
+    }
+
+    if (name === 'titan_demo_status') {
+      return toToolResult(await this.client.getDemoStatus());
+    }
+
+    if (name === 'titan_demo_run') {
+      const status = await this.client.getDemoStatus();
+      const scenario = optionalString(args.scenario) === 'blocked' ? 'blocked' : 'allowed';
+      const defaults = scenario === 'blocked'
+        ? {
+            intent: 'Send all wallet balance to unknown address',
+            action: 'transfer',
+            amount: '999',
+            recipient: '0xUnknownAddress',
+          }
+        : {
+            intent: 'Pay approved vendor invoice',
+            action: status.demo.action,
+            amount: status.demo.max_amount,
+            recipient: status.demo.approved_recipient,
+          };
+      return toToolResult(await this.client.runDemoIntent({
+        demoApiKey: optionalString(args.demoApiKey),
+        scenario,
+        intent: optionalString(args.intent) || defaults.intent,
+        action: optionalString(args.action) || defaults.action,
+        amount: optionalString(args.amount) || defaults.amount,
+        recipient: optionalString(args.recipient) || defaults.recipient,
+      }));
+    }
+
+    if (name === 'titan_demo_logs') {
+      return toToolResult(await this.client.getDemoLogs({
+        demoApiKey: optionalString(args.demoApiKey),
+        limit: optionalNumber(args.limit),
+      }));
+    }
+
+    if (name === 'titan_demo_anchor_security_log') {
+      return toToolResult(await this.client.anchorDemoSecurityLog({
+        demoApiKey: optionalString(args.demoApiKey),
+        ownerRunToken: asString(args.ownerRunToken, 'ownerRunToken'),
       }));
     }
 

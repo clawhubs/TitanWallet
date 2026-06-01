@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { randomBytes, randomUUID } from 'node:crypto';
-import { isAddress, verifyMessage } from 'ethers';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { Contract, Interface, JsonRpcProvider, Wallet, id, isAddress, verifyMessage } from 'ethers';
 
 const DATA_PATH = process.env.TITAN_AGENT_WALLET_CONTROL_PLANE_PATH ||
   join(process.cwd(), '.data', 'agent-wallet-control-plane.json');
@@ -14,6 +14,31 @@ const RUNTIME_API_BASE_URL = (
   'https://api.yieldboostai.xyz/v1'
 ).replace(/\/$/, '');
 const RUNTIME_API_KEY = process.env.TITAN_AGENT_WALLET_API_KEY?.trim() || process.env.TITAN_API_KEY?.trim() || '';
+const DEMO_CHAIN_ID = 16661;
+const DEMO_NETWORK_NAME = '0G Mainnet';
+const DEMO_RPC_URL = process.env.TITAN_DEMO_0G_RPC_URL?.trim() || 'https://evmrpc.0g.ai';
+const DEMO_APPROVED_RECIPIENT = normalizeAddress(
+  process.env.TITAN_DEMO_APPROVED_RECIPIENT || '0x8a3c7524Aaed081825aC88eC7f4cCECFc583ee7D',
+  true,
+) || '0x8a3c7524Aaed081825aC88eC7f4cCECFc583ee7D';
+const DEMO_SECURITY_REGISTRY_ADDRESS = normalizeAddress(
+  process.env.TITAN_DEMO_SECURITY_REGISTRY_ADDRESS || '0x05240D9636605e6cE1CFbCB03189e563f484F4DF',
+  true,
+) || '0x05240D9636605e6cE1CFbCB03189e563f484F4DF';
+const DEMO_WALLET_PRIVATE_KEY = process.env.TITAN_DEMO_WALLET_PRIVATE_KEY?.trim() || '';
+const DEMO_OWNER_RUN_TOKEN = process.env.TITAN_DEMO_OWNER_RUN_TOKEN?.trim() || '';
+const DEMO_API_KEY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const DEMO_AGENT_WALLET_ID = 'agent_demo_001';
+const DEMO_CAPABILITY_ID = 'cap_invoice_001';
+const DEMO_MAX_AMOUNT_TEST = '0.01';
+const DEMO_MAX_AMOUNT_WEI = '10000000000000000';
+
+const WALLET_SECURITY_REGISTRY_ABI = [
+  'function recordWalletSecurity(string action, string storageId, bytes32 sourceTxHash, bytes32 integrityHash, string context) external returns (uint256 logId)',
+  'event WalletSecurityLogged(uint256 indexed logId,address indexed owner,bytes32 indexed actionHash,string action,string storageId,bytes32 sourceTxHash,bytes32 integrityHash,string context,uint64 timestamp)',
+];
+
+const walletSecurityRegistryInterface = new Interface(WALLET_SECURITY_REGISTRY_ABI);
 
 const TEN_LAYERS = [
   'Hallucination Blacklist',
@@ -56,9 +81,142 @@ export async function handleAgentWalletControlPlane(request, response) {
       agent_wallets: Object.keys(store.agent_wallets).length,
       capabilities: Object.keys(store.capabilities).length,
       proof_logs: Object.keys(store.proof_logs).length,
+      security_logs: Object.keys(store.security_logs).length,
+      demo_api_keys: Object.keys(store.demo_api_keys).length,
       runtime_api_base_url: RUNTIME_API_BASE_URL,
       runtime_api_key_loaded: Boolean(RUNTIME_API_KEY),
+      demo_live_anchor_ready: Boolean(DEMO_WALLET_PRIVATE_KEY && DEMO_OWNER_RUN_TOKEN),
     });
+  }
+
+  if (action === 'demo_status') {
+    return sendJson(response, 200, {
+      success: true,
+      demo: buildDemoConfig(),
+      live_anchor_ready: Boolean(DEMO_WALLET_PRIVATE_KEY && DEMO_OWNER_RUN_TOKEN),
+    });
+  }
+
+  if (action === 'demo_create_api_key') {
+    const apiKey = createDemoApiKey(store, body);
+    await saveStore(store);
+    return sendJson(response, 200, {
+      success: true,
+      api_key: apiKey.plaintext,
+      key: maskDemoApiKey(apiKey.record),
+      demo: buildDemoConfig(),
+    });
+  }
+
+  if (action === 'demo_check_intent') {
+    const demoAuth = requireDemoApiKey(request, body, store);
+    if (!demoAuth.ok) {
+      return sendJson(response, demoAuth.status || 401, { success: false, error: demoAuth.error });
+    }
+
+    const result = evaluateDemoIntent({
+      store,
+      key: demoAuth.key,
+      body,
+    });
+    await saveStore(store);
+    return sendJson(response, 200, {
+      success: true,
+      ...result,
+    });
+  }
+
+  if (action === 'demo_get_logs') {
+    const demoAuth = requireDemoApiKey(request, body, store);
+    if (!demoAuth.ok) {
+      return sendJson(response, demoAuth.status || 401, { success: false, error: demoAuth.error });
+    }
+
+    const limit = clampNumber(toFiniteNumber(body.limit), 1, 100, 30);
+    return sendJson(response, 200, {
+      success: true,
+      proof_logs: listDemoProofLogs(store, demoAuth.key.id).slice(0, limit),
+      security_logs: listDemoSecurityLogs(store, demoAuth.key.id).slice(0, limit),
+    });
+  }
+
+  if (action === 'demo_anchor_security_log') {
+    const demoAuth = requireDemoApiKey(request, body, store);
+    if (!demoAuth.ok) {
+      return sendJson(response, demoAuth.status || 401, { success: false, error: demoAuth.error });
+    }
+    if (!DEMO_WALLET_PRIVATE_KEY || !DEMO_OWNER_RUN_TOKEN) {
+      return sendJson(response, 503, {
+        success: false,
+        error: 'Owner-only live anchor is not configured on this server.',
+      });
+    }
+    const runToken = String(request.headers['x-titan-demo-run-token'] || body.owner_run_token || '');
+    if (!safeStringEqual(runToken, DEMO_OWNER_RUN_TOKEN)) {
+      return sendJson(response, 403, {
+        success: false,
+        error: 'Owner-only live anchor token is required.',
+      });
+    }
+
+    try {
+      const proofLog = appendDemoProofLog(store, {
+        key: demoAuth.key,
+        type: 'Owner Live Security Anchor Requested',
+        status: 'recording',
+        policyResult: 'allowed',
+        reason: 'Owner requested a live 0G mainnet security anchor for the demo rail.',
+        intent: 'Record owner-only live security anchor for TITAN Agent Intent Demo.',
+        actionName: 'demo_security_anchor',
+        amount: '0',
+        recipient: DEMO_APPROVED_RECIPIENT,
+        mode: 'live',
+      });
+      const anchor = await anchorDemoSecurityLog({
+        proofLog,
+        key: demoAuth.key,
+      });
+      const securityLog = appendDemoSecurityLog(store, {
+        key: demoAuth.key,
+        proofLogId: proofLog.id,
+        type: '0G Mainnet Security Anchor',
+        status: 'anchored',
+        reason: 'Owner-only security log anchor recorded on 0G mainnet.',
+        mode: 'live',
+        txHash: anchor.txHash,
+        logId: anchor.logId,
+        registryAddress: DEMO_SECURITY_REGISTRY_ADDRESS,
+        metadata: {
+          explorer_url: anchor.explorerUrl,
+          action: 'demo_security_anchor',
+        },
+      });
+      proofLog.status = 'anchored';
+      proofLog.metadata.anchor_status = 'anchored';
+      proofLog.metadata.security_log_id = securityLog.id;
+      proofLog.metadata.security_log_tx_hash = anchor.txHash;
+      await saveStore(store);
+      return sendJson(response, 200, {
+        success: true,
+        proof_log: proofLog,
+        security_log: securityLog,
+        anchor,
+      });
+    } catch (error) {
+      const securityLog = appendDemoSecurityLog(store, {
+        key: demoAuth.key,
+        type: '0G Mainnet Security Anchor Failed',
+        status: 'failed',
+        reason: error instanceof Error ? error.message : 'Live security anchor failed.',
+        mode: 'live',
+      });
+      await saveStore(store);
+      return sendJson(response, 500, {
+        success: false,
+        error: securityLog.reason,
+        security_log: securityLog,
+      });
+    }
   }
 
   if (action === 'auth_challenge') {
@@ -653,6 +811,381 @@ async function evaluateIntentCheck(input) {
   };
 }
 
+function buildDemoConfig() {
+  return {
+    name: 'TITAN Agent Intent Demo',
+    mode: 'simulation',
+    owner_wallet: getDemoOwnerAddress(),
+    agent_wallet_id: DEMO_AGENT_WALLET_ID,
+    capability_id: DEMO_CAPABILITY_ID,
+    capability_name: 'Invoice Payment Capability',
+    action: 'pay_invoice',
+    max_amount: DEMO_MAX_AMOUNT_TEST,
+    max_amount_wei: DEMO_MAX_AMOUNT_WEI,
+    token: 'TEST',
+    approved_recipient: DEMO_APPROVED_RECIPIENT,
+    policy_window: '24h simulated',
+    chain_id: DEMO_CHAIN_ID,
+    network: DEMO_NETWORK_NAME,
+    live_anchor_registry: DEMO_SECURITY_REGISTRY_ADDRESS,
+    layers: TEN_LAYERS,
+  };
+}
+
+function createDemoApiKey(store, body) {
+  const plaintext = `titan_demo_${randomBytes(24).toString('hex')}`;
+  const now = new Date();
+  const record = {
+    id: `dkey_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+    token_hash: hashSecret(plaintext),
+    prefix: `${plaintext.slice(0, 20)}...`,
+    label: typeof body.label === 'string' && body.label.trim() ? body.label.trim().slice(0, 80) : 'Developer API Demo Key',
+    status: 'active',
+    scopes: ['demo:check_intent', 'demo:read_logs', 'demo:simulation'],
+    created_at: now.toISOString(),
+    expires_at: new Date(now.getTime() + DEMO_API_KEY_TTL_MS).toISOString(),
+    last_used_at: null,
+  };
+  store.demo_api_keys[record.id] = record;
+  appendDemoSecurityLog(store, {
+    key: record,
+    type: 'Demo API Key Created',
+    status: 'active',
+    reason: 'A simulation-only API key was created for the TITAN Agent Intent Demo.',
+    mode: 'simulation',
+    metadata: {
+      scopes: record.scopes,
+      prefix: record.prefix,
+    },
+  });
+  return { plaintext, record };
+}
+
+function requireDemoApiKey(request, body, store) {
+  const token = String(request.headers['x-titan-demo-api-key'] || body.demo_api_key || '').trim();
+  if (!token) {
+    return { ok: false, status: 401, error: 'demo_api_key is required.' };
+  }
+  const tokenHash = hashSecret(token);
+  const key = Object.values(store.demo_api_keys).find((item) => safeStringEqual(item.token_hash, tokenHash));
+  if (!key) {
+    return { ok: false, status: 401, error: 'Demo API key is invalid.' };
+  }
+  if (key.status !== 'active') {
+    return { ok: false, status: 403, error: 'Demo API key is not active.' };
+  }
+  if (Date.parse(key.expires_at) <= Date.now()) {
+    key.status = 'expired';
+    return { ok: false, status: 403, error: 'Demo API key is expired.' };
+  }
+  key.last_used_at = new Date().toISOString();
+  return { ok: true, key };
+}
+
+function evaluateDemoIntent(input) {
+  const { store, key, body } = input;
+  const scenario = typeof body.scenario === 'string' ? body.scenario : 'custom';
+  const intent = typeof body.intent === 'string' && body.intent.trim()
+    ? body.intent.trim()
+    : scenario === 'blocked'
+      ? 'Send all wallet balance to unknown address'
+      : 'Pay approved vendor invoice';
+  const actionName = typeof body.requested_action === 'string' && body.requested_action.trim()
+    ? body.requested_action.trim()
+    : typeof body.action === 'string' && body.action.trim()
+      ? body.action.trim()
+      : scenario === 'blocked'
+        ? 'transfer'
+        : 'pay_invoice';
+  const amount = typeof body.amount === 'string' && body.amount.trim()
+    ? body.amount.trim()
+    : scenario === 'blocked'
+      ? '999'
+      : DEMO_MAX_AMOUNT_TEST;
+  const recipientRaw = typeof body.recipient === 'string' && body.recipient.trim()
+    ? body.recipient.trim()
+    : typeof body.to === 'string' && body.to.trim()
+      ? body.to.trim()
+      : scenario === 'blocked'
+        ? '0xUnknownAddress'
+        : DEMO_APPROVED_RECIPIENT;
+  const amountNumber = Number.parseFloat(amount);
+  const recipient = normalizeAddress(recipientRaw, true);
+
+  const reasons = [];
+  if (actionName !== 'pay_invoice') {
+    reasons.push('Intent action is outside the invoice-payment capability.');
+  }
+  if (!Number.isFinite(amountNumber) || amountNumber > Number.parseFloat(DEMO_MAX_AMOUNT_TEST)) {
+    reasons.push('Amount exceeds the 0.01 TEST capability limit.');
+  }
+  if (!recipient || recipient.toLowerCase() !== DEMO_APPROVED_RECIPIENT.toLowerCase()) {
+    reasons.push('Recipient is not the approved vendor address.');
+  }
+
+  const allowed = reasons.length === 0;
+  const reason = allowed
+    ? 'Intent matches capability policy. Amount and recipient are allowed.'
+    : reasons.join(' ');
+  const policyResult = allowed ? 'allowed' : 'blocked';
+  const railStatus = allowed ? '10-layer rail passed' : '10-layer rail enforced';
+  const anchorStatus = 'recorded';
+
+  const proofLog = appendDemoProofLog(store, {
+    key,
+    type: 'Agent Intent Policy Check',
+    status: policyResult,
+    policyResult,
+    reason,
+    intent,
+    actionName,
+    amount,
+    recipient: recipient || null,
+    rawRecipient: recipientRaw,
+    mode: 'simulation',
+    metadata: {
+      scenario,
+      token: 'TEST',
+      rail_status: railStatus,
+      anchor_status: anchorStatus,
+    },
+  });
+  const securityLog = appendDemoSecurityLog(store, {
+    key,
+    proofLogId: proofLog.id,
+    type: allowed ? 'Allowed Intent Security Log' : 'Blocked Intent Security Log',
+    status: allowed ? 'passed' : 'enforced',
+    reason: allowed
+      ? 'Security rail accepted the scoped invoice payment intent.'
+      : 'Security rail blocked the unsafe wallet action before execution.',
+    mode: 'simulation',
+    metadata: {
+      policy_result: policyResult,
+      proof_log_id: proofLog.id,
+      action: actionName,
+    },
+  });
+
+  return {
+    allowed,
+    reason,
+    policyResult,
+    proofId: proofLog.id,
+    proofHash: id(JSON.stringify({
+      proof_log_id: proofLog.id,
+      intent,
+      actionName,
+      amount,
+      recipient: recipientRaw,
+      policyResult,
+      created_at: proofLog.created_at,
+    })),
+    anchorStatus,
+    railStatus,
+    mode: 'simulation',
+    ownerWallet: getDemoOwnerAddress(),
+    agentWalletId: DEMO_AGENT_WALLET_ID,
+    capabilityId: DEMO_CAPABILITY_ID,
+    securityLogId: securityLog.id,
+    proofLog,
+    securityLog,
+    evidence: buildDemoEvidence(policyResult),
+  };
+}
+
+function buildDemoEvidence(policyResult) {
+  const blocked = policyResult === 'blocked';
+  const statuses = blocked
+    ? [
+        'Enforced',
+        'Passed',
+        'Active',
+        'Recorded',
+        'Recorded',
+        'Prepared',
+        'Anchored',
+        'Blocked by policy',
+        'Verified',
+        'Active',
+      ]
+    : [
+        'Passed',
+        'Passed',
+        'Active',
+        'Recorded',
+        'Recorded',
+        'Prepared',
+        'Anchored',
+        'Passed',
+        'Verified',
+        'Active',
+      ];
+  return TEN_LAYERS.map((name, index) => ({
+    id: `L${String(index + 1).padStart(2, '0')}`,
+    name,
+    status: statuses[index],
+  }));
+}
+
+function appendDemoProofLog(store, input) {
+  return appendProofLog(store, {
+    owner_wallet_address: getDemoOwnerAddress(),
+    project_id: 'demo_project_agent_intent',
+    agent_wallet_id: DEMO_AGENT_WALLET_ID,
+    capability_id: DEMO_CAPABILITY_ID,
+    category: 'intent',
+    type: input.type,
+    status: input.status,
+    reason: input.reason,
+    intent: input.intent,
+    requested_action: input.actionName,
+    requested_chain_id: DEMO_CHAIN_ID,
+    requested_destination: input.recipient,
+    requested_amount_wei: decimalToDemoWei(input.amount),
+    metadata: {
+      demo: true,
+      demo_api_key_id: input.key.id,
+      demo_api_key_prefix: input.key.prefix,
+      capability_name: 'Invoice Payment Capability',
+      policy_result: input.policyResult,
+      raw_recipient: input.rawRecipient || input.recipient,
+      mode: input.mode,
+      network: DEMO_NETWORK_NAME,
+      approved_recipient: DEMO_APPROVED_RECIPIENT,
+      policy_window: '24h simulated',
+      no_apy: true,
+      ...(input.metadata || {}),
+    },
+  });
+}
+
+function appendDemoSecurityLog(store, input) {
+  const entry = {
+    id: `slog_${randomUUID().replace(/-/g, '').slice(0, 16)}`,
+    owner_wallet_address: getDemoOwnerAddress(),
+    demo_api_key_id: input.key.id,
+    proof_log_id: input.proofLogId || null,
+    category: 'security',
+    type: input.type,
+    status: input.status || 'recorded',
+    reason: input.reason || '',
+    chain_id: DEMO_CHAIN_ID,
+    network: DEMO_NETWORK_NAME,
+    registry_address: input.registryAddress || null,
+    tx_hash: input.txHash || null,
+    log_id: input.logId || null,
+    mode: input.mode || 'simulation',
+    created_at: new Date().toISOString(),
+    metadata: {
+      demo: true,
+      no_apy: true,
+      ...(input.metadata || {}),
+    },
+  };
+  store.security_logs[entry.id] = entry;
+  return entry;
+}
+
+function listDemoProofLogs(store, demoApiKeyId) {
+  return Object.values(store.proof_logs)
+    .filter((entry) => entry.metadata?.demo === true)
+    .filter((entry) => entry.metadata?.demo_api_key_id === demoApiKeyId)
+    .sort(sortNewestFirstByCreatedAt);
+}
+
+function listDemoSecurityLogs(store, demoApiKeyId) {
+  return Object.values(store.security_logs)
+    .filter((entry) => entry.demo_api_key_id === demoApiKeyId)
+    .sort(sortNewestFirstByCreatedAt);
+}
+
+async function anchorDemoSecurityLog(input) {
+  const provider = new JsonRpcProvider(DEMO_RPC_URL);
+  const wallet = new Wallet(DEMO_WALLET_PRIVATE_KEY, provider);
+  const registry = new Contract(DEMO_SECURITY_REGISTRY_ADDRESS, WALLET_SECURITY_REGISTRY_ABI, wallet);
+  const storageId = `demo:${input.key.id}:${input.proofLog.id}`;
+  const context = [
+    'titan-agent-intent-demo',
+    `proof=${input.proofLog.id}`,
+    `api_key=${input.key.id}`,
+    `owner=${wallet.address}`,
+    `recipient=${DEMO_APPROVED_RECIPIENT}`,
+  ].join('|');
+  const tx = await registry.recordWalletSecurity(
+    'demo_security_anchor',
+    storageId,
+    id(`${storageId}:source`),
+    id(`${storageId}:integrity`),
+    context,
+  );
+  const receipt = await tx.wait();
+  if (!receipt) {
+    throw new Error('Security anchor receipt did not arrive.');
+  }
+  const event = receipt.logs
+    .filter((log) => log.address.toLowerCase() === DEMO_SECURITY_REGISTRY_ADDRESS.toLowerCase())
+    .map((log) => {
+      try {
+        return walletSecurityRegistryInterface.parseLog(log);
+      } catch {
+        return null;
+      }
+    })
+    .find((item) => item?.name === 'WalletSecurityLogged');
+
+  return {
+    txHash: tx.hash,
+    logId: event?.args?.logId?.toString() || null,
+    explorerUrl: `https://chainscan.0g.ai/tx/${tx.hash}`,
+  };
+}
+
+function decimalToDemoWei(value) {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!/^\d+(\.\d+)?$/.test(normalized)) {
+    return null;
+  }
+  const [whole, fraction = ''] = normalized.split('.');
+  return `${whole}${fraction.padEnd(18, '0').slice(0, 18)}`.replace(/^0+(?=\d)/, '') || '0';
+}
+
+function maskDemoApiKey(record) {
+  return {
+    id: record.id,
+    prefix: record.prefix,
+    label: record.label,
+    status: record.status,
+    scopes: record.scopes,
+    created_at: record.created_at,
+    expires_at: record.expires_at,
+    last_used_at: record.last_used_at,
+  };
+}
+
+function hashSecret(value) {
+  return createHash('sha256').update(String(value)).digest('hex');
+}
+
+function safeStringEqual(left, right) {
+  if (typeof left !== 'string' || typeof right !== 'string') {
+    return false;
+  }
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function getDemoOwnerAddress() {
+  if (DEMO_WALLET_PRIVATE_KEY) {
+    try {
+      return new Wallet(DEMO_WALLET_PRIVATE_KEY).address;
+    } catch {
+      // Fall through to the configured public demo owner.
+    }
+  }
+  return normalizeAddress(process.env.TITAN_DEMO_OWNER_WALLET, true) || DEMO_APPROVED_RECIPIENT;
+}
+
 function requireSession(request, body, store) {
   const token = String(request.headers['x-titan-owner-token'] || body.owner_session_token || '');
   const session = store.sessions[token];
@@ -817,6 +1350,11 @@ function refreshExpirations(store) {
       capability.status = 'expired';
     }
   }
+  for (const demoKey of Object.values(store.demo_api_keys)) {
+    if (demoKey.status === 'active' && Date.parse(demoKey.expires_at) <= Date.now()) {
+      demoKey.status = 'expired';
+    }
+  }
 }
 
 async function loadStore() {
@@ -846,6 +1384,8 @@ function emptyStore() {
     agent_wallets: {},
     capabilities: {},
     proof_logs: {},
+    security_logs: {},
+    demo_api_keys: {},
   };
 }
 

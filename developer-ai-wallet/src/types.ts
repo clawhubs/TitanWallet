@@ -66,6 +66,7 @@ export interface TitanAgentWalletConfig extends Partial<AgentWalletIdentity> {
   baseUrl?: string;
   militaryBaseUrl?: string;
   ownerSessionToken?: string;
+  demoApiKey?: string;
 }
 
 export interface ApiResponse {
@@ -134,6 +135,86 @@ export interface CapabilityProofLogItem {
   blacklist_allowed: boolean | null;
   created_at: string;
   metadata: Record<string, unknown>;
+}
+
+export interface DemoApiKeySnapshot {
+  id: string;
+  prefix: string;
+  label: string;
+  status: 'active' | 'expired' | 'revoked';
+  scopes: string[];
+  created_at: string;
+  expires_at: string;
+  last_used_at: string | null;
+}
+
+export interface DemoConfigSnapshot {
+  name: string;
+  mode: 'simulation';
+  owner_wallet: string;
+  agent_wallet_id: string;
+  capability_id: string;
+  capability_name: string;
+  action: string;
+  max_amount: string;
+  max_amount_wei: string;
+  token: string;
+  approved_recipient: string;
+  policy_window: string;
+  chain_id: number;
+  network: string;
+  live_anchor_registry: string;
+  layers: string[];
+}
+
+export interface DemoEvidenceLayer {
+  id: string;
+  name: string;
+  status: string;
+}
+
+export interface DemoSecurityLogItem {
+  id: string;
+  owner_wallet_address: string;
+  demo_api_key_id: string;
+  proof_log_id: string | null;
+  category: string;
+  type: string;
+  status: string;
+  reason: string;
+  chain_id: number;
+  network: string;
+  registry_address: string | null;
+  tx_hash: string | null;
+  log_id: string | null;
+  mode: 'simulation' | 'live';
+  created_at: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface DemoIntentResult {
+  success: boolean;
+  allowed: boolean;
+  reason: string;
+  policyResult: 'allowed' | 'blocked';
+  proofId: string;
+  proofHash: string;
+  anchorStatus: string;
+  railStatus: string;
+  mode: 'simulation';
+  ownerWallet: string;
+  agentWalletId: string;
+  capabilityId: string;
+  securityLogId: string;
+  proofLog: CapabilityProofLogItem;
+  securityLog: DemoSecurityLogItem;
+  evidence: DemoEvidenceLayer[];
+}
+
+export interface DemoLogsResult {
+  success: boolean;
+  proof_logs: CapabilityProofLogItem[];
+  security_logs: DemoSecurityLogItem[];
 }
 
 export const TITAN_AI_WALLET_LAYERS = [

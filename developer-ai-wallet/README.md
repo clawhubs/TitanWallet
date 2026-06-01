@@ -30,6 +30,33 @@ Create:
 
 Copy the generated SDK/CLI env block into your own agent runtime.
 
+## Agent Intent Demo
+
+Public demo:
+
+`https://wallet.yieldboostai.xyz/developer/demo`
+
+The demo proves this path:
+
+`Capability -> Intent Check -> Policy Check -> Allowed / Blocked -> Proof Log -> Security Log -> 10-Layer Evidence`
+
+It uses a simulation-only API key. No public demo button can move real funds.
+
+```bash
+node dist/cli.js demo:key --label "TITAN Agent Intent Demo"
+export TITAN_AGENT_WALLET_DEMO_API_KEY="titan_demo_..."
+
+node dist/cli.js demo:run --scenario allowed
+node dist/cli.js demo:run --scenario blocked
+node dist/cli.js demo:logs
+```
+
+Owner-only live anchoring is separate and requires a server-side owner run token:
+
+```bash
+node dist/cli.js demo:anchor --owner-run-token "$TITAN_DEMO_OWNER_RUN_TOKEN"
+```
+
 ## 10 Layers
 
 - L01 Hallucination Blacklist
@@ -92,6 +119,17 @@ await client.checkIntent({
 
 const capability = await client.getCapability();
 const proofLog = await client.getProofLog({ limit: 10 });
+
+const demoKey = await client.createDemoApiKey({ label: "TITAN Agent Intent Demo" });
+const demoRun = await client.runDemoIntent({
+  demoApiKey: demoKey.api_key,
+  scenario: "allowed",
+  intent: "Pay approved vendor invoice",
+  action: "pay_invoice",
+  amount: "0.01",
+  recipient: demoKey.demo.approved_recipient,
+});
+const demoLogs = await client.getDemoLogs({ demoApiKey: demoKey.api_key });
 ```
 
 ## CLI
@@ -108,6 +146,10 @@ export TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN="titan_owner_..."
 node dist/cli.js health
 node dist/cli.js capability
 node dist/cli.js proof:list --limit 10
+node dist/cli.js demo:key --label "TITAN Agent Intent Demo"
+node dist/cli.js demo:run --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario allowed
+node dist/cli.js demo:run --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario blocked
+node dist/cli.js demo:logs --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY"
 node dist/cli.js check-intent --intent "Pay approved vendor invoice" --action agent-send --chain-id 16661 --to "0xapproved..." --amount-wei "1000000000000000"
 node dist/cli.js capability:revoke --capability-id "cap_..." --owner-session-token "$TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN"
 ```
@@ -168,6 +210,11 @@ Available MCP tools now include:
 - `titan_check_intent`
 - `titan_get_capability`
 - `titan_get_proof_log`
+- `titan_demo_status`
+- `titan_demo_create_api_key`
+- `titan_demo_run`
+- `titan_demo_logs`
+- `titan_demo_anchor_security_log`
 - `titan_revoke_capability`
 - `titan_security_status`
 - `titan_run_ten_layer_rail`

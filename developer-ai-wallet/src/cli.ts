@@ -14,6 +14,7 @@ const client = new TitanAgentWalletClient({
   agentWalletId: stringArg('agent-wallet-id') || process.env.TITAN_AGENT_WALLET_ID,
   capabilityToken: stringArg('capability-token') || process.env.TITAN_AGENT_WALLET_CAPABILITY,
   ownerSessionToken: stringArg('owner-session-token') || process.env.TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN,
+  demoApiKey: stringArg('demo-api-key') || process.env.TITAN_AGENT_WALLET_DEMO_API_KEY,
 });
 
 async function main() {
@@ -62,6 +63,61 @@ async function main() {
       agentWalletId: stringArg('agent-wallet-id'),
       limit: numberArg('limit'),
       ownerSessionToken: stringArg('owner-session-token'),
+    }));
+    return;
+  }
+
+  if (command === 'demo:status') {
+    print(await client.getDemoStatus());
+    return;
+  }
+
+  if (command === 'demo:key') {
+    print(await client.createDemoApiKey({
+      label: stringArg('label') || 'TITAN Agent Intent Demo',
+    }));
+    return;
+  }
+
+  if (command === 'demo:run') {
+    const status = await client.getDemoStatus();
+    const scenario = stringArg('scenario') === 'blocked' ? 'blocked' : 'allowed';
+    const defaults = scenario === 'blocked'
+      ? {
+          intent: 'Send all wallet balance to unknown address',
+          action: 'transfer',
+          amount: '999',
+          recipient: '0xUnknownAddress',
+        }
+      : {
+          intent: 'Pay approved vendor invoice',
+          action: status.demo.action,
+          amount: status.demo.max_amount,
+          recipient: status.demo.approved_recipient,
+        };
+    print(await client.runDemoIntent({
+      demoApiKey: stringArg('demo-api-key'),
+      scenario,
+      intent: stringArg('intent') || defaults.intent,
+      action: stringArg('action') || defaults.action,
+      amount: stringArg('amount') || defaults.amount,
+      recipient: stringArg('recipient') || stringArg('to') || defaults.recipient,
+    }));
+    return;
+  }
+
+  if (command === 'demo:logs') {
+    print(await client.getDemoLogs({
+      demoApiKey: stringArg('demo-api-key'),
+      limit: numberArg('limit'),
+    }));
+    return;
+  }
+
+  if (command === 'demo:anchor') {
+    print(await client.anchorDemoSecurityLog({
+      demoApiKey: stringArg('demo-api-key'),
+      ownerRunToken: required('owner-run-token', 'TITAN_DEMO_OWNER_RUN_TOKEN'),
     }));
     return;
   }
@@ -209,6 +265,12 @@ Commands:
   layers
   capability
   proof:list
+  demo:status
+  demo:key --label "TITAN Agent Intent Demo"
+  demo:run --demo-api-key titan_demo_... --scenario allowed
+  demo:run --demo-api-key titan_demo_... --scenario blocked
+  demo:logs --demo-api-key titan_demo_...
+  demo:anchor --demo-api-key titan_demo_... --owner-run-token <owner-only>
   security-status
   check-intent --intent "Pay invoice" --action agent-send --chain-id 16661 --to 0x...
   capability:revoke --owner-session-token titan_owner_...
@@ -223,6 +285,7 @@ Environment:
   TITAN_AGENT_WALLET_ID=aw_...
   TITAN_AGENT_WALLET_CAPABILITY=cap_...
   TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN=titan_owner_...
+  TITAN_AGENT_WALLET_DEMO_API_KEY=titan_demo_...
   TITAN_AGENT_WALLET_PRIVATE_KEY=0x...
   TITAN_AGENT_WALLET_RPC_URL=https://evmrpc.0g.ai
 `);

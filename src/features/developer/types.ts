@@ -62,6 +62,86 @@ export interface DeveloperProofLog {
   metadata: Record<string, unknown>;
 }
 
+export interface DeveloperSecurityLog {
+  id: string;
+  owner_wallet_address: string;
+  demo_api_key_id: string;
+  proof_log_id: string | null;
+  category: 'security';
+  type: string;
+  status: string;
+  reason: string;
+  chain_id: number;
+  network: string;
+  registry_address: string | null;
+  tx_hash: string | null;
+  log_id: string | null;
+  mode: 'simulation' | 'live';
+  created_at: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface DeveloperDemoApiKey {
+  id: string;
+  prefix: string;
+  label: string;
+  status: 'active' | 'expired' | 'revoked';
+  scopes: string[];
+  created_at: string;
+  expires_at: string;
+  last_used_at: string | null;
+}
+
+export interface DeveloperDemoConfig {
+  name: string;
+  mode: 'simulation';
+  owner_wallet: string;
+  agent_wallet_id: string;
+  capability_id: string;
+  capability_name: string;
+  action: string;
+  max_amount: string;
+  max_amount_wei: string;
+  token: string;
+  approved_recipient: string;
+  policy_window: string;
+  chain_id: number;
+  network: string;
+  live_anchor_registry: string;
+  layers: string[];
+}
+
+export interface DeveloperDemoEvidenceLayer {
+  id: string;
+  name: string;
+  status: string;
+}
+
+export interface DeveloperDemoIntentResult {
+  success: boolean;
+  allowed: boolean;
+  reason: string;
+  policyResult: 'allowed' | 'blocked';
+  proofId: string;
+  proofHash: string;
+  anchorStatus: string;
+  railStatus: string;
+  mode: 'simulation';
+  ownerWallet: string;
+  agentWalletId: string;
+  capabilityId: string;
+  securityLogId: string;
+  proofLog: DeveloperProofLog;
+  securityLog: DeveloperSecurityLog;
+  evidence: DeveloperDemoEvidenceLayer[];
+}
+
+export interface DeveloperDemoLogs {
+  success: boolean;
+  proof_logs: DeveloperProofLog[];
+  security_logs: DeveloperSecurityLog[];
+}
+
 export interface DeveloperDashboard {
   success: boolean;
   owner_wallet_address: string;

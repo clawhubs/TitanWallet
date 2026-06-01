@@ -68,6 +68,7 @@ const LandingFooter: React.FC = () => {
                 { label: 'Security Center', to: '/securitycenter' },
                 { label: 'Activity', to: '/activity' },
                 { label: 'Onboarding', to: '/onboarding' },
+                { label: 'Developer API Demo', to: '/developer/demo' },
                 { label: 'Developer Docs', to: '/developer/docs' },
               ].map(item => (
                 <li key={item.to}>
