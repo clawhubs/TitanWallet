@@ -379,9 +379,10 @@ const LiveAnchorPanel: React.FC<{
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Owner-only</p>
-        <h2 className="mt-1 text-xl font-bold text-white">Live 0G security anchor</h2>
+        <h2 className="mt-1 text-xl font-bold text-white">Live 0G security proof anchor</h2>
         <p className="mt-2 text-sm leading-6 text-titan-subtext">
-          Optional live run records a security log on 0G mainnet. Public users cannot run it.
+          Optional live run writes the TITAN 10-layer security proof log to the 0G registry.
+          This is not a token transfer.
         </p>
       </div>
       <Lock className={ready ? 'text-titan-success' : 'text-titan-subtext'} />
@@ -402,15 +403,25 @@ const LiveAnchorPanel: React.FC<{
       <div className="mt-4 rounded-2xl border border-titan-accent/20 bg-titan-accent/5 p-4">
         <div className="mb-2 flex items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="accent">Latest live anchor</Badge>
+            <Badge variant="accent">TITAN 10-layer security proof anchor</Badge>
             <Badge variant="success">Verified on 0G mainnet</Badge>
+            <Badge variant="neutral">Value 0 OG</Badge>
             {typeof latestLiveAnchor.metadata?.block_number === 'number' ? (
               <Badge variant="neutral">{`Block ${latestLiveAnchor.metadata.block_number}`}</Badge>
             ) : null}
           </div>
           <span className="text-xs text-titan-subtext">{new Date(latestLiveAnchor.created_at).toLocaleString()}</span>
         </div>
-        <p className="text-sm font-semibold text-white">{latestLiveAnchor.tx_hash}</p>
+        <p className="text-sm leading-6 text-titan-subtext">
+          This transaction calls the TITAN Wallet Security Registry and emits a verifiable
+          security log for the demo rail. It proves the 10-layer check was anchored on-chain;
+          it does not send the 0.01 TEST demo amount.
+        </p>
+        <div className="mt-3 grid gap-2 text-xs text-titan-subtext sm:grid-cols-2">
+          <span>Tx type: <strong className="text-white">registry proof log</strong></span>
+          <span>On-chain value: <strong className="text-white">0 OG</strong></span>
+        </div>
+        <p className="mt-3 break-all text-sm font-semibold text-white">{latestLiveAnchor.tx_hash}</p>
         <a
           href={`https://chainscan.0g.ai/tx/${latestLiveAnchor.tx_hash}`}
           target="_blank"
