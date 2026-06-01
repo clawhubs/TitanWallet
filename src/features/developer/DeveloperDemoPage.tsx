@@ -475,6 +475,17 @@ const ResultPanel: React.FC<{ result: DeveloperDemoIntentResult | null }> = ({ r
     </div>
     {result ? (
       <div className="space-y-3 text-sm">
+        <InfoRow
+          label="Amount"
+          value={`${result.proofLog.metadata?.raw_amount || formatDemoAmount(result.proofLog.requested_amount_wei)} TEST`}
+        />
+        <InfoRow label="Action" value={result.proofLog.requested_action || '-'} />
+        <InfoRow
+          label="Recipient"
+          value={result.proofLog.metadata?.raw_recipient
+            ? String(result.proofLog.metadata.raw_recipient)
+            : (result.proofLog.requested_destination || '-')}
+        />
         <InfoRow label="Reason" value={result.reason} />
         <InfoRow label="Proof ID" value={result.proofId} />
         <InfoRow label="Proof hash" value={shortHash(result.proofHash)} />
@@ -602,6 +613,16 @@ function shortAddress(value: string) {
 
 function shortHash(value: string) {
   return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-8)}` : value;
+}
+
+function formatDemoAmount(value: string | null) {
+  if (!value || !/^\d+$/.test(value)) {
+    return '0';
+  }
+  const normalized = value.padStart(19, '0');
+  const whole = normalized.slice(0, -18).replace(/^0+(?=\d)/, '') || '0';
+  const fraction = normalized.slice(-18).replace(/0+$/, '');
+  return fraction ? `${whole}.${fraction}` : whole;
 }
 
 export default DeveloperDemoPage;
