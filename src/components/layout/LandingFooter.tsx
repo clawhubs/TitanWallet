@@ -2,6 +2,27 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, ExternalLink, MessageSquare, Globe } from 'lucide-react';
 
+const socialLinks = [
+  {
+    title: 'Contact support',
+    href: 'mailto:support@yieldboostai.xyz?subject=TITAN%20Wallet%20Support',
+    icon: MessageSquare,
+    external: false,
+  },
+  {
+    title: 'GitHub repository',
+    href: 'https://github.com/clawhubs/TitanWallet',
+    icon: ExternalLink,
+    external: true,
+  },
+  {
+    title: 'Open TITAN Wallet',
+    href: 'https://wallet.yieldboostai.xyz',
+    icon: Globe,
+    external: true,
+  },
+];
+
 const LandingFooter: React.FC = () => {
   return (
     <footer className="border-t border-titan-border bg-titan-surface">
@@ -19,15 +40,22 @@ const LandingFooter: React.FC = () => {
               A secure web wallet with context-aware TITAN rails. No install required. No compromise.
             </p>
             <div className="flex items-center gap-3 mt-5">
-              <a href="#" title="Twitter / X" className="w-8 h-8 rounded-lg flex items-center justify-center text-titan-subtext hover:text-titan-text hover:bg-titan-muted/40 transition-all">
-                <MessageSquare size={15} />
-              </a>
-              <a href="#" title="GitHub" className="w-8 h-8 rounded-lg flex items-center justify-center text-titan-subtext hover:text-titan-text hover:bg-titan-muted/40 transition-all">
-                <ExternalLink size={15} />
-              </a>
-              <a href="#" title="Website" className="w-8 h-8 rounded-lg flex items-center justify-center text-titan-subtext hover:text-titan-text hover:bg-titan-muted/40 transition-all">
-                <Globe size={15} />
-              </a>
+              {socialLinks.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <a
+                    key={item.title}
+                    href={item.href}
+                    title={item.title}
+                    aria-label={item.title}
+                    target={item.external ? '_blank' : undefined}
+                    rel={item.external ? 'noreferrer' : undefined}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-titan-subtext hover:text-titan-text hover:bg-titan-muted/40 transition-all"
+                  >
+                    <Icon size={15} />
+                  </a>
+                );
+              })}
             </div>
           </div>
 
