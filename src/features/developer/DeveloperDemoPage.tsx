@@ -401,7 +401,13 @@ const LiveAnchorPanel: React.FC<{
     {latestLiveAnchor?.tx_hash ? (
       <div className="mt-4 rounded-2xl border border-titan-accent/20 bg-titan-accent/5 p-4">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <Badge variant="accent">Latest live anchor</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="accent">Latest live anchor</Badge>
+            <Badge variant="success">Verified on 0G mainnet</Badge>
+            {typeof latestLiveAnchor.metadata?.block_number === 'number' ? (
+              <Badge variant="neutral">{`Block ${latestLiveAnchor.metadata.block_number}`}</Badge>
+            ) : null}
+          </div>
           <span className="text-xs text-titan-subtext">{new Date(latestLiveAnchor.created_at).toLocaleString()}</span>
         </div>
         <p className="text-sm font-semibold text-white">{latestLiveAnchor.tx_hash}</p>

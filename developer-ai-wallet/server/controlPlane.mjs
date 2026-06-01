@@ -90,7 +90,7 @@ export async function handleAgentWalletControlPlane(request, response) {
   }
 
   if (action === 'demo_status') {
-    const latestLiveAnchor = getLatestDemoLiveAnchor(store);
+    const latestLiveAnchor = await getLatestDemoLiveAnchor(store);
     return sendJson(response, 200, {
       success: true,
       demo: buildDemoConfig(),
@@ -191,6 +191,8 @@ export async function handleAgentWalletControlPlane(request, response) {
         metadata: {
           explorer_url: anchor.explorerUrl,
           action: 'demo_security_anchor',
+          block_number: anchor.blockNumber,
+          verified_network: DEMO_NETWORK_NAME,
         },
       });
       proofLog.status = 'anchored';
@@ -834,12 +836,31 @@ function buildDemoConfig() {
   };
 }
 
-function getLatestDemoLiveAnchor(store) {
-  return Object.values(store.security_logs)
+async function getLatestDemoLiveAnchor(store) {
+  const latestAnchor = Object.values(store.security_logs)
     .filter((entry) => entry.metadata?.demo === true)
     .filter((entry) => entry.mode === 'live')
     .filter((entry) => typeof entry.tx_hash === 'string' && entry.tx_hash)
     .sort(sortNewestFirstByCreatedAt)[0] || null;
+
+  if (!latestAnchor) {
+    return null;
+  }
+
+  if (latestAnchor.tx_hash && latestAnchor.metadata?.block_number == null) {
+    try {
+      const provider = new JsonRpcProvider(DEMO_RPC_URL);
+      const receipt = await provider.getTransactionReceipt(latestAnchor.tx_hash);
+      if (receipt) {
+        latestAnchor.metadata.block_number = Number(receipt.blockNumber);
+        latestAnchor.metadata.verified_network = DEMO_NETWORK_NAME;
+      }
+    } catch {
+      // Keep demo status available even if receipt enrichment fails.
+    }
+  }
+
+  return latestAnchor;
 }
 
 function createDemoApiKey(store, body) {
@@ -1147,6 +1168,7 @@ async function anchorDemoSecurityLog(input) {
     txHash: tx.hash,
     logId: event?.args?.logId?.toString() || null,
     explorerUrl: `https://chainscan.0g.ai/tx/${tx.hash}`,
+    blockNumber: receipt?.blockNumber ? Number(receipt.blockNumber) : null,
   };
 }
 
