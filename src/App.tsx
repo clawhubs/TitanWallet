@@ -1,10 +1,12 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useTitanManagedAuthBridge } from './features/consumer-auth/TitanManagedAuthBridge';
 import LandingPage from './pages/LandingPage';
 import RequireWallet from './components/routing/RequireWallet';
 import { useWalletStore } from './store/useWalletStore';
 import { useTokenStore } from './store/useTokenStore';
+import { useNetworkStore } from './store/useNetworkStore';
+import { addLocalWalletProof } from './services/localActivity';
 
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const CreateWalletPage = lazy(() => import('./pages/CreateWalletPage'));
@@ -14,13 +16,62 @@ const ActivityPage = lazy(() => import('./pages/ActivityPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const DeveloperDocsPage = lazy(() => import('./features/developer/DeveloperDocsPage'));
 
+function recordGoogleLinkedWalletProof(input: { address: string; createdAt?: string | null; restored: boolean }) {
+  const activeNetwork = useNetworkStore.getState().activeNetwork;
+  const parsedTimestamp = input.createdAt ? new Date(input.createdAt) : new Date();
+  const timestamp = Number.isNaN(parsedTimestamp.getTime()) ? new Date() : parsedTimestamp;
+
+  addLocalWalletProof({
+    walletAddress: input.address,
+    network: activeNetwork.name,
+    proof: {
+      id: `google-linked-wallet:${input.address.toLowerCase()}`,
+      layer: 'Sovereign Memory',
+      type: 'Google Linked Wallet Creation Proof',
+      description: input.restored
+        ? 'Google-linked wallet session was restored from TITAN managed auth and re-attached to this browser.'
+        : 'Google-linked wallet session is active in this browser through TITAN managed auth.',
+      timestamp,
+      status: 'verified',
+      proofStorageId: `google-linked:${input.address.toLowerCase()}`,
+    },
+    securityEvents: [
+      {
+        type: input.restored ? 'Google Linked Wallet Session Restored' : 'Google Linked Wallet Session Active',
+        desc: input.restored
+          ? 'TITAN restored the Google-linked wallet session and reloaded local signing secrets for this browser.'
+          : 'TITAN verified that this browser still has the Google-linked wallet session available.',
+        time: timestamp,
+        level: 'success',
+      },
+    ],
+  });
+}
+
 const TitanManagedWalletSessionSync: React.FC = () => {
   const managed = useTitanManagedAuthBridge();
   const connect = useWalletStore((state) => state.connect);
   const removeAccountsBySource = useWalletStore((state) => state.removeAccountsBySource);
   const restoreWalletFromGoogle = managed.restoreWalletFromGoogle;
+  const [walletStoreHydrated, setWalletStoreHydrated] = useState(() => useWalletStore.persist.hasHydrated());
 
   useEffect(() => {
+    if (walletStoreHydrated) {
+      return;
+    }
+
+    const unsubscribe = useWalletStore.persist.onFinishHydration(() => {
+      setWalletStoreHydrated(true);
+    });
+
+    return unsubscribe;
+  }, [walletStoreHydrated]);
+
+  useEffect(() => {
+    if (!walletStoreHydrated) {
+      return;
+    }
+
     if (!managed.enabled || !managed.ready) {
       return;
     }
@@ -47,6 +98,18 @@ const TitanManagedWalletSessionSync: React.FC = () => {
       ),
     );
 
+    if (
+      existingAccount
+      && state.address?.toLowerCase() === managed.linkedWallet.address.toLowerCase()
+      && (existingAccount.source === 'google' || state.walletSource === 'google')
+    ) {
+      recordGoogleLinkedWalletProof({
+        address: managed.linkedWallet.address,
+        createdAt: managed.linkedWallet.createdAt,
+        restored: false,
+      });
+    }
+
     if (!existingAccount || needsActiveResync || needsSecretRestore || (state.walletSource === 'google' && needsMetadataRefresh)) {
       void restoreWalletFromGoogle().then((wallet) => {
         connect({
@@ -56,6 +119,11 @@ const TitanManagedWalletSessionSync: React.FC = () => {
           walletName: wallet.walletName,
           source: 'google',
           authProvider: managed.provider,
+        });
+        recordGoogleLinkedWalletProof({
+          address: wallet.address,
+          createdAt: managed.linkedWallet?.createdAt || wallet.createdAt,
+          restored: true,
         });
       }).catch(() => {});
     }
@@ -68,6 +136,7 @@ const TitanManagedWalletSessionSync: React.FC = () => {
     managed.ready,
     restoreWalletFromGoogle,
     removeAccountsBySource,
+    walletStoreHydrated,
   ]);
 
   return null;

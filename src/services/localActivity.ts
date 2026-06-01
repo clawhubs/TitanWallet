@@ -103,16 +103,21 @@ export function getLocalWalletEvents(walletAddress: string | null, network: stri
   }
 
   const normalizedAddress = walletAddress.toLowerCase();
-  const events = getAllLocalWalletEvents().filter(
-    (event) =>
-      event.walletAddress.toLowerCase() === normalizedAddress &&
-      event.network === network,
+  const walletEvents = getAllLocalWalletEvents().filter(
+    (event) => event.walletAddress.toLowerCase() === normalizedAddress,
   );
+  const networkEvents = walletEvents.filter((event) => event.network === network);
 
   return {
-    activity: events.flatMap((event) => (event.activity ? [event.activity] : [])),
-    proofs: events.flatMap((event) => event.proofs),
-    securityEvents: events.flatMap((event) => event.securityEvents),
+    activity: networkEvents
+      .flatMap((event) => (event.activity ? [event.activity] : []))
+      .sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime()),
+    proofs: walletEvents
+      .flatMap((event) => event.proofs)
+      .sort((left, right) => right.timestamp.getTime() - left.timestamp.getTime()),
+    securityEvents: walletEvents
+      .flatMap((event) => event.securityEvents)
+      .sort((left, right) => right.time.getTime() - left.time.getTime()),
   };
 }
 

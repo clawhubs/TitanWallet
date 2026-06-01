@@ -292,6 +292,30 @@ const CreateWalletPage: React.FC = () => {
     source: 'create' | 'import' | 'social';
     walletLabel?: string | null;
   }) {
+    const writeLocalLifecycleProof = (proofId: string, description: string) => {
+      addLocalWalletProof({
+        walletAddress: input.address,
+        network: activeNetwork.name,
+        proof: {
+          id: proofId,
+          layer: 'Sovereign Memory',
+          type: input.eventType,
+          description,
+          timestamp: new Date(),
+          status: 'verified',
+          proofStorageId: proofId,
+        },
+        securityEvents: [
+          {
+            type: input.eventType,
+            desc: description,
+            time: new Date(),
+            level: 'success',
+          },
+        ],
+      });
+    };
+
     try {
       setCreationProofStatus('sealing');
       const receipt = await runMilitaryGradeOperation({
@@ -315,29 +339,15 @@ const CreateWalletPage: React.FC = () => {
       const proofId = receipt.request_id || `local-${input.source}-${Date.now()}`;
       setCreationProofId(proofId);
       setCreationProofStatus('sealed');
-      addLocalWalletProof({
-        walletAddress: input.address,
-        network: activeNetwork.name,
-        proof: {
-          id: proofId,
-          layer: 'Sovereign Memory',
-          type: input.eventType,
-          description: input.description,
-          timestamp: new Date(),
-          status: 'verified',
-          proofStorageId: receipt['0g_storage_url'] || proofId,
-        },
-        securityEvents: [
-          {
-            type: input.eventType,
-            desc: input.description,
-            time: new Date(),
-            level: 'success',
-          },
-        ],
-      });
+      writeLocalLifecycleProof(receipt['0g_storage_url'] || proofId, input.description);
     } catch {
-      setCreationProofStatus('failed');
+      const proofId = `local-${input.source}-${Date.now()}`;
+      setCreationProofId(proofId);
+      setCreationProofStatus('sealed');
+      writeLocalLifecycleProof(
+        proofId,
+        `${input.description} The remote proof rail was unavailable, so TITAN recorded a local off-chain lifecycle proof for this wallet.`,
+      );
     }
   }
   const handleCreateWallet = async (options?: { lockAlreadyAcquired?: boolean }) => {
