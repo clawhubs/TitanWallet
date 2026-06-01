@@ -102,18 +102,57 @@ const SWAP_TOKEN_PRESETS: Record<string, Token[]> = {
   ],
 };
 
+function normalizeSwapNetworkKey(value: string) {
+  const normalized = value.trim().toLowerCase();
+
+  if (!normalized) {
+    return normalized;
+  }
+
+  if (normalized.includes('galileo') || normalized === '0g-galileo') {
+    return '0g-galileo';
+  }
+
+  if (normalized === '0g' || normalized === '0g-mainnet' || normalized.includes('0g mainnet')) {
+    return '0g-mainnet';
+  }
+
+  if (normalized === 'ethereum sepolia') {
+    return 'sepolia';
+  }
+
+  if (normalized === 'arbitrum sepolia') {
+    return 'arbitrum-sepolia';
+  }
+
+  if (normalized === 'bnb chain') {
+    return 'bnb';
+  }
+
+  return normalized;
+}
+
 function getTokenIdentity(token: Token) {
-  return token.contractAddress?.toLowerCase() || `${token.network}:${token.symbol}`.toLowerCase();
+  const networkKey = normalizeSwapNetworkKey(token.network);
+  const symbolKey = token.symbol.trim().toUpperCase();
+
+  return token.contractAddress?.toLowerCase() || `${networkKey}:${symbolKey}`;
 }
 
 export function getSwapTokensForNetwork(network: Network, walletTokens: Token[]) {
-  const walletTokensOnNetwork = walletTokens.filter((token) => token.network === network.name);
+  const networkKey = normalizeSwapNetworkKey(network.id || network.name);
+  const walletTokensOnNetwork = walletTokens.filter(
+    (token) => normalizeSwapNetworkKey(token.network) === networkKey,
+  );
   const presets = SWAP_TOKEN_PRESETS[network.id] || [];
   const merged = [...walletTokensOnNetwork, ...presets];
 
   const uniqueTokens = new Map<string, Token>();
   for (const token of merged) {
-    uniqueTokens.set(getTokenIdentity(token), token);
+    const tokenIdentity = getTokenIdentity(token);
+    if (!uniqueTokens.has(tokenIdentity)) {
+      uniqueTokens.set(tokenIdentity, token);
+    }
   }
 
   const result = Array.from(uniqueTokens.values());
