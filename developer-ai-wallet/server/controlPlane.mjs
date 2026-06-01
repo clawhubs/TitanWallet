@@ -90,10 +90,12 @@ export async function handleAgentWalletControlPlane(request, response) {
   }
 
   if (action === 'demo_status') {
+    const latestLiveAnchor = getLatestDemoLiveAnchor(store);
     return sendJson(response, 200, {
       success: true,
       demo: buildDemoConfig(),
       live_anchor_ready: Boolean(DEMO_WALLET_PRIVATE_KEY && DEMO_OWNER_RUN_TOKEN),
+      latest_live_anchor: latestLiveAnchor,
     });
   }
 
@@ -830,6 +832,14 @@ function buildDemoConfig() {
     live_anchor_registry: DEMO_SECURITY_REGISTRY_ADDRESS,
     layers: TEN_LAYERS,
   };
+}
+
+function getLatestDemoLiveAnchor(store) {
+  return Object.values(store.security_logs)
+    .filter((entry) => entry.metadata?.demo === true)
+    .filter((entry) => entry.mode === 'live')
+    .filter((entry) => typeof entry.tx_hash === 'string' && entry.tx_hash)
+    .sort(sortNewestFirstByCreatedAt)[0] || null;
 }
 
 function createDemoApiKey(store, body) {

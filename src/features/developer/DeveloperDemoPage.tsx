@@ -27,6 +27,7 @@ import type {
   DeveloperDemoConfig,
   DeveloperDemoEvidenceLayer,
   DeveloperDemoIntentResult,
+  DeveloperDemoLatestAnchor,
   DeveloperProofLog,
   DeveloperSecurityLog,
 } from './types';
@@ -68,6 +69,7 @@ const DeveloperDemoPage: React.FC = () => {
   const [liveAnchorReady, setLiveAnchorReady] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [apiKeyRecord, setApiKeyRecord] = useState<DeveloperDemoApiKey | null>(null);
+  const [latestLiveAnchor, setLatestLiveAnchor] = useState<DeveloperDemoLatestAnchor | null>(null);
   const [proofLogs, setProofLogs] = useState<DeveloperProofLog[]>([]);
   const [securityLogs, setSecurityLogs] = useState<DeveloperSecurityLog[]>([]);
   const [result, setResult] = useState<DeveloperDemoIntentResult | null>(null);
@@ -81,6 +83,7 @@ const DeveloperDemoPage: React.FC = () => {
       .then((payload) => {
         setDemo(payload.demo);
         setLiveAnchorReady(payload.live_anchor_ready);
+        setLatestLiveAnchor(payload.latest_live_anchor);
         setEvidence(payload.demo.layers.map((name, index) => ({
           id: `L${String(index + 1).padStart(2, '0')}`,
           name,
@@ -164,6 +167,7 @@ const DeveloperDemoPage: React.FC = () => {
         demoApiKey: apiKey,
         ownerRunToken,
       });
+      setLatestLiveAnchor(payload.security_log);
       await refreshLogs(apiKey);
       setMessage(`Live security anchor recorded: ${payload.anchor.txHash}`);
     } catch (error) {
@@ -262,6 +266,7 @@ const DeveloperDemoPage: React.FC = () => {
           <ApiKeyPanel apiKey={apiKey} apiKeyRecord={apiKeyRecord} busy={busy === 'key'} onCreate={() => void generateApiKey()} onCopy={() => void copyApiKey()} />
           <LiveAnchorPanel
             ready={liveAnchorReady}
+            latestLiveAnchor={latestLiveAnchor}
             ownerRunToken={ownerRunToken}
             busy={busy === 'anchor'}
             onOwnerRunTokenChange={setOwnerRunToken}
@@ -364,11 +369,12 @@ const ApiKeyPanel: React.FC<{
 
 const LiveAnchorPanel: React.FC<{
   ready: boolean;
+  latestLiveAnchor: DeveloperDemoLatestAnchor | null;
   ownerRunToken: string;
   busy: boolean;
   onOwnerRunTokenChange: (value: string) => void;
   onRun: () => void;
-}> = ({ ready, ownerRunToken, busy, onOwnerRunTokenChange, onRun }) => (
+}> = ({ ready, latestLiveAnchor, ownerRunToken, busy, onOwnerRunTokenChange, onRun }) => (
   <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
@@ -392,6 +398,23 @@ const LiveAnchorPanel: React.FC<{
         Anchor live
       </Button>
     </div>
+    {latestLiveAnchor?.tx_hash ? (
+      <div className="mt-4 rounded-2xl border border-titan-accent/20 bg-titan-accent/5 p-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <Badge variant="accent">Latest live anchor</Badge>
+          <span className="text-xs text-titan-subtext">{new Date(latestLiveAnchor.created_at).toLocaleString()}</span>
+        </div>
+        <p className="text-sm font-semibold text-white">{latestLiveAnchor.tx_hash}</p>
+        <a
+          href={`https://chainscan.0g.ai/tx/${latestLiveAnchor.tx_hash}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-white"
+        >
+          Inspect on 0G explorer <ExternalLink size={13} />
+        </a>
+      </div>
+    ) : null}
   </div>
 );
 

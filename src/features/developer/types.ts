@@ -111,6 +111,25 @@ export interface DeveloperDemoConfig {
   layers: string[];
 }
 
+export interface DeveloperDemoLatestAnchor {
+  id: string;
+  owner_wallet_address: string;
+  demo_api_key_id: string;
+  proof_log_id: string | null;
+  category: 'security';
+  type: string;
+  status: string;
+  reason: string;
+  chain_id: number;
+  network: string;
+  registry_address: string | null;
+  tx_hash: string | null;
+  log_id: string | null;
+  mode: 'simulation' | 'live';
+  created_at: string;
+  metadata: Record<string, unknown>;
+}
+
 export interface DeveloperDemoEvidenceLayer {
   id: string;
   name: string;

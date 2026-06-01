@@ -3,6 +3,7 @@ import type {
   DeveloperDemoApiKey,
   DeveloperDemoConfig,
   DeveloperDemoIntentResult,
+  DeveloperDemoLatestAnchor,
   DeveloperDemoLogs,
   DeveloperSecurityLog,
   OwnerSession,
@@ -133,6 +134,7 @@ export async function getDeveloperDemoStatus() {
     success: boolean;
     demo: DeveloperDemoConfig;
     live_anchor_ready: boolean;
+    latest_live_anchor: DeveloperDemoLatestAnchor | null;
   }>({
     action: 'demo_status',
   });
