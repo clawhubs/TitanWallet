@@ -33,6 +33,10 @@ const MCP_TOOLS = [
   'titan_health',
   'titan_layers',
   'titan_check_intent',
+  'titan_get_capability',
+  'titan_get_proof_log',
+  'titan_revoke_capability',
+  'titan_security_status',
   'titan_run_ten_layer_rail',
   'titan_seal_memory',
   'titan_send_native',
@@ -63,16 +67,24 @@ const client = new TitanAgentWalletClient({
 
 await client.checkIntent({
   intent: "Pay approved vendor invoice",
+  action: "agent-send",
+  chainId: 16661,
+  destinationAddress: "0xapproved...",
+  amountWei: "1000000000000000",
   actor: "my-local-agent",
 });`;
 
 const CLI_SNIPPET = `node dist/cli.js health
+node dist/cli.js capability
+node dist/cli.js proof:list --limit 10
 node dist/cli.js layers
 node dist/cli.js check-intent \\
-  --intent "Pay approved vendor invoice"
-node dist/cli.js run \\
-  --action agent-simulate \\
-  --intent "Prepare capped transfer"`;
+  --intent "Pay approved vendor invoice" \\
+  --action agent-send \\
+  --chain-id 16661 \\
+  --to "0xapproved..." \\
+  --amount-wei "1000000000000000"
+node dist/cli.js security-status`;
 
 const MCP_BOOT_SNIPPET = `cd developer-ai-wallet
 npm install

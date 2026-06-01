@@ -13,6 +13,7 @@ const client = new TitanAgentWalletClient({
   projectId: stringArg('project-id') || process.env.TITAN_AGENT_WALLET_PROJECT_ID,
   agentWalletId: stringArg('agent-wallet-id') || process.env.TITAN_AGENT_WALLET_ID,
   capabilityToken: stringArg('capability-token') || process.env.TITAN_AGENT_WALLET_CAPABILITY,
+  ownerSessionToken: stringArg('owner-session-token') || process.env.TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN,
 });
 
 async function main() {
@@ -34,9 +35,48 @@ async function main() {
   if (command === 'check-intent') {
     print(await client.checkIntent({
       intent: required('intent'),
+      action: (stringArg('action') || 'agent-intent-check') as never,
       toolSummary: stringArg('tool-summary'),
       actor: stringArg('actor') || 'developer-ai',
       sessionId: stringArg('session-id'),
+      chainId: numberArg('chain-id'),
+      destinationAddress: stringArg('to'),
+      contractAddress: stringArg('contract-address'),
+      amountWei: stringArg('amount-wei'),
+    }));
+    return;
+  }
+
+  if (command === 'capability') {
+    print(await client.getCapability({
+      capabilityId: stringArg('capability-id'),
+      ownerSessionToken: stringArg('owner-session-token'),
+    }));
+    return;
+  }
+
+  if (command === 'proof:list') {
+    print(await client.getProofLog({
+      capabilityId: stringArg('capability-id'),
+      projectId: stringArg('project-id'),
+      agentWalletId: stringArg('agent-wallet-id'),
+      limit: numberArg('limit'),
+      ownerSessionToken: stringArg('owner-session-token'),
+    }));
+    return;
+  }
+
+  if (command === 'capability:revoke') {
+    print(await client.revokeCapability({
+      capabilityId: stringArg('capability-id'),
+      ownerSessionToken: required('owner-session-token', 'TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN'),
+    }));
+    return;
+  }
+
+  if (command === 'security-status') {
+    print(await client.securityStatus({
+      ownerSessionToken: stringArg('owner-session-token'),
     }));
     return;
   }
@@ -167,7 +207,11 @@ function printHelp() {
 Commands:
   health
   layers
-  check-intent --intent "Pay invoice"
+  capability
+  proof:list
+  security-status
+  check-intent --intent "Pay invoice" --action agent-send --chain-id 16661 --to 0x...
+  capability:revoke --owner-session-token titan_owner_...
   run --action agent-simulate --intent "Prepare a treasury transfer"
   seal --private-key <key> --plaintext '{"memory":"trusted vendor"}'
   send --private-key <key> --rpc-url <url> --to <address> --value-eth 0.001 --intent "Pay vendor"
@@ -178,6 +222,7 @@ Environment:
   TITAN_AGENT_WALLET_PROJECT_ID=proj_...
   TITAN_AGENT_WALLET_ID=aw_...
   TITAN_AGENT_WALLET_CAPABILITY=cap_...
+  TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN=titan_owner_...
   TITAN_AGENT_WALLET_PRIVATE_KEY=0x...
   TITAN_AGENT_WALLET_RPC_URL=https://evmrpc.0g.ai
 `);

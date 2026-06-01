@@ -57,7 +57,9 @@ export async function issueDeveloperCapability(input: {
   agentWalletId: string;
   maxValueWei: string;
   dailyLimitWei: string;
+  allowedActions: string[];
   allowedChainIds: number[];
+  allowedContracts: string[];
   allowedDestinations: string[];
   expiresAt: string;
 }) {
@@ -66,7 +68,9 @@ export async function issueDeveloperCapability(input: {
     agent_wallet_id: input.agentWalletId,
     max_value_wei: input.maxValueWei,
     daily_limit_wei: input.dailyLimitWei,
+    allowed_actions: input.allowedActions,
     allowed_chain_ids: input.allowedChainIds,
+    allowed_contracts: input.allowedContracts,
     allowed_destinations: input.allowedDestinations,
     expires_at: input.expiresAt,
   }, input.ownerSessionToken);
@@ -79,6 +83,40 @@ export async function revokeDeveloperCapability(input: {
   return post<DeveloperDashboard & { capability: unknown }>({
     action: 'revoke_capability',
     capability_id: input.capabilityId,
+  }, input.ownerSessionToken);
+}
+
+export async function rotateDeveloperCapability(input: {
+  ownerSessionToken: string;
+  capabilityId: string;
+}) {
+  return post<DeveloperDashboard & { capability: unknown }>({
+    action: 'rotate_capability',
+    capability_id: input.capabilityId,
+  }, input.ownerSessionToken);
+}
+
+export async function setDeveloperProjectStatus(input: {
+  ownerSessionToken: string;
+  projectId: string;
+  status: 'active' | 'disabled';
+}) {
+  return post<DeveloperDashboard & { project: unknown }>({
+    action: 'set_project_status',
+    project_id: input.projectId,
+    status: input.status,
+  }, input.ownerSessionToken);
+}
+
+export async function setDeveloperAgentWalletStatus(input: {
+  ownerSessionToken: string;
+  agentWalletId: string;
+  status: 'active' | 'paused';
+}) {
+  return post<DeveloperDashboard & { agent_wallet: unknown }>({
+    action: 'set_agent_wallet_status',
+    agent_wallet_id: input.agentWalletId,
+    status: input.status,
   }, input.ownerSessionToken);
 }
 

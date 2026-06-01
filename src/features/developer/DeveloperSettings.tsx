@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Clipboard, Cpu, KeyRound, Plus, ShieldCheck, Terminal, WalletCards } from 'lucide-react';
 import Button from '../../components/ui/Button';
@@ -11,6 +11,9 @@ import {
   getDeveloperDashboard,
   issueDeveloperCapability,
   revokeDeveloperCapability,
+  rotateDeveloperCapability,
+  setDeveloperAgentWalletStatus,
+  setDeveloperProjectStatus,
   verifyOwnerChallenge,
 } from './api';
 import type { DeveloperCapability, DeveloperDashboard, OwnerSession } from './types';
@@ -37,6 +40,8 @@ npm install
 npm run build
 npm run mcp`;
 
+const DEFAULT_ALLOWED_ACTIONS = 'agent-intent-check,agent-send,agent-sign,agent-memory-seal,agent-tool-result';
+
 const SDK_SNIPPET = `import { TitanAgentWalletClient } from "@titan/agent-wallet";
 
 const client = new TitanAgentWalletClient({
@@ -61,59 +66,94 @@ const DeveloperSettings: React.FC = () => {
   const [agentName, setAgentName] = useState('Autonomous Wallet Agent');
   const [maxValueWei, setMaxValueWei] = useState('10000000000000000');
   const [dailyLimitWei, setDailyLimitWei] = useState('50000000000000000');
+  const [allowedActions, setAllowedActions] = useState(DEFAULT_ALLOWED_ACTIONS);
   const [allowedChainIds, setAllowedChainIds] = useState('16661');
+  const [allowedContracts, setAllowedContracts] = useState('');
   const [allowedDestinations, setAllowedDestinations] = useState('');
   const [status, setStatus] = useState('Waiting for owner wallet session.');
   const [busy, setBusy] = useState(false);
 
-  const activeProject = dashboard?.projects[0] || null;
-  const activeAgentWallet = dashboard?.agent_wallets.find((wallet) => wallet.project_id === activeProject?.id) || dashboard?.agent_wallets[0] || null;
+  const activeProject = useMemo(
+    () => dashboard?.projects.find((project) => project.status === 'active') || dashboard?.projects[0] || null,
+    [dashboard?.projects],
+  );
+  const activeAgentWallet = useMemo(
+    () => dashboard?.agent_wallets.find((wallet) => wallet.project_id === activeProject?.id && wallet.status === 'active')
+      || dashboard?.agent_wallets.find((wallet) => wallet.project_id === activeProject?.id)
+      || dashboard?.agent_wallets[0]
+      || null,
+    [activeProject?.id, dashboard?.agent_wallets],
+  );
   const activeCapability = useMemo(
     () => dashboard?.capabilities.find((capability) => capability.status === 'active' && capability.agent_wallet_id === activeAgentWallet?.id) || null,
     [activeAgentWallet?.id, dashboard?.capabilities],
   );
+  const recentProofLogs = dashboard?.proof_logs.slice(0, 12) || [];
+
+  const authorizeOwnerWallet = useEffectEvent(async (walletAddress: string, onSettled: (next: {
+    ownerSession: OwnerSession | null;
+    dashboard: DeveloperDashboard | null;
+    status: string;
+  }) => void, onBusyChange: (nextBusy: boolean) => void, onStart: (nextStatus: string) => void) => {
+    try {
+      onBusyChange(true);
+      onStart('Verifying owner wallet for developer API access...');
+      const challenge = await createOwnerChallenge(walletAddress);
+      const signature = await signTextMessage(challenge.message);
+      const session = await verifyOwnerChallenge({
+        challengeId: challenge.challenge_id,
+        signature,
+      });
+      const nextDashboard = await getDeveloperDashboard(session.owner_session_token);
+      onSettled({
+        ownerSession: session,
+        dashboard: nextDashboard,
+        status: 'Owner wallet verified. Developer API access is ready.',
+      });
+    } catch (error) {
+      onSettled({
+        ownerSession: null,
+        dashboard: null,
+        status: error instanceof Error ? error.message : 'Developer API owner verification failed.',
+      });
+    } finally {
+      onBusyChange(false);
+    }
+  });
 
   useEffect(() => {
-    let disposed = false;
+    let cancelled = false;
 
-    const authorize = async () => {
-      if (!address) {
-        return;
-      }
-      try {
-        setBusy(true);
-        setStatus('Verifying owner wallet for developer API access...');
-        const challenge = await createOwnerChallenge(address);
-        const signature = await signTextMessage(challenge.message);
-        const session = await verifyOwnerChallenge({
-          challengeId: challenge.challenge_id,
-          signature,
-        });
-        if (disposed) {
+    if (!address) {
+      return undefined;
+    }
+
+    void authorizeOwnerWallet(
+      address,
+      (next) => {
+        if (cancelled) {
           return;
         }
-        setOwnerSession(session);
-        const nextDashboard = await getDeveloperDashboard(session.owner_session_token);
-        if (!disposed) {
-          setDashboard(nextDashboard);
-          setStatus('Owner wallet verified. Developer API access is ready.');
+        setOwnerSession(next.ownerSession);
+        setDashboard(next.dashboard);
+        setStatus(next.status);
+      },
+      (nextBusy) => {
+        if (!cancelled) {
+          setBusy(nextBusy);
         }
-      } catch (error) {
-        if (!disposed) {
-          setStatus(error instanceof Error ? error.message : 'Developer API owner verification failed.');
+      },
+      (nextStatus) => {
+        if (!cancelled) {
+          setStatus(nextStatus);
         }
-      } finally {
-        if (!disposed) {
-          setBusy(false);
-        }
-      }
-    };
+      },
+    );
 
-    void authorize();
     return () => {
-      disposed = true;
+      cancelled = true;
     };
-  }, [address, signTextMessage]);
+  }, [address]);
 
   const refresh = async () => {
     if (!ownerSession) {
@@ -168,7 +208,9 @@ const DeveloperSettings: React.FC = () => {
         agentWalletId: activeAgentWallet.id,
         maxValueWei,
         dailyLimitWei,
+        allowedActions: allowedActions.split(',').map((item) => item.trim()).filter(Boolean),
         allowedChainIds: allowedChainIds.split(',').map((item) => Number.parseInt(item.trim(), 10)).filter(Number.isFinite),
+        allowedContracts: allowedContracts.split(',').map((item) => item.trim()).filter(Boolean),
         allowedDestinations: allowedDestinations.split(',').map((item) => item.trim()).filter(Boolean),
         expiresAt: new Date(Date.now() + DEFAULT_EXPIRY_HOURS * 60 * 60 * 1000).toISOString(),
       });
@@ -191,6 +233,61 @@ const DeveloperSettings: React.FC = () => {
       });
       setDashboard(nextDashboard);
       setStatus('Capability revoked.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rotateCapability = async (capability: DeveloperCapability) => {
+    if (!ownerSession) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const nextDashboard = await rotateDeveloperCapability({
+        ownerSessionToken: ownerSession.owner_session_token,
+        capabilityId: capability.id,
+      });
+      setDashboard(nextDashboard);
+      setStatus('Capability rotated and a new runtime token is active.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleProjectStatus = async () => {
+    if (!ownerSession || !activeProject) {
+      return;
+    }
+    const nextStatus = activeProject.status === 'active' ? 'disabled' : 'active';
+    setBusy(true);
+    try {
+      const nextDashboard = await setDeveloperProjectStatus({
+        ownerSessionToken: ownerSession.owner_session_token,
+        projectId: activeProject.id,
+        status: nextStatus,
+      });
+      setDashboard(nextDashboard);
+      setStatus(nextStatus === 'disabled' ? 'Project disabled.' : 'Project re-enabled.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleAgentWalletStatus = async () => {
+    if (!ownerSession || !activeAgentWallet) {
+      return;
+    }
+    const nextStatus = activeAgentWallet.status === 'active' ? 'paused' : 'active';
+    setBusy(true);
+    try {
+      const nextDashboard = await setDeveloperAgentWalletStatus({
+        ownerSessionToken: ownerSession.owner_session_token,
+        agentWalletId: activeAgentWallet.id,
+        status: nextStatus,
+      });
+      setDashboard(nextDashboard);
+      setStatus(nextStatus === 'paused' ? 'Agent wallet paused.' : 'Agent wallet resumed.');
     } finally {
       setBusy(false);
     }
@@ -299,6 +396,16 @@ const DeveloperSettings: React.FC = () => {
               <Button className="mt-4 w-full" disabled={busy || !ownerSession} onClick={() => void createProject()}>
                 <Plus size={15} /> Create project
               </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge variant={activeProject?.status === 'active' ? 'success' : 'neutral'} size="sm">
+                  {activeProject?.status || 'empty'}
+                </Badge>
+                {activeProject ? (
+                  <Button variant="ghost" size="sm" onClick={() => void toggleProjectStatus()} disabled={busy}>
+                    {activeProject.status === 'active' ? 'Disable' : 'Enable'}
+                  </Button>
+                ) : null}
+              </div>
               <p className="mt-3 break-all text-xs text-titan-subtext">{activeProject?.id || 'No project yet.'}</p>
             </div>
 
@@ -309,6 +416,16 @@ const DeveloperSettings: React.FC = () => {
               <Button className="mt-4 w-full" disabled={busy || !activeProject} onClick={() => void createAgentWallet()}>
                 <KeyRound size={15} /> Create agent wallet
               </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge variant={activeAgentWallet?.status === 'active' ? 'success' : 'neutral'} size="sm">
+                  {activeAgentWallet?.status || 'empty'}
+                </Badge>
+                {activeAgentWallet ? (
+                  <Button variant="ghost" size="sm" onClick={() => void toggleAgentWalletStatus()} disabled={busy}>
+                    {activeAgentWallet.status === 'active' ? 'Pause' : 'Resume'}
+                  </Button>
+                ) : null}
+              </div>
               <p className="mt-3 break-all text-xs text-titan-subtext">{activeAgentWallet?.id || 'Create a project first.'}</p>
             </div>
 
@@ -318,7 +435,9 @@ const DeveloperSettings: React.FC = () => {
               <div className="mt-4 grid gap-2">
                 <input className="titan-input" value={maxValueWei} onChange={(event) => setMaxValueWei(event.target.value)} />
                 <input className="titan-input" value={dailyLimitWei} onChange={(event) => setDailyLimitWei(event.target.value)} />
+                <input className="titan-input" placeholder="Allowed actions, comma-separated" value={allowedActions} onChange={(event) => setAllowedActions(event.target.value)} />
                 <input className="titan-input" value={allowedChainIds} onChange={(event) => setAllowedChainIds(event.target.value)} />
+                <input className="titan-input" placeholder="Allowed contracts, comma-separated" value={allowedContracts} onChange={(event) => setAllowedContracts(event.target.value)} />
                 <input className="titan-input" placeholder="Allowlist addresses, comma-separated" value={allowedDestinations} onChange={(event) => setAllowedDestinations(event.target.value)} />
               </div>
               <Button className="mt-4 w-full" disabled={busy || !activeAgentWallet} onClick={() => void issueCapability()}>
@@ -420,22 +539,68 @@ const DeveloperSettings: React.FC = () => {
           <div className="max-h-[29rem] space-y-3 overflow-auto pr-1">
             {dashboard?.capabilities.length ? dashboard.capabilities.map((capability) => (
               <div key={capability.id} className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <Badge variant={capability.status === 'active' ? 'success' : 'neutral'}>{capability.status}</Badge>
-                  {capability.status === 'active' ? (
-                    <Button variant="ghost" size="sm" onClick={() => void revokeCapability(capability)} disabled={busy}>
-                      Revoke
-                    </Button>
-                  ) : null}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Badge variant={capability.status === 'active' ? 'success' : capability.status === 'expired' ? 'warning' : 'neutral'}>
+                    {capability.status}
+                  </Badge>
+                  <div className="flex flex-wrap gap-2">
+                    {capability.status === 'active' ? (
+                      <Button variant="ghost" size="sm" onClick={() => void rotateCapability(capability)} disabled={busy}>
+                        Rotate
+                      </Button>
+                    ) : null}
+                    {capability.status === 'active' ? (
+                      <Button variant="ghost" size="sm" onClick={() => void revokeCapability(capability)} disabled={busy}>
+                        Revoke
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 <p className="mt-3 break-all font-mono text-xs text-titan-subtext">{capability.token}</p>
                 <p className="mt-2 text-xs text-titan-subtext">Expires {new Date(capability.policy.expires_at).toLocaleString()}</p>
+                <p className="mt-2 text-xs text-titan-subtext">Actions: {capability.policy.allowed_actions.join(', ') || 'None'}</p>
+                <p className="mt-1 text-xs text-titan-subtext">Chains: {capability.policy.allowed_chain_ids.join(', ') || 'None'}</p>
+                <p className="mt-1 text-xs text-titan-subtext">Contracts: {capability.policy.allowed_contracts.join(', ') || 'Any'}</p>
+                <p className="mt-1 text-xs text-titan-subtext">Destinations: {capability.policy.allowed_destinations.join(', ') || 'Any'}</p>
               </div>
             )) : (
               <div className="rounded-2xl border border-dashed border-titan-border px-4 py-10 text-center text-sm text-titan-subtext">
                 No capabilities issued yet.
               </div>
             )}
+          </div>
+
+          <div className="mt-5 border-t border-titan-border pt-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-bold text-white">Proof log</h4>
+                <p className="mt-1 text-xs text-titan-subtext">Server-side audit trail for project changes, runtime checks, and capability control.</p>
+              </div>
+              <Badge variant="neutral">{recentProofLogs.length} recent</Badge>
+            </div>
+            <div className="max-h-80 space-y-3 overflow-auto pr-1">
+              {recentProofLogs.length ? recentProofLogs.map((entry) => (
+                <div key={entry.id} className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{entry.type}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-titan-subtext">{entry.category}</p>
+                    </div>
+                    <Badge variant={/allowed|active|recorded|executed/.test(entry.status) ? 'success' : /blocked|revoked|disabled|paused|expired/.test(entry.status) ? 'warning' : 'neutral'}>
+                      {entry.status}
+                    </Badge>
+                  </div>
+                  <p className="mt-3 text-sm text-titan-subtext">{entry.reason}</p>
+                  {entry.intent ? <p className="mt-2 text-xs text-titan-subtext">Intent: {entry.intent}</p> : null}
+                  {entry.requested_action ? <p className="mt-1 text-xs text-titan-subtext">Action: {entry.requested_action}</p> : null}
+                  <p className="mt-2 text-xs text-titan-subtext">{new Date(entry.created_at).toLocaleString()}</p>
+                </div>
+              )) : (
+                <div className="rounded-2xl border border-dashed border-titan-border px-4 py-8 text-center text-sm text-titan-subtext">
+                  No proof log entries yet.
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

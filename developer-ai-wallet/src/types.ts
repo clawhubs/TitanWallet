@@ -18,7 +18,9 @@ export interface AgentWalletIdentity {
 export interface AgentWalletPolicy {
   maxValueWei?: string;
   dailyLimitWei?: string;
+  allowedActions?: string[];
   allowedChainIds?: number[];
+  allowedContracts?: string[];
   allowedDestinations?: string[];
   expiresAt?: string;
   timelockSeconds?: number;
@@ -26,9 +28,14 @@ export interface AgentWalletPolicy {
 
 export interface AgentIntentContext {
   intent: string;
+  action?: AgentWalletAction;
   toolSummary?: string;
   actor?: string;
   sessionId?: string;
+  chainId?: number;
+  destinationAddress?: string;
+  contractAddress?: string;
+  amountWei?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -58,12 +65,75 @@ export interface NativeSendResult {
 export interface TitanAgentWalletConfig extends Partial<AgentWalletIdentity> {
   baseUrl?: string;
   militaryBaseUrl?: string;
+  ownerSessionToken?: string;
 }
 
 export interface ApiResponse {
   success?: boolean;
   request_id?: string;
   [key: string]: unknown;
+}
+
+export interface CapabilitySnapshot {
+  id: string;
+  token: string;
+  agent_wallet_id: string;
+  project_id: string;
+  owner_wallet_address: string;
+  status: 'active' | 'revoked' | 'expired';
+  policy: {
+    max_value_wei: string;
+    daily_limit_wei: string;
+    allowed_actions: string[];
+    allowed_chain_ids: number[];
+    allowed_contracts: string[];
+    allowed_destinations: string[];
+    expires_at: string;
+  };
+  created_at: string;
+  revoked_at?: string | null;
+  rotated_from?: string | null;
+  last_checked_at?: string | null;
+  proof_log_id?: string | null;
+}
+
+export interface CapabilityIntentCheckResult {
+  success: boolean;
+  allowed: boolean;
+  reason: string;
+  matched_policy: CapabilitySnapshot['policy'];
+  capability_id: string;
+  project_id: string;
+  agent_wallet_id: string;
+  proof_log_id: string;
+  timestamp: string;
+  blacklist: {
+    allowed: boolean;
+    status: string;
+    request_id: string | null;
+    reason: string | null;
+  };
+}
+
+export interface CapabilityProofLogItem {
+  id: string;
+  owner_wallet_address: string;
+  project_id: string | null;
+  agent_wallet_id: string | null;
+  capability_id: string | null;
+  category: string;
+  type: string;
+  status: string;
+  reason: string;
+  intent: string | null;
+  requested_action: string | null;
+  requested_chain_id: number | null;
+  requested_contract_address: string | null;
+  requested_destination: string | null;
+  requested_amount_wei: string | null;
+  blacklist_allowed: boolean | null;
+  created_at: string;
+  metadata: Record<string, unknown>;
 }
 
 export const TITAN_AI_WALLET_LAYERS = [

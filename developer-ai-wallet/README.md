@@ -83,8 +83,15 @@ const client = new TitanAgentWalletClient({
 
 await client.checkIntent({
   intent: "Pay approved vendor invoice",
+  action: "agent-send",
+  chainId: 16661,
+  destinationAddress: "0xapproved...",
+  amountWei: "1000000000000000",
   actor: "local-agent",
 });
+
+const capability = await client.getCapability();
+const proofLog = await client.getProofLog({ limit: 10 });
 ```
 
 ## CLI
@@ -96,11 +103,13 @@ export TITAN_AGENT_WALLET_OWNER="0x..."
 export TITAN_AGENT_WALLET_PROJECT_ID="proj_..."
 export TITAN_AGENT_WALLET_ID="aw_..."
 export TITAN_AGENT_WALLET_CAPABILITY="titan_cap_..."
+export TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN="titan_owner_..."
 
 node dist/cli.js health
-node dist/cli.js layers
-node dist/cli.js check-intent --intent "Pay approved vendor invoice"
-node dist/cli.js run --action agent-simulate --intent "Prepare capped transfer"
+node dist/cli.js capability
+node dist/cli.js proof:list --limit 10
+node dist/cli.js check-intent --intent "Pay approved vendor invoice" --action agent-send --chain-id 16661 --to "0xapproved..." --amount-wei "1000000000000000"
+node dist/cli.js capability:revoke --capability-id "cap_..." --owner-session-token "$TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN"
 ```
 
 ## MCP
@@ -151,6 +160,19 @@ await mcpServer.handleRequest({
   method: "tools/list",
 });
 ```
+
+Available MCP tools now include:
+
+- `titan_health`
+- `titan_layers`
+- `titan_check_intent`
+- `titan_get_capability`
+- `titan_get_proof_log`
+- `titan_revoke_capability`
+- `titan_security_status`
+- `titan_run_ten_layer_rail`
+- `titan_seal_memory`
+- `titan_send_native`
 
 ## Optional Agent Send
 

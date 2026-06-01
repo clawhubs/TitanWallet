@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "serve:prod": "node server.mjs",
     "smoke:accounts": "node scripts/playwright-account-switcher.mjs",
+    "smoke:developer": "node scripts/playwright-developer-flow.mjs",
     "smoke:networks": "node scripts/playwright-network-smoke.mjs",
     "smoke:onboarding": "node scripts/playwright-onboarding-smoke.mjs"
   },

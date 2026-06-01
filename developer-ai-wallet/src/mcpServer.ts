@@ -54,16 +54,72 @@ export const TITAN_AGENT_WALLET_MCP_TOOLS: TitanAgentWalletMcpTool[] = [
   },
   {
     name: 'titan_check_intent',
-    description: 'Run the TITAN blacklist and intent check flow.',
+    description: 'Run the TITAN capability, policy, and blacklist intent check flow.',
     inputSchema: {
       type: 'object',
       properties: {
         intent: { type: 'string' },
+        action: { type: 'string' },
         toolSummary: { type: 'string' },
         actor: { type: 'string' },
         sessionId: { type: 'string' },
+        chainId: { type: 'number' },
+        to: { type: 'string' },
+        contractAddress: { type: 'string' },
+        amountWei: { type: 'string' },
       },
       required: ['intent'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'titan_get_capability',
+    description: 'Read the active TITAN capability and its scoped runtime policy.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        capabilityId: { type: 'string' },
+        ownerSessionToken: { type: 'string' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'titan_get_proof_log',
+    description: 'Read recent proof log entries for this capability or owner session.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        capabilityId: { type: 'string' },
+        projectId: { type: 'string' },
+        agentWalletId: { type: 'string' },
+        limit: { type: 'number' },
+        ownerSessionToken: { type: 'string' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'titan_revoke_capability',
+    description: 'Revoke a TITAN capability with an owner session token.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        capabilityId: { type: 'string' },
+        ownerSessionToken: { type: 'string' },
+      },
+      required: ['ownerSessionToken'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'titan_security_status',
+    description: 'Read combined health, layer status, and current capability state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ownerSessionToken: { type: 'string' },
+      },
       additionalProperties: false,
     },
   },
@@ -185,9 +241,44 @@ export class TitanAgentWalletMcpServer {
     if (name === 'titan_check_intent') {
       return toToolResult(await this.client.checkIntent({
         intent: asString(args.intent, 'intent'),
+        action: optionalString(args.action) as never,
         toolSummary: optionalString(args.toolSummary),
         actor: optionalString(args.actor),
         sessionId: optionalString(args.sessionId),
+        chainId: optionalNumber(args.chainId),
+        destinationAddress: optionalString(args.to),
+        contractAddress: optionalString(args.contractAddress),
+        amountWei: optionalString(args.amountWei),
+      }));
+    }
+
+    if (name === 'titan_get_capability') {
+      return toToolResult(await this.client.getCapability({
+        capabilityId: optionalString(args.capabilityId),
+        ownerSessionToken: optionalString(args.ownerSessionToken),
+      }));
+    }
+
+    if (name === 'titan_get_proof_log') {
+      return toToolResult(await this.client.getProofLog({
+        capabilityId: optionalString(args.capabilityId),
+        projectId: optionalString(args.projectId),
+        agentWalletId: optionalString(args.agentWalletId),
+        limit: optionalNumber(args.limit),
+        ownerSessionToken: optionalString(args.ownerSessionToken),
+      }));
+    }
+
+    if (name === 'titan_revoke_capability') {
+      return toToolResult(await this.client.revokeCapability({
+        capabilityId: optionalString(args.capabilityId),
+        ownerSessionToken: asString(args.ownerSessionToken, 'ownerSessionToken'),
+      }));
+    }
+
+    if (name === 'titan_security_status') {
+      return toToolResult(await this.client.securityStatus({
+        ownerSessionToken: optionalString(args.ownerSessionToken),
       }));
     }
 

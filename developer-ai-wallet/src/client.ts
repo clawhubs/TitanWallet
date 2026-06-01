@@ -4,6 +4,9 @@ import {
   type AgentWalletAction,
   type AgentWalletPolicy,
   type ApiResponse,
+  type CapabilityIntentCheckResult,
+  type CapabilityProofLogItem,
+  type CapabilitySnapshot,
   type NativeSendInput,
   type NativeSendResult,
   type TitanAgentWalletConfig,
@@ -26,11 +29,13 @@ export class TitanAgentWalletClient {
   private baseUrl: string;
   private militaryBaseUrl: string;
   private identity: Partial<TitanAgentWalletConfig>;
+  private controlPlaneUrl: string;
 
   constructor(config: TitanAgentWalletConfig = {}) {
     this.baseUrl = (config.baseUrl || 'https://wallet.yieldboostai.xyz/api').replace(/\/$/, '');
     this.militaryBaseUrl = (config.militaryBaseUrl || 'https://wallet.yieldboostai.xyz').replace(/\/$/, '');
     this.identity = config;
+    this.controlPlaneUrl = `${this.militaryBaseUrl}/api/agent-wallet/control`;
   }
 
   async health() {
@@ -41,11 +46,78 @@ export class TitanAgentWalletClient {
     return this.api<ApiResponse>('/v1/status/layers', { method: 'GET' });
   }
 
-  async checkIntent(input: AgentIntentContext) {
-    const text = [input.intent, input.toolSummary].filter(Boolean).join('\n\n');
-    return this.api<ApiResponse>('/v1/blacklist/check', {
-      method: 'POST',
-      body: JSON.stringify({ text }),
+  async getCapability(input: { capabilityId?: string; ownerSessionToken?: string } = {}) {
+    return this.control<{
+      success: boolean;
+      capability: CapabilitySnapshot;
+      project: Record<string, unknown> | null;
+      agent_wallet: Record<string, unknown> | null;
+    }>({
+      action: 'get_capability',
+      capability_id: input.capabilityId,
+    }, {
+      ownerSessionToken: input.ownerSessionToken,
+      includeCapabilityToken: true,
+    });
+  }
+
+  async getProofLog(input: {
+    capabilityId?: string;
+    projectId?: string;
+    agentWalletId?: string;
+    limit?: number;
+    ownerSessionToken?: string;
+  } = {}) {
+    return this.control<{
+      success: boolean;
+      total: number;
+      items: CapabilityProofLogItem[];
+    }>({
+      action: 'get_proof_log',
+      capability_id: input.capabilityId,
+      project_id: input.projectId,
+      agent_wallet_id: input.agentWalletId,
+      limit: input.limit,
+    }, {
+      ownerSessionToken: input.ownerSessionToken,
+      includeCapabilityToken: !input.ownerSessionToken,
+    });
+  }
+
+  async checkIntent(input: AgentIntentContext): Promise<CapabilityIntentCheckResult> {
+    return this.control<CapabilityIntentCheckResult>({
+      action: 'check_intent',
+      intent: input.intent,
+      requested_action: input.action || 'agent-intent-check',
+      requested_chain_id: input.chainId,
+      requested_destination: input.destinationAddress,
+      requested_contract_address: input.contractAddress,
+      requested_amount_wei: input.amountWei,
+      actor: input.actor,
+      session_id: input.sessionId,
+      tool_summary: input.toolSummary,
+      metadata: input.metadata || {},
+      owner_wallet_address: this.identity.ownerWalletAddress,
+      project_id: this.identity.projectId,
+      agent_wallet_id: this.identity.agentWalletId,
+    }, {
+      includeCapabilityToken: true,
+    });
+  }
+
+  async revokeCapability(input: {
+    capabilityId?: string;
+    ownerSessionToken?: string;
+  }) {
+    return this.control<{
+      success: boolean;
+      capability: CapabilitySnapshot;
+    }>({
+      action: 'revoke_capability',
+      capability_id: input.capabilityId,
+    }, {
+      ownerSessionToken: input.ownerSessionToken || this.identity.ownerSessionToken,
+      includeCapabilityToken: false,
     });
   }
 
@@ -57,7 +129,7 @@ export class TitanAgentWalletClient {
     context: AgentIntentContext;
     metadata?: Record<string, unknown>;
   }) {
-    return this.military<ApiResponse>({
+    const response = await this.military<ApiResponse>({
       payload: {
         source: 'titan-agent-wallet-sdk',
         action: input.action,
@@ -78,6 +150,28 @@ export class TitanAgentWalletClient {
         },
       },
     });
+
+    if (this.identity.capabilityToken) {
+      await this.recordRuntimeResult({
+        type: 'Ten Layer Rail Executed',
+        status: 'recorded',
+        reason: `TITAN 10-layer rail executed for ${input.action}.`,
+        intent: input.context.intent,
+        requestedAction: input.action,
+        requestedChainId: input.chainId,
+        metadata: {
+          network: input.network,
+          wallet_address: input.walletAddress || null,
+          tool_summary: input.context.toolSummary || null,
+          actor: input.context.actor || null,
+          request_id: typeof response.request_id === 'string' ? response.request_id : null,
+          ...input.context.metadata,
+          ...input.metadata,
+        },
+      }).catch(() => {});
+    }
+
+    return response;
   }
 
   async createChallenge(input: {
@@ -160,6 +254,53 @@ export class TitanAgentWalletClient {
     });
   }
 
+  async recordRuntimeResult(input: {
+    type: string;
+    status: string;
+    reason: string;
+    intent?: string;
+    requestedAction?: string;
+    requestedChainId?: number;
+    requestedDestination?: string;
+    requestedContractAddress?: string;
+    requestedAmountWei?: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    return this.control<{
+      success: boolean;
+      proof_log: CapabilityProofLogItem;
+    }>({
+      action: 'record_runtime_result',
+      type: input.type,
+      status: input.status,
+      reason: input.reason,
+      intent: input.intent,
+      requested_action: input.requestedAction,
+      requested_chain_id: input.requestedChainId,
+      requested_destination: input.requestedDestination,
+      requested_contract_address: input.requestedContractAddress,
+      requested_amount_wei: input.requestedAmountWei,
+      metadata: input.metadata || {},
+    }, {
+      includeCapabilityToken: true,
+    });
+  }
+
+  async securityStatus(input: { ownerSessionToken?: string } = {}) {
+    const [health, layers, capability] = await Promise.all([
+      this.health(),
+      this.layerStatus(),
+      this.getCapability({ ownerSessionToken: input.ownerSessionToken }).catch(() => null),
+    ]);
+
+    return {
+      success: true,
+      health,
+      layers,
+      capability,
+    };
+  }
+
   async sendNative(input: NativeSendInput): Promise<NativeSendResult> {
     const wallet = new Wallet(input.privateKey, new JsonRpcProvider(input.rpcUrl));
     const valueWei = parseEther(input.valueEth).toString();
@@ -170,7 +311,16 @@ export class TitanAgentWalletClient {
       valueWei,
     });
 
-    await this.checkIntent(input.context);
+    const intentCheck = await this.checkIntent({
+      ...input.context,
+      action: 'agent-send',
+      chainId: input.chainId,
+      destinationAddress: input.to,
+      amountWei: valueWei,
+    });
+    if (!intentCheck.allowed) {
+      throw new Error(intentCheck.reason);
+    }
     await this.runTenLayerRail({
       action: 'agent-send',
       walletAddress: wallet.address,
@@ -192,10 +342,14 @@ export class TitanAgentWalletClient {
       walletAddress: wallet.address,
       network: input.networkName,
       chainId: input.chainId,
-      context: {
-        ...input.context,
-        intent: `Attach confirmed agent wallet transaction ${tx.hash} to the 10-layer rail.`,
-      },
+        context: {
+          ...input.context,
+          intent: `Attach confirmed agent wallet transaction ${tx.hash} to the 10-layer rail.`,
+          action: 'agent-tool-result',
+          chainId: input.chainId,
+          destinationAddress: input.to,
+          amountWei: valueWei,
+        },
       metadata: {
         tx_hash: tx.hash,
         block_number: receipt?.blockNumber ? Number(receipt.blockNumber) : null,
@@ -253,6 +407,25 @@ export class TitanAgentWalletClient {
           context: `agent-send|${input.chainId}|${wallet.address}|${input.to}|${valueWei}`,
         })
       : null;
+
+    await this.recordRuntimeResult({
+      type: 'Agent Native Send Executed',
+      status: 'executed',
+      reason: 'Agent native send completed and all TITAN runtime artifacts were recorded.',
+      intent: input.context.intent,
+      requestedAction: 'agent-send',
+      requestedChainId: input.chainId,
+      requestedDestination: input.to,
+      requestedAmountWei: valueWei,
+      metadata: {
+        tx_hash: tx.hash,
+        proof_request_id: typeof proof.request_id === 'string' ? proof.request_id : null,
+        seal_storage_id: typeof seal.storage_id === 'string' ? seal.storage_id : null,
+        handshake_request_id: typeof handshake.request_id === 'string' ? handshake.request_id : null,
+        security_log_tx_hash: anchor?.txHash || null,
+        receipt_block_number: receipt?.blockNumber ? Number(receipt.blockNumber) : null,
+      },
+    });
 
     return {
       txHash: tx.hash,
@@ -342,6 +515,29 @@ export class TitanAgentWalletClient {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+    });
+    return readJson<T>(response);
+  }
+
+  private async control<T>(
+    body: Record<string, unknown>,
+    options: {
+      ownerSessionToken?: string;
+      includeCapabilityToken?: boolean;
+    } = {},
+  ): Promise<T> {
+    const ownerSessionToken = options.ownerSessionToken || this.identity.ownerSessionToken;
+    const capabilityToken = options.includeCapabilityToken ? this.identity.capabilityToken : undefined;
+    const response = await fetch(this.controlPlaneUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(ownerSessionToken ? { 'X-TITAN-OWNER-TOKEN': ownerSessionToken } : {}),
+      },
+      body: JSON.stringify({
+        ...body,
+        ...(capabilityToken ? { capability_token: capabilityToken } : {}),
+      }),
     });
     return readJson<T>(response);
   }
