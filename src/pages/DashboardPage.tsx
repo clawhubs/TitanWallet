@@ -39,7 +39,13 @@ import { mockTokens } from '../data/mockTokens';
 import { runMilitaryGradeOperation } from '../services/militaryGrade';
 import AddNetworkModal from '../components/settings/AddNetworkModal';
 import { getLocalWalletEvents } from '../services/localActivity';
-import type { Network, ProofEvent } from '../types';
+import {
+  applyMarketPriceToToken,
+  buildMarketPriceRequestFromToken,
+  fetchMarketPrices,
+  type MarketPriceMap,
+} from '../services/marketPrices';
+import type { Network, ProofEvent, Token } from '../types';
 
 const WALLET_LAYER_NAME_SET = new Set<string>(WALLET_SECURITY_LAYER_NAMES);
 const ASSET_TABS = [
@@ -129,7 +135,7 @@ function buildShowcaseTokens() {
   }));
 }
 
-function sortAssetCatalog(tokens: typeof mockTokens) {
+function sortAssetCatalog(tokens: Token[]) {
   return [...tokens].sort((left, right) => {
     const leftBalance = Number.parseFloat(left.balance || '0');
     const rightBalance = Number.parseFloat(right.balance || '0');
@@ -163,7 +169,7 @@ function sortAssetCatalog(tokens: typeof mockTokens) {
   });
 }
 
-function dedupeAssetCatalog(tokens: typeof mockTokens) {
+function dedupeAssetCatalog(tokens: Token[]) {
   const seen = new Set<string>();
 
   return tokens.filter((token) => {
@@ -174,6 +180,10 @@ function dedupeAssetCatalog(tokens: typeof mockTokens) {
     seen.add(key);
     return true;
   });
+}
+
+function findNetworkIdForToken(token: Token, networks: Network[]) {
+  return networks.find((network) => network.name === token.network)?.id || '';
 }
 
 const DashboardPage: React.FC = () => {
@@ -204,12 +214,29 @@ const DashboardPage: React.FC = () => {
   const isDetecting = useTokenStore((state) => state.isDetecting);
   const runAutoDetect = useTokenStore((state) => state.runAutoDetect);
   const { balanceETH, balanceUSD, isLoading: balanceLoading } = useBalance();
-  const showcaseTokens = buildShowcaseTokens();
+  const [marketPrices, setMarketPrices] = useState<MarketPriceMap>({});
+  const rawShowcaseTokens = buildShowcaseTokens();
+  const marketPriceRequestTokens = [...tokens, ...rawShowcaseTokens];
+  const marketPriceRequestPayload = JSON.stringify(marketPriceRequestTokens
+    .map((token) => [
+      buildMarketPriceRequestFromToken(token, findNetworkIdForToken(token, networks)),
+      [
+        token.id,
+        token.symbol,
+        token.network,
+        token.contractAddress || '',
+        findNetworkIdForToken(token, networks),
+      ].join(':'),
+    ] as const)
+    .sort((left, right) => left[1].localeCompare(right[1]))
+    .map(([request]) => request));
+  const repricedWalletTokens = tokens.map((token) => applyMarketPriceToToken(token, marketPrices[token.id]));
+  const showcaseTokens = rawShowcaseTokens.map((token) => applyMarketPriceToToken(token, marketPrices[token.id]));
   const combinedAssetTokens = [
-    ...tokens,
+    ...repricedWalletTokens,
     ...showcaseTokens.filter(
       (showcase) =>
-        !tokens.some(
+        !repricedWalletTokens.some(
           (token) => token.symbol === showcase.symbol && token.network === showcase.network,
         ),
     ),
@@ -249,6 +276,33 @@ const DashboardPage: React.FC = () => {
 
     void runAutoDetect();
   }, [activeNetwork.id, runAutoDetect, walletAddress]);
+
+  useEffect(() => {
+    let disposed = false;
+
+    const loadMarketPrices = async () => {
+      try {
+        const prices = await fetchMarketPrices(JSON.parse(marketPriceRequestPayload));
+        if (!disposed) {
+          setMarketPrices(prices);
+        }
+      } catch {
+        if (!disposed) {
+          setMarketPrices({});
+        }
+      }
+    };
+
+    void loadMarketPrices();
+    const interval = window.setInterval(() => {
+      void loadMarketPrices();
+    }, 60_000);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+    };
+  }, [marketPriceRequestPayload]);
 
   useEffect(() => {
     let disposed = false;

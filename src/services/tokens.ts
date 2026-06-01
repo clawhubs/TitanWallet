@@ -7,6 +7,7 @@ import {
   getTokenMetadata as readOnchainTokenMetadata,
 } from './blockchain';
 import { getPopularTokensForNetwork } from '../data/mockTokens';
+import { buildMarketPriceRequestFromDefinition, fetchMarketPrices } from './marketPrices';
 
 const FALLBACK_METADATA: Record<string, { name: string; symbol: string; decimals: number }> = {
   ['0xc02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2'.toLowerCase()]: {
@@ -37,6 +38,12 @@ export async function detectTokens(input: {
   const detected: Token[] = [];
   const popularNetworkTokens = getPopularTokensForNetwork(input.network.id);
   const nativeTokenDefinition = popularNetworkTokens.find((token) => token.isNative);
+  const marketPrices = input.network.isTestnet
+    ? {}
+    : await fetchMarketPrices(
+      popularNetworkTokens.map((token) => buildMarketPriceRequestFromDefinition(token, input.network.name)),
+    ).catch(() => ({}));
+  const nativeMarketPrice = nativeTokenDefinition ? marketPrices[nativeTokenDefinition.id] : null;
 
   try {
     const nativeBalance = await getNativeBalance(input.walletAddress, input.network.rpcUrl);
@@ -45,9 +52,9 @@ export async function detectTokens(input: {
         network: input.network,
         balance: Number.parseFloat(formatEther(nativeBalance)).toFixed(4),
         balanceUSD:
-          Number.parseFloat(formatEther(nativeBalance)) * (nativeTokenDefinition?.price || 0),
-        price: nativeTokenDefinition?.price,
-        change24h: nativeTokenDefinition?.change24h,
+          Number.parseFloat(formatEther(nativeBalance)) * (nativeMarketPrice?.price || nativeTokenDefinition?.price || 0),
+        price: nativeMarketPrice?.price || nativeTokenDefinition?.price,
+        change24h: nativeMarketPrice?.change24h ?? nativeTokenDefinition?.change24h,
         icon: nativeTokenDefinition?.icon,
         logoUrl: nativeTokenDefinition?.logoUrl,
         name: nativeTokenDefinition?.name,
@@ -74,14 +81,17 @@ export async function detectTokens(input: {
           return null;
         }
 
+        const marketPrice = marketPrices[token.id];
+        const price = marketPrice?.price || token.price;
+
         return {
           id: token.id,
           symbol: token.symbol,
           name: token.name,
           balance: normalizedBalance.toFixed(token.decimals === 6 ? 2 : 4),
-          balanceUSD: normalizedBalance * token.price,
-          price: token.price,
-          change24h: token.change24h,
+          balanceUSD: normalizedBalance * price,
+          price,
+          change24h: marketPrice?.change24h ?? token.change24h,
           icon: token.icon,
           logoUrl: token.logoUrl,
           network: input.network.name,

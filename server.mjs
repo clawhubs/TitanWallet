@@ -38,6 +38,7 @@ const consumerAuthStateCookieName = `${consumerAuthCookieName}_state`;
 const consumerAuthCookieSecret = process.env.TITAN_CONSUMER_AUTH_COOKIE_SECRET?.trim() || '';
 const googleClientId = process.env.TITAN_GOOGLE_CLIENT_ID?.trim() || '';
 const googleClientSecret = process.env.TITAN_GOOGLE_CLIENT_SECRET?.trim() || '';
+const coinMarketCapApiKey = process.env.CMC_API_KEY?.trim() || process.env.COINMARKETCAP_API_KEY?.trim() || '';
 const managedWalletMode = process.env.TITAN_MANAGED_WALLET_MODE?.trim() || 'google-linked-local';
 const managedWalletLabel = process.env.TITAN_MANAGED_WALLET_LABEL?.trim() || 'Google-linked local wallet';
 const managedWalletMessage =
@@ -45,6 +46,44 @@ const managedWalletMessage =
   || 'Google auth is active. Wallets are still created locally in the browser, then linked back to the Google session for recovery.';
 const managedWalletStorePath = join(__dirname, '.data', 'managed-wallets.json');
 const walletStatsStorePath = join(__dirname, '.data', 'wallet-stats.json');
+const marketPriceCache = new Map();
+const marketPriceCacheTtlMs = Number.parseInt(process.env.TITAN_MARKET_PRICE_CACHE_MS || '60000', 10);
+
+const coinGeckoIdBySymbol = {
+  '0G': 'zero-gravity',
+  AERO: 'aerodrome-finance',
+  ARB: 'arbitrum',
+  BNB: 'binancecoin',
+  BTCB: 'binance-bitcoin',
+  cbBTC: 'coinbase-wrapped-btc',
+  ETH: 'ethereum',
+  LINK: 'chainlink',
+  OP: 'optimism',
+  POL: 'polygon-ecosystem-token',
+  UNI: 'uniswap',
+  USDC: 'usd-coin',
+  USDT: 'tether',
+  WBTC: 'wrapped-bitcoin',
+  WETH: 'weth',
+};
+
+const defiLlamaChainByNetworkId = {
+  arbitrum: 'arbitrum',
+  base: 'base',
+  bnb: 'bsc',
+  ethereum: 'ethereum',
+  optimism: 'optimism',
+  polygon: 'polygon',
+};
+
+const coinGeckoPlatformByNetworkId = {
+  arbitrum: 'arbitrum-one',
+  base: 'base',
+  bnb: 'binance-smart-chain',
+  ethereum: 'ethereum',
+  optimism: 'optimistic-ethereum',
+  polygon: 'polygon-pos',
+};
 
 const server = createServer(async (request, response) => {
   try {
@@ -119,6 +158,17 @@ const server = createServer(async (request, response) => {
         source: typeof body?.source === 'string' ? body.source : 'create',
         walletName: typeof body?.walletName === 'string' ? body.walletName : null,
       }));
+      return;
+    }
+
+    if (requestPath === '/api/market/prices' || requestPath === '/api/consumer-auth/market-prices') {
+      if (request.method !== 'POST') {
+        writeJson(response, 405, { error: 'Method not allowed' });
+        return;
+      }
+
+      const body = await readJsonBody(request);
+      writeJson(response, 200, await getMarketPrices(Array.isArray(body?.tokens) ? body.tokens : []));
       return;
     }
 
@@ -702,6 +752,373 @@ async function readJsonBody(request) {
   } catch {
     return {};
   }
+}
+
+async function getMarketPrices(rawTokens) {
+  const normalizedTokens = rawTokens
+    .map(normalizeMarketToken)
+    .filter(Boolean)
+    .slice(0, 80);
+  const uniqueTokens = [];
+  const seenIds = new Set();
+
+  for (const token of normalizedTokens) {
+    if (seenIds.has(token.id)) {
+      continue;
+    }
+    seenIds.add(token.id);
+    uniqueTokens.push(token);
+  }
+
+  const prices = {};
+  const pending = [];
+  const now = Date.now();
+
+  for (const token of uniqueTokens) {
+    const cacheKey = getMarketTokenCacheKey(token);
+    const cached = marketPriceCache.get(cacheKey);
+    if (cached && now - cached.cachedAt < marketPriceCacheTtlMs) {
+      prices[token.id] = cached.value;
+      continue;
+    }
+
+    pending.push({ token, cacheKey, resolved: resolveMarketToken(token) });
+  }
+
+  if (!pending.length) {
+    return {
+      prices,
+      updatedAt: new Date().toISOString(),
+      ttlMs: marketPriceCacheTtlMs,
+    };
+  }
+
+  const llamaIds = [...new Set(pending.map((item) => item.resolved.llamaId).filter(Boolean))];
+  const geckoIds = [...new Set(pending.map((item) => item.resolved.geckoId).filter(Boolean))];
+  const geckoContracts = groupGeckoContracts(pending);
+  const cmcSymbols = [...new Set(pending.map((item) => item.token.symbol).filter(Boolean))];
+
+  const [llamaPrices, geckoPrices, geckoTokenPrices, cmcPrices] = await Promise.all([
+    fetchDefiLlamaPrices(llamaIds),
+    fetchCoinGeckoSimplePrices(geckoIds),
+    fetchCoinGeckoTokenPrices(geckoContracts),
+    fetchCoinMarketCapPrices(cmcSymbols),
+  ]);
+
+  for (const item of pending) {
+    const { token, resolved, cacheKey } = item;
+    let marketPrice = null;
+
+    const llama = resolved.llamaId ? llamaPrices[resolved.llamaId] : null;
+    if (isUsablePrice(llama?.price)) {
+      marketPrice = {
+        price: Number(llama.price),
+        change24h: null,
+        source: 'defillama',
+        confidence: isFiniteMarketNumber(llama.confidence) ? Number(llama.confidence) : null,
+        updatedAt: llama.timestamp ? new Date(Number(llama.timestamp) * 1000).toISOString() : new Date().toISOString(),
+      };
+    }
+
+    const gecko =
+      resolved.geckoContractKey
+        ? geckoTokenPrices[resolved.geckoContractKey]
+        : resolved.geckoId
+          ? geckoPrices[resolved.geckoId]
+          : null;
+    if (isUsablePrice(gecko?.price)) {
+      if (!marketPrice) {
+        marketPrice = {
+          price: Number(gecko.price),
+          change24h: isFiniteMarketNumber(gecko.change24h) ? Number(gecko.change24h) : null,
+          source: 'coingecko',
+          confidence: null,
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        marketPrice.change24h = isFiniteMarketNumber(gecko.change24h) ? Number(gecko.change24h) : marketPrice.change24h;
+        marketPrice.source = `${marketPrice.source}+coingecko`;
+      }
+    }
+
+    const cmc = cmcPrices[token.symbol];
+    if (!marketPrice && isUsablePrice(cmc?.price)) {
+      marketPrice = {
+        price: Number(cmc.price),
+        change24h: isFiniteMarketNumber(cmc.change24h) ? Number(cmc.change24h) : null,
+        source: 'coinmarketcap',
+        confidence: null,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    if (!marketPrice) {
+      continue;
+    }
+
+    prices[token.id] = marketPrice;
+    marketPriceCache.set(cacheKey, {
+      cachedAt: now,
+      value: marketPrice,
+    });
+  }
+
+  return {
+    prices,
+    updatedAt: new Date().toISOString(),
+    ttlMs: marketPriceCacheTtlMs,
+  };
+}
+
+function normalizeMarketToken(input) {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const id = sanitizeMarketString(input.id, 120);
+  const symbol = sanitizeMarketString(input.symbol, 24);
+  if (!id || !symbol) {
+    return null;
+  }
+
+  return {
+    id,
+    symbol,
+    name: sanitizeMarketString(input.name, 120),
+    network: sanitizeMarketString(input.network, 80),
+    networkId: normalizeMarketNetworkId(input.networkId || input.network),
+    contractAddress: normalizeMarketContract(input.contractAddress),
+  };
+}
+
+function sanitizeMarketString(value, maxLength) {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+}
+
+function normalizeMarketContract(value) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return /^0x[0-9a-f]{40}$/.test(normalized) ? normalized : '';
+}
+
+function normalizeMarketNetworkId(value) {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  if (!normalized) {
+    return '';
+  }
+
+  if (normalized.includes('arbitrum')) {
+    return 'arbitrum';
+  }
+  if (normalized.includes('base')) {
+    return 'base';
+  }
+  if (normalized.includes('bnb') || normalized.includes('bsc')) {
+    return 'bnb';
+  }
+  if (normalized.includes('ethereum')) {
+    return 'ethereum';
+  }
+  if (normalized.includes('optimism')) {
+    return 'optimism';
+  }
+  if (normalized.includes('polygon')) {
+    return 'polygon';
+  }
+  if (normalized.includes('0g')) {
+    return '0g-mainnet';
+  }
+
+  return normalized;
+}
+
+function getMarketTokenCacheKey(token) {
+  return [
+    token.id,
+    token.symbol,
+    token.networkId,
+    token.contractAddress,
+  ].join(':').toLowerCase();
+}
+
+function resolveMarketToken(token) {
+  const geckoId = getCoinGeckoId(token);
+  const llamaChain = defiLlamaChainByNetworkId[token.networkId] || '';
+  const geckoPlatform = coinGeckoPlatformByNetworkId[token.networkId] || '';
+  const llamaId =
+    token.contractAddress && llamaChain
+      ? `${llamaChain}:${token.contractAddress}`
+      : geckoId
+        ? `coingecko:${geckoId}`
+        : null;
+  const geckoContractKey = token.contractAddress && geckoPlatform
+    ? `${geckoPlatform}:${token.contractAddress}`
+    : null;
+
+  return {
+    geckoId,
+    geckoPlatform,
+    geckoContractKey,
+    llamaId,
+  };
+}
+
+function getCoinGeckoId(token) {
+  return coinGeckoIdBySymbol[token.symbol] || coinGeckoIdBySymbol[token.symbol.toUpperCase()] || '';
+}
+
+function groupGeckoContracts(pending) {
+  const groups = {};
+  for (const item of pending) {
+    const { geckoPlatform } = item.resolved;
+    const { contractAddress } = item.token;
+    if (!geckoPlatform || !contractAddress) {
+      continue;
+    }
+
+    groups[geckoPlatform] ||= new Set();
+    groups[geckoPlatform].add(contractAddress);
+  }
+
+  return groups;
+}
+
+async function fetchDefiLlamaPrices(ids) {
+  if (!ids.length) {
+    return {};
+  }
+
+  try {
+    const url = `https://coins.llama.fi/prices/current/${ids.map(encodeURIComponent).join(',')}?searchWidth=4h`;
+    const payload = await fetchJsonWithTimeout(url);
+    return payload?.coins || {};
+  } catch {
+    return {};
+  }
+}
+
+async function fetchCoinGeckoSimplePrices(ids) {
+  if (!ids.length) {
+    return {};
+  }
+
+  try {
+    const url = new URL('https://api.coingecko.com/api/v3/simple/price');
+    url.searchParams.set('ids', ids.join(','));
+    url.searchParams.set('vs_currencies', 'usd');
+    url.searchParams.set('include_24hr_change', 'true');
+    const payload = await fetchJsonWithTimeout(url.toString());
+    const prices = {};
+
+    for (const [id, value] of Object.entries(payload || {})) {
+      if (isUsablePrice(value?.usd)) {
+        prices[id] = {
+          price: Number(value.usd),
+          change24h: isFiniteMarketNumber(value.usd_24h_change) ? Number(value.usd_24h_change) : null,
+        };
+      }
+    }
+
+    return prices;
+  } catch {
+    return {};
+  }
+}
+
+async function fetchCoinGeckoTokenPrices(groups) {
+  const entries = Object.entries(groups);
+  if (!entries.length) {
+    return {};
+  }
+
+  const responses = await Promise.all(entries.map(async ([platform, addresses]) => {
+    try {
+      const url = new URL(`https://api.coingecko.com/api/v3/simple/token_price/${platform}`);
+      url.searchParams.set('contract_addresses', [...addresses].join(','));
+      url.searchParams.set('vs_currencies', 'usd');
+      url.searchParams.set('include_24hr_change', 'true');
+      const payload = await fetchJsonWithTimeout(url.toString());
+      return { platform, payload };
+    } catch {
+      return { platform, payload: {} };
+    }
+  }));
+
+  const prices = {};
+  for (const { platform, payload } of responses) {
+    for (const [address, value] of Object.entries(payload || {})) {
+      if (isUsablePrice(value?.usd)) {
+        prices[`${platform}:${address.toLowerCase()}`] = {
+          price: Number(value.usd),
+          change24h: isFiniteMarketNumber(value.usd_24h_change) ? Number(value.usd_24h_change) : null,
+        };
+      }
+    }
+  }
+
+  return prices;
+}
+
+async function fetchCoinMarketCapPrices(symbols) {
+  if (!coinMarketCapApiKey || !symbols.length) {
+    return {};
+  }
+
+  try {
+    const url = new URL('https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest');
+    url.searchParams.set('symbol', symbols.join(','));
+    url.searchParams.set('convert', 'USD');
+    const payload = await fetchJsonWithTimeout(url.toString(), {
+      headers: {
+        'X-CMC_PRO_API_KEY': coinMarketCapApiKey,
+      },
+    });
+    const prices = {};
+
+    for (const [symbol, entries] of Object.entries(payload?.data || {})) {
+      const record = Array.isArray(entries) ? entries[0] : entries;
+      const quote = record?.quote?.USD;
+      if (isUsablePrice(quote?.price)) {
+        prices[symbol] = {
+          price: Number(quote.price),
+          change24h: isFiniteMarketNumber(quote.percent_change_24h) ? Number(quote.percent_change_24h) : null,
+        };
+      }
+    }
+
+    return prices;
+  } catch {
+    return {};
+  }
+}
+
+async function fetchJsonWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        ...(options.headers || {}),
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`market_request_failed_${response.status}`);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function isUsablePrice(value) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) && numberValue > 0;
+}
+
+function isFiniteMarketNumber(value) {
+  return Number.isFinite(Number(value));
 }
 
 async function createOrUpdateLinkedWallet(input) {

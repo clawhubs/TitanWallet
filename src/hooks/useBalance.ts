@@ -2,15 +2,7 @@ import { useEffect, useState } from 'react';
 import { getBalance } from '../services/wallet';
 import { useWalletStore } from '../store/useWalletStore';
 import { useNetworkStore } from '../store/useNetworkStore';
-
-const NATIVE_USD_PRICE: Record<string, number> = {
-  ETH: 3000,
-  OETH: 0.18,
-  '0G': 0.18,
-  MATIC: 0.75,
-  POL: 0.75,
-  BNB: 580,
-};
+import { buildNativeMarketPriceRequest, fetchMarketPrices } from '../services/marketPrices';
 
 export function useBalance(pollMs = 15000) {
   const address = useWalletStore((state) => state.address);
@@ -36,7 +28,15 @@ export function useBalance(pollMs = 15000) {
           return;
         }
 
-        const nativePrice = activeNetwork.isTestnet ? 0 : NATIVE_USD_PRICE[activeNetwork.symbol] || 0;
+        let nativePrice = 0;
+        if (!activeNetwork.isTestnet) {
+          try {
+            const marketPrices = await fetchMarketPrices([buildNativeMarketPriceRequest(activeNetwork)]);
+            nativePrice = marketPrices[`${activeNetwork.id}:native`]?.price || 0;
+          } catch {
+            nativePrice = 0;
+          }
+        }
         const usd = Number.parseFloat(eth || '0') * nativePrice;
         setBalance(eth, usd);
         setError(null);
@@ -60,7 +60,7 @@ export function useBalance(pollMs = 15000) {
       disposed = true;
       window.clearInterval(timer);
     };
-  }, [address, activeNetwork.isTestnet, activeNetwork.rpcUrl, activeNetwork.symbol, pollMs, setBalance]);
+  }, [address, activeNetwork, pollMs, setBalance]);
 
   return {
     balanceETH,
