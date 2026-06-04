@@ -4,6 +4,20 @@ import { ArrowLeft, BookOpen, CreditCard, Play, ShieldCheck, Terminal } from 'lu
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 
+type DeveloperDocsSection = 'create-agent' | 'sdk-cli' | 'mcp' | 'x402' | 'ai-llm';
+
+const DEVELOPER_DOC_SECTIONS: Array<{
+  id: DeveloperDocsSection;
+  label: string;
+  description: string;
+}> = [
+  { id: 'create-agent', label: 'Create Agent', description: 'Project, agent wallet, capability.' },
+  { id: 'sdk-cli', label: 'SDK / CLI', description: 'Env, SDK, and CLI usage.' },
+  { id: 'mcp', label: 'MCP', description: 'Tool bridge and BYO Privy boundary.' },
+  { id: 'x402', label: 'x402', description: 'Agent payment guardrail docs.' },
+  { id: 'ai-llm', label: 'AI LLM Support', description: '0G PC and model runtime.' },
+];
+
 const TEN_LAYERS = [
   'Hallucination Blacklist',
   'Integrity Auditor',
@@ -147,6 +161,8 @@ const DeveloperDocsPage: React.FC = () => {
   const [action, setAction] = useState('agent-simulate');
   const [output, setOutput] = useState('Ready.');
   const [running, setRunning] = useState(false);
+  const [activeDocSection, setActiveDocSection] = useState<DeveloperDocsSection>('create-agent');
+  const activeDocSectionConfig = DEVELOPER_DOC_SECTIONS.find((section) => section.id === activeDocSection) || DEVELOPER_DOC_SECTIONS[0];
 
   const runPlayground = async () => {
     setRunning(true);
@@ -201,6 +217,30 @@ const DeveloperDocsPage: React.FC = () => {
           </div>
         </div>
 
+        <section className="mb-4 rounded-3xl border border-titan-border bg-[#0A0D14] p-3">
+          <div className="flex flex-col gap-2 lg:flex-row">
+            {DEVELOPER_DOC_SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => setActiveDocSection(section.id)}
+                className={`flex-1 rounded-2xl border px-4 py-3 text-left transition ${
+                  activeDocSection === section.id
+                    ? 'border-titan-accent/40 bg-titan-accent/15 text-white'
+                    : 'border-transparent bg-transparent text-titan-subtext hover:border-titan-border hover:bg-titan-surface/80 hover:text-white'
+                }`}
+              >
+                <span className="block text-sm font-semibold">{section.label}</span>
+                <span className="mt-1 block text-xs text-titan-subtext">{section.description}</span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 px-2 text-xs text-titan-subtext">
+            Docs section: <span className="text-titan-accent">{activeDocSectionConfig.label}</span>
+          </p>
+        </section>
+
+        {activeDocSection === 'create-agent' ? (
         <section className="mb-4 rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -236,7 +276,9 @@ const DeveloperDocsPage: React.FC = () => {
             </div>
           </div>
         </section>
+        ) : null}
 
+        {activeDocSection === 'create-agent' ? (
         <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
@@ -271,7 +313,9 @@ const DeveloperDocsPage: React.FC = () => {
             </pre>
           </div>
         </section>
+        ) : null}
 
+        {activeDocSection === 'x402' ? (
         <section className="mt-4 rounded-3xl border border-titan-border bg-gradient-to-br from-[#07151B] via-titan-surface to-[#0B0D18] p-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -315,7 +359,9 @@ const DeveloperDocsPage: React.FC = () => {
             </div>
           </div>
         </section>
+        ) : null}
 
+        {activeDocSection === 'create-agent' || activeDocSection === 'mcp' ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
             <h2 className="flex items-center gap-2 text-lg font-bold text-white">
@@ -344,7 +390,9 @@ const DeveloperDocsPage: React.FC = () => {
             </pre>
           </section>
         </div>
+        ) : null}
 
+        {activeDocSection === 'sdk-cli' || activeDocSection === 'mcp' ? (
         <section className="mt-4 rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
@@ -385,7 +433,9 @@ const DeveloperDocsPage: React.FC = () => {
             Use the same capability token here that you copied from <span className="text-white">Settings - Developer</span>. Do not invent a separate MCP secret.
           </p>
         </section>
+        ) : null}
 
+        {activeDocSection === 'create-agent' ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
             <h2 className="flex items-center gap-2 text-lg font-bold text-white">
@@ -409,7 +459,9 @@ const DeveloperDocsPage: React.FC = () => {
             </div>
           </section>
         </div>
+        ) : null}
 
+        {activeDocSection === 'ai-llm' ? (
         <section className="mt-4 rounded-3xl border border-titan-border bg-titan-surface p-6">
           <h2 className="text-lg font-bold text-white">0G Private Computer</h2>
           <p className="mt-2 text-sm text-titan-subtext">
@@ -446,6 +498,7 @@ response = client.chat.completions.create(
             </div>
           </div>
         </section>
+        ) : null}
       </main>
     </div>
   );

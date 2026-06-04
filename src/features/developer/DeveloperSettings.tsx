@@ -18,6 +18,20 @@ import {
 } from './api';
 import type { DeveloperCapability, DeveloperDashboard, OwnerSession } from './types';
 
+type DeveloperSettingsSection = 'create-agent' | 'sdk-cli' | 'mcp' | 'x402' | 'ai-llm';
+
+const DEVELOPER_SECTIONS: Array<{
+  id: DeveloperSettingsSection;
+  label: string;
+  description: string;
+}> = [
+  { id: 'create-agent', label: 'Create Agent', description: 'Project, agent wallet, capability.' },
+  { id: 'sdk-cli', label: 'SDK / CLI', description: 'Runtime env and SDK call.' },
+  { id: 'mcp', label: 'MCP', description: 'Tool bridge and BYO Privy.' },
+  { id: 'x402', label: 'x402', description: 'Agent payment guardrail.' },
+  { id: 'ai-llm', label: 'AI LLM Support', description: '0G PC model runtime.' },
+];
+
 const DEFAULT_EXPIRY_HOURS = 24;
 const ZERO_G_PC_MODELS = [
   '0GM-1.0-35B-A3B',
@@ -93,6 +107,7 @@ const DeveloperSettings: React.FC = () => {
   const [allowedDestinations, setAllowedDestinations] = useState('');
   const [status, setStatus] = useState('Waiting for owner wallet session.');
   const [busy, setBusy] = useState(false);
+  const [activeSection, setActiveSection] = useState<DeveloperSettingsSection>('create-agent');
 
   const activeProject = useMemo(
     () => dashboard?.projects.find((project) => project.status === 'active') || dashboard?.projects[0] || null,
@@ -342,6 +357,7 @@ const DeveloperSettings: React.FC = () => {
 }` : 'Create a project, agent wallet, and capability first.';
 
   const activeCapabilityCount = dashboard?.capabilities.filter((capability) => capability.status === 'active').length || 0;
+  const activeSectionConfig = DEVELOPER_SECTIONS.find((section) => section.id === activeSection) || DEVELOPER_SECTIONS[0];
 
   const copyEnv = async () => {
     await navigator.clipboard.writeText(envSnippet);
@@ -387,6 +403,30 @@ const DeveloperSettings: React.FC = () => {
         </div>
       </section>
 
+      <section className="rounded-3xl border border-titan-border bg-[#0A0D14] p-3">
+        <div className="flex flex-col gap-2 lg:flex-row">
+          {DEVELOPER_SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => setActiveSection(section.id)}
+              className={`flex-1 rounded-2xl border px-4 py-3 text-left transition ${
+                activeSection === section.id
+                  ? 'border-titan-accent/40 bg-titan-accent/15 text-white'
+                  : 'border-transparent bg-transparent text-titan-subtext hover:border-titan-border hover:bg-titan-surface/80 hover:text-white'
+              }`}
+            >
+              <span className="block text-sm font-semibold">{section.label}</span>
+              <span className="mt-1 block text-xs text-titan-subtext">{section.description}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 px-2 text-xs text-titan-subtext">
+          Active: <span className="text-titan-accent">{activeSectionConfig.label}</span>. Developer state stays loaded while you switch sections.
+        </p>
+      </section>
+
+      {activeSection === 'create-agent' ? (
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -546,9 +586,11 @@ const DeveloperSettings: React.FC = () => {
           </div>
         </div>
       </section>
+      ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[0.88fr_1.12fr]">
-        <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
+      {activeSection !== 'ai-llm' ? (
+      <section className={`grid gap-4 ${activeSection === 'create-agent' ? 'xl:grid-cols-[0.88fr_1.12fr]' : 'xl:grid-cols-1'}`}>
+        <div className={activeSection === 'create-agent' ? 'rounded-3xl border border-titan-border bg-titan-surface p-6' : 'hidden'}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h3 className="text-base font-bold text-white">Capabilities</h3>
@@ -629,11 +671,20 @@ const DeveloperSettings: React.FC = () => {
           </div>
         </div>
 
+        {activeSection === 'sdk-cli' || activeSection === 'mcp' || activeSection === 'x402' ? (
         <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-bold text-white">SDK, CLI, and MCP config</h3>
-              <p className="mt-1 text-sm text-titan-subtext">One capability, one env identity, then wire the same values into the SDK, CLI, or MCP host runtime.</p>
+              <h3 className="text-base font-bold text-white">
+                {activeSection === 'sdk-cli' ? 'SDK and CLI config' : activeSection === 'mcp' ? 'MCP config' : 'x402 Guardrail config'}
+              </h3>
+              <p className="mt-1 text-sm text-titan-subtext">
+                {activeSection === 'sdk-cli'
+                  ? 'One capability, one env identity, then wire the same values into SDK calls or CLI commands.'
+                  : activeSection === 'mcp'
+                    ? 'MCP uses the same capability token. BYO Privy stays in the developer-owned app boundary.'
+                    : 'x402 checks agent API payment intent before a real facilitator or payment processor is introduced.'}
+              </p>
             </div>
             <Badge variant="success">Same capability token</Badge>
           </div>
@@ -644,6 +695,7 @@ const DeveloperSettings: React.FC = () => {
             <Badge variant="neutral">MCP server included in SDK</Badge>
           </div>
 
+          {activeSection === 'sdk-cli' || activeSection === 'mcp' ? (
           <div className="mt-5 grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
             <div className="rounded-2xl border border-titan-border bg-[#05080D] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -675,7 +727,9 @@ const DeveloperSettings: React.FC = () => {
               </pre>
             </div>
           </div>
+          ) : null}
 
+          {activeSection === 'sdk-cli' ? (
           <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
             <div className="mb-4">
               <p className="text-sm font-semibold text-white">Example SDK call</p>
@@ -685,7 +739,9 @@ const DeveloperSettings: React.FC = () => {
               <code>{SDK_SNIPPET}</code>
             </pre>
           </div>
+          ) : null}
 
+          {activeSection === 'x402' ? (
           <div className="mt-4 rounded-2xl border border-titan-border bg-gradient-to-br from-[#07151B] to-[#0A0D14] p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -718,7 +774,26 @@ const DeveloperSettings: React.FC = () => {
               </div>
             </div>
           </div>
+          ) : null}
 
+          {activeSection === 'mcp' ? (
+          <div className="mt-4 rounded-2xl border border-titan-border bg-[#05080D] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">BYO Privy boundary</p>
+                <p className="text-xs text-titan-subtext">Developer products must use their own Privy app keys.</p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => void copyText(BYO_PRIVY_SNIPPET, 'BYO Privy snippet copied.')}>
+                <Clipboard size={14} /> Copy
+              </Button>
+            </div>
+            <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
+              <code>{BYO_PRIVY_SNIPPET}</code>
+            </pre>
+          </div>
+          ) : null}
+
+          {activeSection === 'mcp' ? (
           <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -733,9 +808,13 @@ const DeveloperSettings: React.FC = () => {
               <code>{MCP_BOOT_SNIPPET}</code>
             </pre>
           </div>
+          ) : null}
         </div>
+        ) : null}
       </section>
+      ) : null}
 
+      {activeSection === 'ai-llm' ? (
       <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
@@ -780,6 +859,7 @@ await client.chat.completions.create({
           </div>
         </div>
       </section>
+      ) : null}
     </div>
   );
 };
