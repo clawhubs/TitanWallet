@@ -1,19 +1,14 @@
 {
   "name": "titan-wallet",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "serve:prod": "node server.mjs",
-    "smoke:accounts": "node scripts/playwright-account-switcher.mjs",
-    "smoke:developer-demo": "node scripts/playwright-developer-demo.mjs",
-    "smoke:developer": "node scripts/playwright-developer-flow.mjs",
-    "smoke:networks": "node scripts/playwright-network-smoke.mjs",
-    "smoke:onboarding": "node scripts/playwright-onboarding-smoke.mjs"
+    "serve:prod": "node server.mjs"
   },
   "dependencies": {
     "@solana-program/memo": "^0.11.1",

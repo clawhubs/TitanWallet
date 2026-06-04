@@ -16,6 +16,9 @@ dist-ssr
 *.local
 .data
 
+# Local-only operational and Playwright smoke scripts.
+scripts/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
