@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
 import { TitanManagedAuthProvider } from './features/consumer-auth/TitanManagedAuthBridge.tsx';
+import { registerTitanServiceWorker } from './registerServiceWorker.ts';
+
+registerTitanServiceWorker();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

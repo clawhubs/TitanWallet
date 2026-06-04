@@ -1,0 +1,51 @@
+{
+  "name": "TITAN Wallet",
+  "short_name": "TITAN",
+  "description": "Secure web wallet with TITAN wallet rails, Google-linked sessions, and developer guardrails.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#05080d",
+  "theme_color": "#43d7cf",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "security", "developer-tools"],
+  "icons": [
+    {
+      "src": "/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open the TITAN Wallet dashboard.",
+      "url": "/dashboard",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Developer Demo",
+      "short_name": "Demo",
+      "description": "Open the TITAN developer API demo.",
+      "url": "/developer/demo",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Security Center",
+      "short_name": "Security",
+      "description": "Open wallet security rails.",
+      "url": "/security",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
