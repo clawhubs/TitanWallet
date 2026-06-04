@@ -2,8 +2,8 @@ import { Wallet } from 'ethers';
 import { TitanAgentWalletClient } from '../src/client.js';
 
 const client = new TitanAgentWalletClient({
-  baseUrl: process.env.TITAN_AGENT_WALLET_BASE_URL || 'https://wallet.yieldboostai.xyz/api',
-  militaryBaseUrl: process.env.TITAN_AGENT_WALLET_MILITARY_BASE_URL || 'https://wallet.yieldboostai.xyz',
+  baseUrl: process.env.TITAN_AGENT_WALLET_BASE_URL || 'https://titanwallet.net/api',
+  militaryBaseUrl: process.env.TITAN_AGENT_WALLET_MILITARY_BASE_URL || 'https://titanwallet.net',
 });
 
 async function main() {

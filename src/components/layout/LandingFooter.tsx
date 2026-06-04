@@ -17,7 +17,7 @@ const socialLinks = [
   },
   {
     title: 'Open TITAN Wallet',
-    href: 'https://wallet.yieldboostai.xyz',
+    href: 'https://titanwallet.net',
     icon: Globe,
     external: true,
   },

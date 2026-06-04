@@ -46,8 +46,8 @@ const BYO_PRIVY_SNIPPET = `export PRIVY_APP_ID="your_privy_app_id"
 export PRIVY_APP_SECRET="your_privy_app_secret"
 export PRIVY_JWKS_URL="https://auth.privy.io/api/v1/apps/<your-app-id>/jwks.json"`;
 
-const TITAN_ENV_SNIPPET = `export TITAN_AGENT_WALLET_BASE_URL="https://wallet.yieldboostai.xyz/api"
-export TITAN_AGENT_WALLET_MILITARY_BASE_URL="https://wallet.yieldboostai.xyz"
+const TITAN_ENV_SNIPPET = `export TITAN_AGENT_WALLET_BASE_URL="https://titanwallet.net/api"
+export TITAN_AGENT_WALLET_MILITARY_BASE_URL="https://titanwallet.net"
 export TITAN_AGENT_WALLET_OWNER="0x..."
 export TITAN_AGENT_WALLET_PROJECT_ID="proj_..."
 export TITAN_AGENT_WALLET_ID="aw_..."
@@ -57,8 +57,8 @@ export TITAN_AGENT_WALLET_RPC_URL="https://evmrpc.0g.ai"`;
 const SDK_SNIPPET = `import { TitanAgentWalletClient } from "@titan/agent-wallet";
 
 const client = new TitanAgentWalletClient({
-  baseUrl: "https://wallet.yieldboostai.xyz/api",
-  militaryBaseUrl: "https://wallet.yieldboostai.xyz",
+  baseUrl: "https://titanwallet.net/api",
+  militaryBaseUrl: "https://titanwallet.net",
   ownerWalletAddress: process.env.TITAN_AGENT_WALLET_OWNER,
   projectId: process.env.TITAN_AGENT_WALLET_PROJECT_ID,
   agentWalletId: process.env.TITAN_AGENT_WALLET_ID,
@@ -97,8 +97,8 @@ const MCP_CONFIG_SNIPPET = `{
       "command": "node",
       "args": ["/absolute/path/to/developer-ai-wallet/dist/src/mcp.js"],
       "env": {
-        "TITAN_AGENT_WALLET_BASE_URL": "https://wallet.yieldboostai.xyz/api",
-        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://wallet.yieldboostai.xyz",
+        "TITAN_AGENT_WALLET_BASE_URL": "https://titanwallet.net/api",
+        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://titanwallet.net",
         "TITAN_AGENT_WALLET_OWNER": "0x...",
         "TITAN_AGENT_WALLET_PROJECT_ID": "proj_...",
         "TITAN_AGENT_WALLET_ID": "aw_...",

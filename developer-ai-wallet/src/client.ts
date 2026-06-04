@@ -37,8 +37,8 @@ export class TitanAgentWalletClient {
   private controlPlaneUrl: string;
 
   constructor(config: TitanAgentWalletConfig = {}) {
-    this.baseUrl = (config.baseUrl || 'https://wallet.yieldboostai.xyz/api').replace(/\/$/, '');
-    this.militaryBaseUrl = (config.militaryBaseUrl || 'https://wallet.yieldboostai.xyz').replace(/\/$/, '');
+    this.baseUrl = (config.baseUrl || 'https://titanwallet.net/api').replace(/\/$/, '');
+    this.militaryBaseUrl = (config.militaryBaseUrl || 'https://titanwallet.net').replace(/\/$/, '');
     this.identity = config;
     this.controlPlaneUrl = `${this.militaryBaseUrl}/api/agent-wallet/control`;
   }

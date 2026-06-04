@@ -15,7 +15,7 @@ TITAN Wallet does it differently:
 
 Self-custody should feel normal.
 
-https://wallet.yieldboostai.xyz
+https://titanwallet.net
 
 Image: `marketing/output/consumer-google.png`
 
@@ -51,7 +51,7 @@ Downloadable recovery kit for backup.
 
 Simple UX without pretending custody disappeared.
 
-https://wallet.yieldboostai.xyz
+https://titanwallet.net
 
 ## Post 4: AI Agent Angle
 
@@ -111,7 +111,7 @@ AI agents should have programmable wallet rails.
 
 That is TITAN Wallet.
 
-https://wallet.yieldboostai.xyz
+https://titanwallet.net
 
 ## Short Variant
 

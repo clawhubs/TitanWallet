@@ -81,7 +81,7 @@ The static output is generated in `dist/`.
 Recommended target:
 
 - app path: `/opt/titan-wallet/current`
-- domain: `wallet.yieldboostai.xyz`
+- domain: `titanwallet.net`
 - web server: `nginx`
 - serve static files from `dist/`
 

@@ -16,7 +16,7 @@ If `npm audit` still reports `uuid`, treat that as an upstream wallet-connector 
 
 The owner wallet must be created or imported in TITAN Wallet first:
 
-`https://wallet.yieldboostai.xyz`
+`https://titanwallet.net`
 
 Then open:
 
@@ -34,7 +34,7 @@ Copy the generated SDK/CLI env block into your own agent runtime.
 
 Public demo:
 
-`https://wallet.yieldboostai.xyz/developer/demo`
+`https://titanwallet.net/developer/demo`
 
 The demo proves this path:
 
@@ -100,8 +100,8 @@ export PRIVY_JWKS_URL="https://auth.privy.io/api/v1/apps/<your-app-id>/jwks.json
 import { TitanAgentWalletClient } from "@titan/agent-wallet";
 
 const client = new TitanAgentWalletClient({
-  baseUrl: "https://wallet.yieldboostai.xyz/api",
-  militaryBaseUrl: "https://wallet.yieldboostai.xyz",
+  baseUrl: "https://titanwallet.net/api",
+  militaryBaseUrl: "https://titanwallet.net",
   ownerWalletAddress: process.env.TITAN_AGENT_WALLET_OWNER,
   projectId: process.env.TITAN_AGENT_WALLET_PROJECT_ID,
   agentWalletId: process.env.TITAN_AGENT_WALLET_ID,
@@ -135,8 +135,8 @@ const demoLogs = await client.getDemoLogs({ demoApiKey: demoKey.api_key });
 ## CLI
 
 ```bash
-export TITAN_AGENT_WALLET_BASE_URL="https://wallet.yieldboostai.xyz/api"
-export TITAN_AGENT_WALLET_MILITARY_BASE_URL="https://wallet.yieldboostai.xyz"
+export TITAN_AGENT_WALLET_BASE_URL="https://titanwallet.net/api"
+export TITAN_AGENT_WALLET_MILITARY_BASE_URL="https://titanwallet.net"
 export TITAN_AGENT_WALLET_OWNER="0x..."
 export TITAN_AGENT_WALLET_PROJECT_ID="proj_..."
 export TITAN_AGENT_WALLET_ID="aw_..."
@@ -174,8 +174,8 @@ Example MCP config:
       "command": "node",
       "args": ["/absolute/path/to/developer-ai-wallet/dist/src/mcp.js"],
       "env": {
-        "TITAN_AGENT_WALLET_BASE_URL": "https://wallet.yieldboostai.xyz/api",
-        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://wallet.yieldboostai.xyz",
+        "TITAN_AGENT_WALLET_BASE_URL": "https://titanwallet.net/api",
+        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://titanwallet.net",
         "TITAN_AGENT_WALLET_PROJECT_ID": "proj_...",
         "TITAN_AGENT_WALLET_ID": "aw_...",
         "TITAN_AGENT_WALLET_CAPABILITY": "titan_cap_..."
@@ -240,7 +240,7 @@ node dist/cli.js send \
 
 Public docs page:
 
-`https://wallet.yieldboostai.xyz/developer/docs`
+`https://titanwallet.net/developer/docs`
 
 Local static docs:
 

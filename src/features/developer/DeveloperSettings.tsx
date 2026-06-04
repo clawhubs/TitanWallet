@@ -45,8 +45,8 @@ const DEFAULT_ALLOWED_ACTIONS = 'agent-intent-check,agent-send,agent-sign,agent-
 const SDK_SNIPPET = `import { TitanAgentWalletClient } from "@titan/agent-wallet";
 
 const client = new TitanAgentWalletClient({
-  baseUrl: "https://wallet.yieldboostai.xyz/api",
-  militaryBaseUrl: "https://wallet.yieldboostai.xyz",
+  baseUrl: "https://titanwallet.net/api",
+  militaryBaseUrl: "https://titanwallet.net",
   ownerWalletAddress: process.env.TITAN_AGENT_WALLET_OWNER,
   projectId: process.env.TITAN_AGENT_WALLET_PROJECT_ID,
   agentWalletId: process.env.TITAN_AGENT_WALLET_ID,
@@ -294,8 +294,8 @@ const DeveloperSettings: React.FC = () => {
   };
 
   const envSnippet = activeCapability && activeAgentWallet && activeProject ? [
-    'export TITAN_AGENT_WALLET_BASE_URL="https://wallet.yieldboostai.xyz/api"',
-    'export TITAN_AGENT_WALLET_MILITARY_BASE_URL="https://wallet.yieldboostai.xyz"',
+    'export TITAN_AGENT_WALLET_BASE_URL="https://titanwallet.net/api"',
+    'export TITAN_AGENT_WALLET_MILITARY_BASE_URL="https://titanwallet.net"',
     `export TITAN_AGENT_WALLET_OWNER="${address || ''}"`,
     `export TITAN_AGENT_WALLET_PROJECT_ID="${activeProject.id}"`,
     `export TITAN_AGENT_WALLET_ID="${activeAgentWallet.id}"`,
@@ -309,8 +309,8 @@ const DeveloperSettings: React.FC = () => {
       "command": "node",
       "args": ["/absolute/path/to/developer-ai-wallet/dist/src/mcp.js"],
       "env": {
-        "TITAN_AGENT_WALLET_BASE_URL": "https://wallet.yieldboostai.xyz/api",
-        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://wallet.yieldboostai.xyz",
+        "TITAN_AGENT_WALLET_BASE_URL": "https://titanwallet.net/api",
+        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://titanwallet.net",
         "TITAN_AGENT_WALLET_OWNER": "${address || ''}",
         "TITAN_AGENT_WALLET_PROJECT_ID": "${activeProject.id}",
         "TITAN_AGENT_WALLET_ID": "${activeAgentWallet.id}",

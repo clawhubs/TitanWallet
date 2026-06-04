@@ -196,8 +196,8 @@ export PRIVY_JWKS_URL="https://auth.privy.io/api/v1/apps/&lt;your-app-id&gt;/jwk
           <pre><code>import { TitanAgentWalletClient } from "@titan/agent-wallet";
 
 const client = new TitanAgentWalletClient({
-  baseUrl: "https://wallet.yieldboostai.xyz/api",
-  militaryBaseUrl: "https://wallet.yieldboostai.xyz",
+  baseUrl: "https://titanwallet.net/api",
+  militaryBaseUrl: "https://titanwallet.net",
   projectId: process.env.TITAN_AGENT_WALLET_PROJECT_ID,
   agentWalletId: process.env.TITAN_AGENT_WALLET_ID,
   capabilityToken: process.env.TITAN_AGENT_WALLET_CAPABILITY,
@@ -253,8 +253,8 @@ node dist/src/mcp.js</code></pre>
       "command": "node",
       "args": ["/absolute/path/to/developer-ai-wallet/dist/src/mcp.js"],
       "env": {
-        "TITAN_AGENT_WALLET_BASE_URL": "https://wallet.yieldboostai.xyz/api",
-        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://wallet.yieldboostai.xyz",
+        "TITAN_AGENT_WALLET_BASE_URL": "https://titanwallet.net/api",
+        "TITAN_AGENT_WALLET_MILITARY_BASE_URL": "https://titanwallet.net",
         "TITAN_AGENT_WALLET_OWNER": "0x...",
         "TITAN_AGENT_WALLET_PROJECT_ID": "proj_...",
         "TITAN_AGENT_WALLET_ID": "aw_...",

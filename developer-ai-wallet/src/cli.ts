@@ -279,8 +279,8 @@ Commands:
   send --private-key <key> --rpc-url <url> --to <address> --value-eth 0.001 --intent "Pay vendor"
 
 Environment:
-  TITAN_AGENT_WALLET_BASE_URL=https://wallet.yieldboostai.xyz/api
-  TITAN_AGENT_WALLET_MILITARY_BASE_URL=https://wallet.yieldboostai.xyz
+  TITAN_AGENT_WALLET_BASE_URL=https://titanwallet.net/api
+  TITAN_AGENT_WALLET_MILITARY_BASE_URL=https://titanwallet.net
   TITAN_AGENT_WALLET_PROJECT_ID=proj_...
   TITAN_AGENT_WALLET_ID=aw_...
   TITAN_AGENT_WALLET_CAPABILITY=cap_...

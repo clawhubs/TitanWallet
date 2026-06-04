@@ -76,9 +76,9 @@ async function createWalletFlow(page) {
     'Dashboard header link should be hidden before a wallet exists.',
   );
 
-  await page.getByRole('banner').getByRole('link', { name: 'Create Wallet' }).click();
+  await page.getByRole('banner').getByRole('link', { name: /Get Started|Create Wallet|Create \/ Login Wallet/ }).click();
   await page.waitForURL('**/onboarding');
-  await page.getByText('Create a new wallet').click();
+  await page.getByText(/Create a local wallet|Create a new wallet/).click();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.waitForURL('**/create-wallet');
   await assertSocialEntry(page);
