@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Play, ShieldCheck, Terminal } from 'lucide-react';
+import { ArrowLeft, BookOpen, CreditCard, Play, ShieldCheck, Terminal } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 
@@ -35,6 +35,12 @@ const MCP_TOOLS = [
   'titan_check_intent',
   'titan_get_capability',
   'titan_get_proof_log',
+  'titan_demo_status',
+  'titan_demo_create_api_key',
+  'titan_demo_run',
+  'titan_x402_check_payment',
+  'titan_demo_logs',
+  'titan_demo_anchor_security_log',
   'titan_revoke_capability',
   'titan_security_status',
   'titan_run_ten_layer_rail',
@@ -74,17 +80,42 @@ await client.checkIntent({
   actor: "my-local-agent",
 });`;
 
-const CLI_SNIPPET = `node dist/cli.js health
-node dist/cli.js capability
-node dist/cli.js proof:list --limit 10
-node dist/cli.js layers
-node dist/cli.js check-intent \\
+const X402_SDK_SNIPPET = `const demoKey = await client.createDemoApiKey({
+  label: "x402 Guardrail Demo",
+});
+
+await client.checkX402Payment({
+  demoApiKey: demoKey.api_key,
+  scenario: "allowed",
+  intent: "Pay approved API invoice via x402",
+  action: "x402_pay",
+  domain: "api.approved-service.com",
+  endpoint: "/v1/inference",
+  amount: "0.01",
+  token: "USDC",
+  chainId: "base-sepolia",
+  recipient: "0xApprovedPayTo",
+});`;
+
+const CLI_SNIPPET = `node dist/src/cli.js health
+node dist/src/cli.js capability
+node dist/src/cli.js proof:list --limit 10
+node dist/src/cli.js layers
+node dist/src/cli.js check-intent \\
   --intent "Pay approved vendor invoice" \\
   --action agent-send \\
   --chain-id 16661 \\
   --to "0xapproved..." \\
   --amount-wei "1000000000000000"
-node dist/cli.js security-status`;
+node dist/src/cli.js x402:check --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario allowed
+node dist/src/cli.js security-status`;
+
+const X402_CLI_SNIPPET = `node dist/src/cli.js demo:key --label "x402 Guardrail Demo"
+export TITAN_AGENT_WALLET_DEMO_API_KEY="titan_demo_..."
+
+node dist/src/cli.js x402:check --scenario allowed
+node dist/src/cli.js x402:check --scenario blocked
+node dist/src/cli.js demo:logs`;
 
 const MCP_BOOT_SNIPPET = `cd developer-ai-wallet
 npm install
@@ -238,6 +269,50 @@ const DeveloperDocsPage: React.FC = () => {
             <pre className="max-h-96 overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
               <code>{output}</code>
             </pre>
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-3xl border border-titan-border bg-gradient-to-br from-[#07151B] via-titan-surface to-[#0B0D18] p-6">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+                <CreditCard size={18} className="text-titan-accent" /> x402 Guardrail / Agent Payment Rail
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-titan-subtext">
+                x402 lets agents pay. TITAN makes sure they are allowed to pay. Before an AI agent pays an API or service,
+                TITAN checks its intent, capability, domain, recipient, amount, token, and chain, then records proof.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="accent">Simulation Mode</Badge>
+              <Badge variant="success" dot>10-Layer AI Agent Rail Active</Badge>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="rounded-2xl border border-titan-border bg-[#05080D] p-5">
+              <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Capability demo</p>
+              <h3 className="mt-2 text-base font-bold text-white">x402 API Payment Capability</h3>
+              <div className="mt-4 grid gap-2 text-sm text-titan-subtext">
+                <p><span className="text-white">Allowed action:</span> x402_pay, api_payment</p>
+                <p><span className="text-white">Allowed domain:</span> api.approved-service.com</p>
+                <p><span className="text-white">Approved recipient:</span> 0xApprovedPayTo</p>
+                <p><span className="text-white">Max request:</span> 0.01 TEST / USDC</p>
+                <p><span className="text-white">Daily limit:</span> 0.10 simulated</p>
+              </div>
+              <Link to="/developer/demo#x402-guardrail" className="mt-5 inline-flex text-sm font-semibold text-titan-accent hover:text-white">
+                Open x402 demo
+              </Link>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+                <code>{X402_SDK_SNIPPET}</code>
+              </pre>
+              <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+                <code>{X402_CLI_SNIPPET}</code>
+              </pre>
+            </div>
           </div>
         </section>
 

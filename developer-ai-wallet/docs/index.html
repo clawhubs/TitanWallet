@@ -181,6 +181,41 @@
 
       <div class="grid stack">
         <section class="panel">
+          <h2>x402 Guardrail / Agent Payment Rail</h2>
+          <p>x402 lets agents pay. TITAN makes sure they are allowed to pay.</p>
+          <p>Before an AI agent pays an API or service, TITAN checks intent, capability, domain, recipient, amount, token, and chain, then records proof. Public demo mode never moves real funds.</p>
+          <pre><code>node dist/src/cli.js demo:key --label "x402 Guardrail Demo"
+export TITAN_AGENT_WALLET_DEMO_API_KEY="titan_demo_..."
+
+node dist/src/cli.js x402:check --scenario allowed
+node dist/src/cli.js x402:check --scenario blocked
+node dist/src/cli.js demo:logs</code></pre>
+        </section>
+
+        <section class="panel">
+          <h2>x402 SDK</h2>
+          <p>Use this guardrail before wiring a real x402 facilitator or payment processor.</p>
+          <pre><code>const demoKey = await client.createDemoApiKey({
+  label: "x402 Guardrail Demo",
+});
+
+await client.checkX402Payment({
+  demoApiKey: demoKey.api_key,
+  scenario: "allowed",
+  intent: "Pay approved API invoice via x402",
+  action: "x402_pay",
+  domain: "api.approved-service.com",
+  endpoint: "/v1/inference",
+  amount: "0.01",
+  token: "USDC",
+  chainId: "base-sepolia",
+  recipient: "0xApprovedPayTo",
+});</code></pre>
+        </section>
+      </div>
+
+      <div class="grid stack">
+        <section class="panel">
           <h2>Bring Your Own Privy</h2>
           <p>TITAN Wallet uses its own Privy app only for the consumer wallet on this site.</p>
           <p>If you want Google / Apple login or embedded MPC wallets in your own app, you must use your own Privy App ID, App Secret, and JWKS endpoint.</p>
@@ -218,10 +253,11 @@ await client.sendNative({
           <h2>CLI</h2>
           <p>The CLI mirrors the SDK for local agents, scripts, and CI.</p>
           <pre><code>npm run build
-node dist/cli.js health
-node dist/cli.js check-intent \
+node dist/src/cli.js health
+node dist/src/cli.js check-intent \
   --intent "Pay approved vendor invoice"
-node dist/cli.js send \
+node dist/src/cli.js x402:check --scenario allowed
+node dist/src/cli.js send \
   --private-key "$TITAN_AGENT_WALLET_PRIVATE_KEY" \
   --rpc-url "https://evmrpc.0g.ai" \
   --to "0x..." \
@@ -241,7 +277,7 @@ npm run build
 npm run mcp
 
 node dist/src/mcp.js</code></pre>
-          <p class="muted">Exposed tools: <span class="ok">titan_health</span>, <span class="ok">titan_layers</span>, <span class="ok">titan_check_intent</span>, <span class="ok">titan_run_ten_layer_rail</span>, <span class="ok">titan_seal_memory</span>, <span class="ok">titan_send_native</span>.</p>
+          <p class="muted">Exposed tools: <span class="ok">titan_health</span>, <span class="ok">titan_layers</span>, <span class="ok">titan_check_intent</span>, <span class="ok">titan_demo_run</span>, <span class="ok">titan_x402_check_payment</span>, <span class="ok">titan_run_ten_layer_rail</span>, <span class="ok">titan_seal_memory</span>, <span class="ok">titan_send_native</span>.</p>
         </section>
 
         <section class="panel">

@@ -136,6 +136,28 @@ export const TITAN_AGENT_WALLET_MCP_TOOLS: TitanAgentWalletMcpTool[] = [
     },
   },
   {
+    name: 'titan_x402_check_payment',
+    description: 'Simulate an x402 API payment intent through TITAN capability, policy, proof, and security logs. No real funds move.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        demoApiKey: { type: 'string' },
+        scenario: { type: 'string', enum: ['allowed', 'blocked', 'custom'] },
+        intent: { type: 'string' },
+        action: { type: 'string' },
+        domain: { type: 'string' },
+        endpoint: { type: 'string' },
+        method: { type: 'string' },
+        amount: { type: 'string' },
+        token: { type: 'string' },
+        chainId: { type: 'string' },
+        recipient: { type: 'string' },
+        paymentReference: { type: 'string' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'titan_demo_logs',
     description: 'Read TITAN Agent Intent Demo proof logs and security logs.',
     inputSchema: {
@@ -364,6 +386,48 @@ export class TitanAgentWalletMcpServer {
         action: optionalString(args.action) || defaults.action,
         amount: optionalString(args.amount) || defaults.amount,
         recipient: optionalString(args.recipient) || defaults.recipient,
+      }));
+    }
+
+    if (name === 'titan_x402_check_payment') {
+      const status = await this.client.getDemoStatus();
+      const scenario = optionalString(args.scenario) === 'blocked' ? 'blocked' : optionalString(args.scenario) === 'custom' ? 'custom' : 'allowed';
+      const defaults = scenario === 'blocked'
+        ? {
+            intent: 'Pay unknown API with high amount',
+            action: 'x402_pay',
+            domain: 'unknown-api.example',
+            endpoint: '/charge',
+            amount: '100',
+            token: 'USDC',
+            chainId: 'base-sepolia',
+            recipient: '0xUnknownPayTo',
+            paymentReference: 'req_mcp_blocked_001',
+          }
+        : {
+            intent: 'Pay approved API invoice via x402',
+            action: status.x402_demo.allowed_actions[0] || 'x402_pay',
+            domain: status.x402_demo.allowed_domains[0] || 'api.approved-service.com',
+            endpoint: '/v1/inference',
+            amount: status.x402_demo.max_amount_per_request,
+            token: status.x402_demo.allowed_tokens.includes('USDC') ? 'USDC' : status.x402_demo.allowed_tokens[0] || 'TEST',
+            chainId: status.x402_demo.allowed_chains.includes('base-sepolia') ? 'base-sepolia' : status.x402_demo.allowed_chains[0] || 'base-sepolia',
+            recipient: status.x402_demo.allowed_recipients[0] || '0xApprovedPayTo',
+            paymentReference: 'req_mcp_allowed_001',
+          };
+      return toToolResult(await this.client.checkX402Payment({
+        demoApiKey: optionalString(args.demoApiKey),
+        scenario,
+        intent: optionalString(args.intent) || defaults.intent,
+        action: optionalString(args.action) || defaults.action,
+        domain: optionalString(args.domain) || defaults.domain,
+        endpoint: optionalString(args.endpoint) || defaults.endpoint,
+        method: optionalString(args.method) || 'POST',
+        amount: optionalString(args.amount) || defaults.amount,
+        token: optionalString(args.token) || defaults.token,
+        chainId: optionalString(args.chainId) || defaults.chainId,
+        recipient: optionalString(args.recipient) || defaults.recipient,
+        paymentReference: optionalString(args.paymentReference) || defaults.paymentReference,
       }));
     }
 

@@ -32,6 +32,16 @@ const DEMO_AGENT_WALLET_ID = 'agent_demo_001';
 const DEMO_CAPABILITY_ID = 'cap_invoice_001';
 const DEMO_MAX_AMOUNT_TEST = '0.01';
 const DEMO_MAX_AMOUNT_WEI = '10000000000000000';
+const X402_DEMO_PROJECT_ID = 'proj_demo_001';
+const X402_DEMO_CAPABILITY_ID = 'cap_x402_demo_001';
+const X402_DEMO_CAPABILITY_NAME = 'x402 API Payment Capability';
+const X402_DEMO_ALLOWED_ACTIONS = ['x402_pay', 'api_payment'];
+const X402_DEMO_ALLOWED_DOMAINS = ['api.approved-service.com'];
+const X402_DEMO_ALLOWED_RECIPIENTS = ['0xApprovedPayTo'];
+const X402_DEMO_ALLOWED_CHAINS = ['eip155:16602', 'eip155:16661', 'base-sepolia'];
+const X402_DEMO_ALLOWED_TOKENS = ['TEST', 'USDC'];
+const X402_DEMO_MAX_AMOUNT = '0.01';
+const X402_DEMO_DAILY_LIMIT = '0.10';
 
 const WALLET_SECURITY_REGISTRY_ABI = [
   'function recordWalletSecurity(string action, string storageId, bytes32 sourceTxHash, bytes32 integrityHash, string context) external returns (uint256 logId)',
@@ -94,6 +104,7 @@ export async function handleAgentWalletControlPlane(request, response) {
     return sendJson(response, 200, {
       success: true,
       demo: buildDemoConfig(),
+      x402_demo: buildX402DemoConfig(),
       live_anchor_ready: Boolean(DEMO_WALLET_PRIVATE_KEY && DEMO_OWNER_RUN_TOKEN),
       latest_live_anchor: latestLiveAnchor,
     });
@@ -107,6 +118,7 @@ export async function handleAgentWalletControlPlane(request, response) {
       api_key: apiKey.plaintext,
       key: maskDemoApiKey(apiKey.record),
       demo: buildDemoConfig(),
+      x402_demo: buildX402DemoConfig(),
     });
   }
 
@@ -117,6 +129,24 @@ export async function handleAgentWalletControlPlane(request, response) {
     }
 
     const result = evaluateDemoIntent({
+      store,
+      key: demoAuth.key,
+      body,
+    });
+    await saveStore(store);
+    return sendJson(response, 200, {
+      success: true,
+      ...result,
+    });
+  }
+
+  if (action === 'demo_check_x402_payment') {
+    const demoAuth = requireDemoApiKey(request, body, store);
+    if (!demoAuth.ok) {
+      return sendJson(response, demoAuth.status || 401, { success: false, error: demoAuth.error });
+    }
+
+    const result = evaluateX402Payment({
       store,
       key: demoAuth.key,
       body,
@@ -836,6 +866,30 @@ function buildDemoConfig() {
   };
 }
 
+function buildX402DemoConfig() {
+  return {
+    name: 'x402 Guardrail / Agent Payment Rail',
+    mode: 'simulation',
+    type: 'x402_payment',
+    owner_wallet: getDemoOwnerAddress(),
+    project_id: X402_DEMO_PROJECT_ID,
+    agent_wallet_id: DEMO_AGENT_WALLET_ID,
+    capability_id: X402_DEMO_CAPABILITY_ID,
+    capability_name: X402_DEMO_CAPABILITY_NAME,
+    status: 'active',
+    allowed_actions: X402_DEMO_ALLOWED_ACTIONS,
+    allowed_domains: X402_DEMO_ALLOWED_DOMAINS,
+    allowed_recipients: X402_DEMO_ALLOWED_RECIPIENTS,
+    allowed_chains: X402_DEMO_ALLOWED_CHAINS,
+    allowed_tokens: X402_DEMO_ALLOWED_TOKENS,
+    max_amount_per_request: X402_DEMO_MAX_AMOUNT,
+    daily_spend_limit: X402_DEMO_DAILY_LIMIT,
+    policy_window: '24h simulated',
+    proof_log_enabled: true,
+    layers: TEN_LAYERS,
+  };
+}
+
 async function getLatestDemoLiveAnchor(store) {
   const latestAnchor = Object.values(store.security_logs)
     .filter((entry) => entry.metadata?.demo === true)
@@ -872,7 +926,7 @@ function createDemoApiKey(store, body) {
     prefix: `${plaintext.slice(0, 20)}...`,
     label: typeof body.label === 'string' && body.label.trim() ? body.label.trim().slice(0, 80) : 'Developer API Demo Key',
     status: 'active',
-    scopes: ['demo:check_intent', 'demo:read_logs', 'demo:simulation'],
+    scopes: ['demo:check_intent', 'demo:x402_payment', 'demo:read_logs', 'demo:simulation'],
     created_at: now.toISOString(),
     expires_at: new Date(now.getTime() + DEMO_API_KEY_TTL_MS).toISOString(),
     last_used_at: null,
@@ -1024,6 +1078,174 @@ function evaluateDemoIntent(input) {
   };
 }
 
+function evaluateX402Payment(input) {
+  const { store, key, body } = input;
+  const capability = buildX402DemoConfig();
+  const scenario = typeof body.scenario === 'string' ? body.scenario : 'custom';
+  const intent = readString(body.intent) || (scenario === 'blocked'
+    ? 'Pay unknown API with high amount'
+    : 'Pay approved API invoice via x402');
+  const actionName = readString(body.requested_action) || readString(body.action) || 'x402_pay';
+  const domain = readString(body.domain) || (scenario === 'blocked' ? 'unknown-api.example' : 'api.approved-service.com');
+  const endpoint = readString(body.endpoint) || (scenario === 'blocked' ? '/charge' : '/v1/inference');
+  const method = readString(body.method) || 'POST';
+  const amount = readString(body.amount) || (scenario === 'blocked' ? '100' : X402_DEMO_MAX_AMOUNT);
+  const token = readString(body.token) || 'USDC';
+  const chainId = readString(body.chainId) || readString(body.chain_id) || (scenario === 'blocked' ? 'base-sepolia' : 'base-sepolia');
+  const recipient = readString(body.recipient) || readString(body.to) || (scenario === 'blocked' ? '0xUnknownPayTo' : '0xApprovedPayTo');
+  const paymentReference = readString(body.paymentReference) || readString(body.payment_reference) || (scenario === 'blocked' ? 'req_demo_blocked_001' : 'req_demo_001');
+  const capabilityId = readString(body.capabilityId) || readString(body.capability_id) || X402_DEMO_CAPABILITY_ID;
+  const projectId = readString(body.projectId) || readString(body.project_id) || X402_DEMO_PROJECT_ID;
+  const agentWalletId = readString(body.agentWalletId) || readString(body.agent_wallet_id) || DEMO_AGENT_WALLET_ID;
+  const amountNumber = Number.parseFloat(amount);
+  const simulatedDailyTotal = Number.isFinite(amountNumber) ? amountNumber : Number.NaN;
+
+  const reasons = [];
+  if (capabilityId !== X402_DEMO_CAPABILITY_ID) {
+    reasons.push('Capability is not the x402 demo capability.');
+  }
+  if (projectId !== X402_DEMO_PROJECT_ID) {
+    reasons.push('Project does not match the x402 demo capability.');
+  }
+  if (agentWalletId !== DEMO_AGENT_WALLET_ID) {
+    reasons.push('Agent wallet does not match the x402 demo capability.');
+  }
+  if (!X402_DEMO_ALLOWED_ACTIONS.includes(actionName)) {
+    reasons.push('Payment action is not allowed by capability policy.');
+  }
+  if (!X402_DEMO_ALLOWED_DOMAINS.includes(domain)) {
+    reasons.push('Domain is not approved.');
+  }
+  if (!X402_DEMO_ALLOWED_RECIPIENTS.includes(recipient)) {
+    reasons.push('Recipient is not approved.');
+  }
+  if (!Number.isFinite(amountNumber) || amountNumber > Number.parseFloat(X402_DEMO_MAX_AMOUNT)) {
+    reasons.push('Amount exceeds capability limit.');
+  }
+  if (!Number.isFinite(simulatedDailyTotal) || simulatedDailyTotal > Number.parseFloat(X402_DEMO_DAILY_LIMIT)) {
+    reasons.push('Payment would exceed the simulated daily spend limit.');
+  }
+  if (!X402_DEMO_ALLOWED_TOKENS.includes(token)) {
+    reasons.push('Token is not allowed.');
+  }
+  if (!X402_DEMO_ALLOWED_CHAINS.includes(chainId)) {
+    reasons.push('Chain is not allowed.');
+  }
+  if (!paymentReference) {
+    reasons.push('Payment reference is required for replay protection.');
+  }
+
+  const allowed = reasons.length === 0;
+  const reason = allowed
+    ? 'Payment intent matches capability policy. Domain, recipient, amount, token, and chain are allowed.'
+    : reasons.join(' ');
+  const policyResult = allowed ? 'allowed' : 'blocked';
+  const railStatus = allowed ? '10-layer rail passed' : '10-layer rail enforced';
+  const anchorStatus = 'recorded';
+  const proofPayload = {
+    type: 'x402_payment',
+    intent,
+    action: actionName,
+    domain,
+    endpoint,
+    method,
+    amount,
+    token,
+    chainId,
+    recipient,
+    paymentReference,
+    policyResult,
+    mode: 'simulation',
+  };
+
+  const proofLog = appendX402DemoProofLog(store, {
+    key,
+    type: 'x402 Payment Guardrail Check',
+    status: policyResult,
+    policyResult,
+    reason,
+    intent,
+    actionName,
+    domain,
+    endpoint,
+    method,
+    amount,
+    token,
+    chainId,
+    recipient,
+    paymentReference,
+    mode: 'simulation',
+    metadata: {
+      scenario,
+      rail_status: railStatus,
+      anchor_status: anchorStatus,
+      proof_hash: id(JSON.stringify(proofPayload)),
+      capability_snapshot: capability,
+      simulated_daily_total: Number.isFinite(simulatedDailyTotal) ? simulatedDailyTotal.toFixed(2) : null,
+      service: isObject(body.metadata) && typeof body.metadata.service === 'string' ? body.metadata.service : 'AI inference API',
+      purpose: isObject(body.metadata) && typeof body.metadata.purpose === 'string' ? body.metadata.purpose : 'approved agent API call',
+    },
+  });
+  const securityLog = appendDemoSecurityLog(store, {
+    key,
+    proofLogId: proofLog.id,
+    type: allowed ? 'Allowed x402 Payment Security Log' : 'Blocked x402 Payment Security Log',
+    status: allowed ? 'passed' : 'enforced',
+    reason: allowed
+      ? 'Security rail accepted the scoped x402 API payment intent.'
+      : 'Security rail blocked the unsafe x402 payment before execution.',
+    mode: 'simulation',
+    metadata: {
+      policy_result: policyResult,
+      proof_log_id: proofLog.id,
+      action: actionName,
+      domain,
+      endpoint,
+      token,
+      chain_id: chainId,
+      recipient,
+      payment_reference: paymentReference,
+      payment_processor: false,
+      no_real_funds_moved: true,
+    },
+  });
+
+  return {
+    allowed,
+    reason,
+    policyResult,
+    proofId: proofLog.id,
+    proofHash: id(JSON.stringify({
+      ...proofPayload,
+      proof_log_id: proofLog.id,
+      created_at: proofLog.created_at,
+    })),
+    anchorStatus,
+    railStatus,
+    mode: 'simulation',
+    ownerWallet: getDemoOwnerAddress(),
+    projectId,
+    agentWalletId,
+    capabilityId: X402_DEMO_CAPABILITY_ID,
+    securityLogId: securityLog.id,
+    payment: {
+      intent,
+      action: actionName,
+      domain,
+      endpoint,
+      method,
+      amount,
+      token,
+      chainId,
+      recipient,
+      paymentReference,
+    },
+    proofLog,
+    securityLog,
+    evidence: buildDemoEvidence(policyResult),
+  };
+}
+
 function buildDemoEvidence(policyResult) {
   const blocked = policyResult === 'blocked';
   const statuses = blocked
@@ -1084,6 +1306,50 @@ function appendDemoProofLog(store, input) {
       network: DEMO_NETWORK_NAME,
       approved_recipient: DEMO_APPROVED_RECIPIENT,
       policy_window: '24h simulated',
+      no_apy: true,
+      ...(input.metadata || {}),
+    },
+  });
+}
+
+function appendX402DemoProofLog(store, input) {
+  return appendProofLog(store, {
+    owner_wallet_address: getDemoOwnerAddress(),
+    project_id: X402_DEMO_PROJECT_ID,
+    agent_wallet_id: DEMO_AGENT_WALLET_ID,
+    capability_id: X402_DEMO_CAPABILITY_ID,
+    category: 'intent',
+    type: input.type,
+    status: input.status,
+    reason: input.reason,
+    intent: input.intent,
+    requested_action: input.actionName,
+    requested_chain_id: null,
+    requested_destination: input.recipient,
+    requested_amount_wei: decimalToDemoWei(input.amount),
+    metadata: {
+      demo: true,
+      demo_area: 'x402_guardrail',
+      demo_api_key_id: input.key.id,
+      demo_api_key_prefix: input.key.prefix,
+      capability_name: X402_DEMO_CAPABILITY_NAME,
+      policy_result: input.policyResult,
+      type: 'x402_payment',
+      domain: input.domain,
+      endpoint: input.endpoint,
+      method: input.method,
+      raw_amount: input.amount,
+      token: input.token,
+      chain_id: input.chainId,
+      recipient: input.recipient,
+      payment_reference: input.paymentReference,
+      mode: input.mode,
+      network: 'Simulation',
+      policy_window: '24h simulated',
+      daily_spend_limit: X402_DEMO_DAILY_LIMIT,
+      max_amount_per_request: X402_DEMO_MAX_AMOUNT,
+      proof_log_enabled: true,
+      no_real_funds_moved: true,
       no_apy: true,
       ...(input.metadata || {}),
     },
@@ -1467,6 +1733,10 @@ function normalizeAddress(value, optional = false) {
     return optional ? '' : '';
   }
   return normalized;
+}
+
+function readString(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
 }
 
 function toFiniteNumber(value) {

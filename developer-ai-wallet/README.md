@@ -43,19 +43,51 @@ The demo proves this path:
 It uses a simulation-only API key. No public demo button can move real funds.
 
 ```bash
-node dist/cli.js demo:key --label "TITAN Agent Intent Demo"
+node dist/src/cli.js demo:key --label "TITAN Agent Intent Demo"
 export TITAN_AGENT_WALLET_DEMO_API_KEY="titan_demo_..."
 
-node dist/cli.js demo:run --scenario allowed
-node dist/cli.js demo:run --scenario blocked
-node dist/cli.js demo:logs
+node dist/src/cli.js demo:run --scenario allowed
+node dist/src/cli.js demo:run --scenario blocked
+node dist/src/cli.js demo:logs
 ```
 
 Owner-only live anchoring is separate and requires a server-side owner run token:
 
 ```bash
-node dist/cli.js demo:anchor --owner-run-token "$TITAN_DEMO_OWNER_RUN_TOKEN"
+node dist/src/cli.js demo:anchor --owner-run-token "$TITAN_DEMO_OWNER_RUN_TOKEN"
 ```
+
+## x402 Guardrail / Agent Payment Rail
+
+x402 lets agents pay. TITAN makes sure they are allowed to pay.
+
+This module is for developer and AI-agent wallet products. It checks an agent API payment intent before a payment processor or x402 facilitator is introduced. Public demo mode never moves real funds.
+
+The demo proves this path:
+
+`x402 payment intent -> capability policy -> domain / recipient / amount / token / chain checks -> allowed or blocked -> proof log -> security log -> 10-layer evidence`
+
+```bash
+node dist/src/cli.js demo:key --label "x402 Guardrail Demo"
+export TITAN_AGENT_WALLET_DEMO_API_KEY="titan_demo_..."
+
+node dist/src/cli.js x402:check --scenario allowed
+node dist/src/cli.js x402:check --scenario blocked
+node dist/src/cli.js demo:logs
+```
+
+Allowed demo defaults:
+
+- `intent`: `Pay approved API invoice via x402`
+- `action`: `x402_pay`
+- `domain`: `api.approved-service.com`
+- `endpoint`: `/v1/inference`
+- `amount`: `0.01`
+- `token`: `USDC`
+- `chainId`: `base-sepolia`
+- `recipient`: `0xApprovedPayTo`
+
+Blocked demo defaults intentionally fail policy with an unknown domain, unknown recipient, and high amount.
 
 ## 10 Layers
 
@@ -130,6 +162,19 @@ const demoRun = await client.runDemoIntent({
   recipient: demoKey.demo.approved_recipient,
 });
 const demoLogs = await client.getDemoLogs({ demoApiKey: demoKey.api_key });
+
+const x402Run = await client.checkX402Payment({
+  demoApiKey: demoKey.api_key,
+  scenario: "allowed",
+  intent: "Pay approved API invoice via x402",
+  action: "x402_pay",
+  domain: "api.approved-service.com",
+  endpoint: "/v1/inference",
+  amount: "0.01",
+  token: "USDC",
+  chainId: "base-sepolia",
+  recipient: "0xApprovedPayTo",
+});
 ```
 
 ## CLI
@@ -143,15 +188,17 @@ export TITAN_AGENT_WALLET_ID="aw_..."
 export TITAN_AGENT_WALLET_CAPABILITY="titan_cap_..."
 export TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN="titan_owner_..."
 
-node dist/cli.js health
-node dist/cli.js capability
-node dist/cli.js proof:list --limit 10
-node dist/cli.js demo:key --label "TITAN Agent Intent Demo"
-node dist/cli.js demo:run --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario allowed
-node dist/cli.js demo:run --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario blocked
-node dist/cli.js demo:logs --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY"
-node dist/cli.js check-intent --intent "Pay approved vendor invoice" --action agent-send --chain-id 16661 --to "0xapproved..." --amount-wei "1000000000000000"
-node dist/cli.js capability:revoke --capability-id "cap_..." --owner-session-token "$TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN"
+node dist/src/cli.js health
+node dist/src/cli.js capability
+node dist/src/cli.js proof:list --limit 10
+node dist/src/cli.js demo:key --label "TITAN Agent Intent Demo"
+node dist/src/cli.js demo:run --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario allowed
+node dist/src/cli.js demo:run --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario blocked
+node dist/src/cli.js x402:check --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario allowed
+node dist/src/cli.js x402:check --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY" --scenario blocked
+node dist/src/cli.js demo:logs --demo-api-key "$TITAN_AGENT_WALLET_DEMO_API_KEY"
+node dist/src/cli.js check-intent --intent "Pay approved vendor invoice" --action agent-send --chain-id 16661 --to "0xapproved..." --amount-wei "1000000000000000"
+node dist/src/cli.js capability:revoke --capability-id "cap_..." --owner-session-token "$TITAN_AGENT_WALLET_OWNER_SESSION_TOKEN"
 ```
 
 ## MCP
@@ -213,6 +260,7 @@ Available MCP tools now include:
 - `titan_demo_status`
 - `titan_demo_create_api_key`
 - `titan_demo_run`
+- `titan_x402_check_payment`
 - `titan_demo_logs`
 - `titan_demo_anchor_security_log`
 - `titan_revoke_capability`
@@ -229,7 +277,7 @@ If the developer chooses local signing for an autonomous agent, set a scoped key
 export TITAN_AGENT_WALLET_PRIVATE_KEY="0x..."
 export TITAN_AGENT_WALLET_RPC_URL="https://evmrpc.0g.ai"
 
-node dist/cli.js send \
+node dist/src/cli.js send \
   --to "0x..." \
   --value-eth "0.001" \
   --intent "Pay approved vendor invoice" \

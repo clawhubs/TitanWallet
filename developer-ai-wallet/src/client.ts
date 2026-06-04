@@ -16,6 +16,9 @@ import {
   type NativeSendResult,
   type TitanAgentWalletConfig,
   type TitanNetwork,
+  type X402DemoConfigSnapshot,
+  type X402PaymentCheckInput,
+  type X402PaymentCheckResult,
 } from './types.js';
 
 const REGISTRY_ABI = [
@@ -114,6 +117,7 @@ export class TitanAgentWalletClient {
     return this.control<{
       success: boolean;
       demo: DemoConfigSnapshot;
+      x402_demo: X402DemoConfigSnapshot;
       live_anchor_ready: boolean;
     }>({
       action: 'demo_status',
@@ -126,6 +130,7 @@ export class TitanAgentWalletClient {
       api_key: string;
       key: DemoApiKeySnapshot;
       demo: DemoConfigSnapshot;
+      x402_demo: X402DemoConfigSnapshot;
     }>({
       action: 'demo_create_api_key',
       label: input.label || 'Developer API Demo Key',
@@ -148,6 +153,25 @@ export class TitanAgentWalletClient {
       requested_action: input.action,
       amount: input.amount,
       recipient: input.recipient,
+    });
+  }
+
+  async checkX402Payment(input: X402PaymentCheckInput): Promise<X402PaymentCheckResult> {
+    return this.control<X402PaymentCheckResult>({
+      action: 'demo_check_x402_payment',
+      demo_api_key: input.demoApiKey || this.identity.demoApiKey,
+      mode: 'simulation',
+      scenario: input.scenario || 'custom',
+      intent: input.intent,
+      requested_action: input.action || 'x402_pay',
+      domain: input.domain,
+      endpoint: input.endpoint,
+      method: input.method || 'POST',
+      amount: input.amount,
+      token: input.token,
+      chainId: input.chainId,
+      recipient: input.recipient,
+      paymentReference: input.paymentReference || `req_${Date.now()}`,
     });
   }
 

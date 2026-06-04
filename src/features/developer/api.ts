@@ -6,6 +6,8 @@ import type {
   DeveloperDemoLatestAnchor,
   DeveloperDemoLogs,
   DeveloperSecurityLog,
+  DeveloperX402DemoConfig,
+  DeveloperX402PaymentResult,
   OwnerSession,
 } from './types';
 
@@ -133,6 +135,7 @@ export async function getDeveloperDemoStatus() {
   return post<{
     success: boolean;
     demo: DeveloperDemoConfig;
+    x402_demo: DeveloperX402DemoConfig;
     live_anchor_ready: boolean;
     latest_live_anchor: DeveloperDemoLatestAnchor | null;
   }>({
@@ -148,6 +151,7 @@ export async function createDeveloperDemoApiKey(input: {
     api_key: string;
     key: DeveloperDemoApiKey;
     demo: DeveloperDemoConfig;
+    x402_demo: DeveloperX402DemoConfig;
   }>({
     action: 'demo_create_api_key',
     label: input.label || 'Developer API Demo Key',
@@ -170,6 +174,38 @@ export async function runDeveloperDemoIntent(input: {
     requested_action: input.action,
     amount: input.amount,
     recipient: input.recipient,
+  });
+}
+
+export async function runDeveloperDemoX402Payment(input: {
+  demoApiKey: string;
+  scenario: 'allowed' | 'blocked';
+  intent: string;
+  action: string;
+  domain: string;
+  endpoint: string;
+  method?: string;
+  amount: string;
+  token: string;
+  chainId: string;
+  recipient: string;
+  paymentReference: string;
+}) {
+  return post<DeveloperX402PaymentResult>({
+    action: 'demo_check_x402_payment',
+    demo_api_key: input.demoApiKey,
+    mode: 'simulation',
+    scenario: input.scenario,
+    intent: input.intent,
+    requested_action: input.action,
+    domain: input.domain,
+    endpoint: input.endpoint,
+    method: input.method || 'POST',
+    amount: input.amount,
+    token: input.token,
+    chainId: input.chainId,
+    recipient: input.recipient,
+    paymentReference: input.paymentReference,
   });
 }
 

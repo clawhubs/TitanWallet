@@ -167,6 +167,28 @@ export interface DemoConfigSnapshot {
   layers: string[];
 }
 
+export interface X402DemoConfigSnapshot {
+  name: string;
+  mode: 'simulation';
+  type: 'x402_payment';
+  owner_wallet: string;
+  project_id: string;
+  agent_wallet_id: string;
+  capability_id: string;
+  capability_name: string;
+  status: 'active';
+  allowed_actions: string[];
+  allowed_domains: string[];
+  allowed_recipients: string[];
+  allowed_chains: string[];
+  allowed_tokens: string[];
+  max_amount_per_request: string;
+  daily_spend_limit: string;
+  policy_window: string;
+  proof_log_enabled: boolean;
+  layers: string[];
+}
+
 export interface DemoEvidenceLayer {
   id: string;
   name: string;
@@ -209,6 +231,37 @@ export interface DemoIntentResult {
   proofLog: CapabilityProofLogItem;
   securityLog: DemoSecurityLogItem;
   evidence: DemoEvidenceLayer[];
+}
+
+export interface X402PaymentCheckInput {
+  demoApiKey?: string;
+  scenario?: 'allowed' | 'blocked' | 'custom';
+  intent: string;
+  action?: string;
+  domain: string;
+  endpoint: string;
+  method?: string;
+  amount: string;
+  token: string;
+  chainId: string;
+  recipient: string;
+  paymentReference?: string;
+}
+
+export interface X402PaymentCheckResult extends DemoIntentResult {
+  projectId: string;
+  payment: {
+    intent: string;
+    action: string;
+    domain: string;
+    endpoint: string;
+    method: string;
+    amount: string;
+    token: string;
+    chainId: string;
+    recipient: string;
+    paymentReference: string;
+  };
 }
 
 export interface DemoLogsResult {

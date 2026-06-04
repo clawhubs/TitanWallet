@@ -1,6 +1,6 @@
 import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Clipboard, Cpu, KeyRound, Plus, ShieldCheck, Terminal, WalletCards } from 'lucide-react';
+import { BookOpen, Clipboard, Cpu, CreditCard, KeyRound, Plus, ShieldCheck, Terminal, WalletCards } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import { useWallet } from '../../hooks/useWallet';
@@ -40,7 +40,7 @@ npm install
 npm run build
 npm run mcp`;
 
-const DEFAULT_ALLOWED_ACTIONS = 'agent-intent-check,agent-send,agent-sign,agent-memory-seal,agent-tool-result';
+const DEFAULT_ALLOWED_ACTIONS = 'agent-intent-check,agent-send,agent-sign,agent-memory-seal,agent-tool-result,x402_pay,api_payment';
 
 const SDK_SNIPPET = `import { TitanAgentWalletClient } from "@titan/agent-wallet";
 
@@ -57,6 +57,27 @@ await client.checkIntent({
   intent: "Pay approved vendor invoice",
   actor: "my-local-agent",
 });`;
+
+const X402_SNIPPET = `const demoKey = await client.createDemoApiKey({
+  label: "x402 Guardrail Demo",
+});
+
+await client.checkX402Payment({
+  demoApiKey: demoKey.api_key,
+  scenario: "allowed",
+  intent: "Pay approved API invoice via x402",
+  action: "x402_pay",
+  domain: "api.approved-service.com",
+  endpoint: "/v1/inference",
+  amount: "0.01",
+  token: "USDC",
+  chainId: "base-sepolia",
+  recipient: "0xApprovedPayTo",
+});`;
+
+const X402_CLI_SNIPPET = `node dist/src/cli.js x402:check --scenario allowed
+node dist/src/cli.js x402:check --scenario blocked
+node dist/src/cli.js demo:logs`;
 
 const DeveloperSettings: React.FC = () => {
   const { address, signTextMessage } = useWallet();
@@ -475,6 +496,10 @@ const DeveloperSettings: React.FC = () => {
                   title: 'MCP / SDK / CLI',
                   detail: 'All runtime tools reuse the same TITAN_AGENT_WALLET_* env values and the same capability token from step 3.',
                 },
+                {
+                  title: 'x402 Guardrail',
+                  detail: 'Agent API payments can be checked as simulation-only intents before any real payment processor or facilitator is introduced.',
+                },
               ].map((item) => (
                 <div key={item.title} className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
                   <p className="text-sm font-semibold text-white">{item.title}</p>
@@ -659,6 +684,39 @@ const DeveloperSettings: React.FC = () => {
             <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
               <code>{SDK_SNIPPET}</code>
             </pre>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-titan-border bg-gradient-to-br from-[#07151B] to-[#0A0D14] p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <CreditCard size={15} className="text-titan-accent" /> x402 Guardrail module
+                </p>
+                <p className="mt-1 text-xs leading-5 text-titan-subtext">
+                  Use this when an AI agent wants to pay an API. TITAN checks the payment intent and records proof in simulation mode;
+                  this is not a payment processor and does not move funds.
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => void copyText(X402_SNIPPET, 'x402 SDK snippet copied.')}>
+                <Clipboard size={14} /> Copy SDK
+              </Button>
+            </div>
+            <div className="mt-4 grid gap-4 xl:grid-cols-2">
+              <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
+                <code>{X402_SNIPPET}</code>
+              </pre>
+              <div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-titan-subtext">CLI</p>
+                  <Button variant="secondary" size="sm" onClick={() => void copyText(X402_CLI_SNIPPET, 'x402 CLI snippet copied.')}>
+                    <Clipboard size={14} /> Copy CLI
+                  </Button>
+                </div>
+                <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
+                  <code>{X402_CLI_SNIPPET}</code>
+                </pre>
+              </div>
+            </div>
           </div>
 
           <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">

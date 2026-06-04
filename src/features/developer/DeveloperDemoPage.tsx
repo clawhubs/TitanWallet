@@ -5,6 +5,7 @@ import {
   Bot,
   CheckCircle2,
   Copy,
+  CreditCard,
   ExternalLink,
   FileKey2,
   KeyRound,
@@ -21,6 +22,7 @@ import {
   getDeveloperDemoLogs,
   getDeveloperDemoStatus,
   runDeveloperDemoIntent,
+  runDeveloperDemoX402Payment,
 } from './api';
 import type {
   DeveloperDemoApiKey,
@@ -30,6 +32,8 @@ import type {
   DeveloperDemoLatestAnchor,
   DeveloperProofLog,
   DeveloperSecurityLog,
+  DeveloperX402DemoConfig,
+  DeveloperX402PaymentResult,
 } from './types';
 
 type DemoScenario = 'allowed' | 'blocked';
@@ -64,8 +68,31 @@ const fallbackDemoConfig: DeveloperDemoConfig = {
   ],
 };
 
+const fallbackX402DemoConfig: DeveloperX402DemoConfig = {
+  name: 'x402 Guardrail / Agent Payment Rail',
+  mode: 'simulation',
+  type: 'x402_payment',
+  owner_wallet: fallbackDemoConfig.owner_wallet,
+  project_id: 'proj_demo_001',
+  agent_wallet_id: 'agent_demo_001',
+  capability_id: 'cap_x402_demo_001',
+  capability_name: 'x402 API Payment Capability',
+  status: 'active',
+  allowed_actions: ['x402_pay', 'api_payment'],
+  allowed_domains: ['api.approved-service.com'],
+  allowed_recipients: ['0xApprovedPayTo'],
+  allowed_chains: ['eip155:16602', 'eip155:16661', 'base-sepolia'],
+  allowed_tokens: ['TEST', 'USDC'],
+  max_amount_per_request: '0.01',
+  daily_spend_limit: '0.10',
+  policy_window: '24h simulated',
+  proof_log_enabled: true,
+  layers: fallbackDemoConfig.layers,
+};
+
 const DeveloperDemoPage: React.FC = () => {
   const [demo, setDemo] = useState<DeveloperDemoConfig>(fallbackDemoConfig);
+  const [x402Demo, setX402Demo] = useState<DeveloperX402DemoConfig>(fallbackX402DemoConfig);
   const [liveAnchorReady, setLiveAnchorReady] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [apiKeyRecord, setApiKeyRecord] = useState<DeveloperDemoApiKey | null>(null);
@@ -73,7 +100,9 @@ const DeveloperDemoPage: React.FC = () => {
   const [proofLogs, setProofLogs] = useState<DeveloperProofLog[]>([]);
   const [securityLogs, setSecurityLogs] = useState<DeveloperSecurityLog[]>([]);
   const [result, setResult] = useState<DeveloperDemoIntentResult | null>(null);
+  const [x402Result, setX402Result] = useState<DeveloperX402PaymentResult | null>(null);
   const [evidence, setEvidence] = useState<DeveloperDemoEvidenceLayer[]>([]);
+  const [x402Evidence, setX402Evidence] = useState<DeveloperDemoEvidenceLayer[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [ownerRunToken, setOwnerRunToken] = useState('');
@@ -82,9 +111,16 @@ const DeveloperDemoPage: React.FC = () => {
     void getDeveloperDemoStatus()
       .then((payload) => {
         setDemo(payload.demo);
+        setX402Demo(payload.x402_demo || fallbackX402DemoConfig);
         setLiveAnchorReady(payload.live_anchor_ready);
         setLatestLiveAnchor(payload.latest_live_anchor);
-        setEvidence(payload.demo.layers.map((name, index) => ({
+        const readyEvidence = payload.demo.layers.map((name, index) => ({
+          id: `L${String(index + 1).padStart(2, '0')}`,
+          name,
+          status: 'Ready',
+        }));
+        setEvidence(readyEvidence);
+        setX402Evidence((payload.x402_demo?.layers || fallbackX402DemoConfig.layers).map((name, index) => ({
           id: `L${String(index + 1).padStart(2, '0')}`,
           name,
           status: 'Ready',
@@ -103,6 +139,7 @@ const DeveloperDemoPage: React.FC = () => {
       setApiKey(payload.api_key);
       setApiKeyRecord(payload.key);
       setDemo(payload.demo);
+      setX402Demo(payload.x402_demo || fallbackX402DemoConfig);
       await refreshLogs(payload.api_key);
       setMessage('Simulation API key created. It can only run this demo rail.');
     } catch (error) {
@@ -145,6 +182,41 @@ const DeveloperDemoPage: React.FC = () => {
       setMessage(`${scenario === 'allowed' ? 'Allowed' : 'Blocked'} demo recorded with proof and security logs.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Demo run failed.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runX402Scenario = async (scenario: DemoScenario) => {
+    if (!apiKey) {
+      setMessage('Create a simulation API key first.');
+      return;
+    }
+
+    const input = getX402ScenarioInput(x402Demo, scenario);
+    setBusy(`x402-${scenario}`);
+    setMessage('');
+    try {
+      const payload = await runDeveloperDemoX402Payment({
+        demoApiKey: apiKey,
+        scenario,
+        intent: input.intent,
+        action: input.action,
+        domain: input.domain,
+        endpoint: input.endpoint,
+        method: input.method,
+        amount: input.amount,
+        token: input.token,
+        chainId: input.chainId,
+        recipient: input.recipient,
+        paymentReference: input.paymentReference,
+      });
+      setX402Result(payload);
+      setX402Evidence(payload.evidence);
+      await refreshLogs(apiKey);
+      setMessage(`${scenario === 'allowed' ? 'Allowed' : 'Blocked'} x402 payment intent recorded with proof and security logs.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'x402 demo run failed.');
     } finally {
       setBusy(null);
     }
@@ -300,6 +372,81 @@ const DeveloperDemoPage: React.FC = () => {
           <EvidencePanel evidence={evidence} />
         </section>
 
+        <section id="x402-guardrail" className="mt-8 rounded-[32px] border border-titan-border bg-gradient-to-br from-[#07151B] via-titan-surface to-[#0B0D18] p-6 sm:p-8">
+          <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="mb-4 flex flex-wrap gap-2">
+                <Badge variant="accent">Simulation Mode</Badge>
+                <Badge variant="success" dot>10-Layer AI Agent Rail Active</Badge>
+                <Badge variant="neutral">Developer only</Badge>
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-titan-accent">Developer - Agent Payments</p>
+              <h2 className="mt-3 max-w-3xl text-4xl font-black leading-tight tracking-[-0.04em] text-white sm:text-5xl">
+                x402 lets agents pay.
+                <span className="block text-titan-accent">TITAN makes sure they are allowed to pay.</span>
+              </h2>
+              <p className="mt-5 max-w-3xl text-base leading-8 text-titan-subtext">
+                Before an AI agent pays an API or service, TITAN checks intent, capability, policy, and records proof. Public demo mode never sends funds.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-titan-accent/25 bg-titan-accent/5 p-5 lg:w-[360px]">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Capability</p>
+                  <h3 className="mt-1 text-lg font-bold text-white">{x402Demo.capability_name}</h3>
+                </div>
+                <CreditCard className="text-titan-accent" />
+              </div>
+              <div className="grid gap-2 text-sm">
+                <InfoRow label="Mode" value="Simulation" />
+                <InfoRow label="Agent Wallet" value={x402Demo.agent_wallet_id} />
+                <InfoRow label="Allowed Domain" value={x402Demo.allowed_domains[0] || '-'} />
+                <InfoRow label="Approved Recipient" value={x402Demo.allowed_recipients[0] || '-'} />
+                <InfoRow label="Max Amount" value={`${x402Demo.max_amount_per_request} TEST / USDC`} />
+                <InfoRow label="Daily Limit" value={x402Demo.daily_spend_limit} />
+                <InfoRow label="Policy Window" value={x402Demo.policy_window} />
+                <InfoRow label="Proof Log" value={x402Demo.proof_log_enabled ? 'Enabled' : 'Disabled'} />
+                <InfoRow label="Status" value="Active Demo Capability" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <X402ScenarioCard
+              tone="allowed"
+              title="Allowed x402 Payment"
+              description="Agent pays an approved API invoice."
+              input={getX402ScenarioInput(x402Demo, 'allowed')}
+              disabled={!apiKey}
+              busy={busy === 'x402-allowed'}
+              onRun={() => void runX402Scenario('allowed')}
+            />
+            <X402ScenarioCard
+              tone="blocked"
+              title="Blocked x402 Payment"
+              description="Agent tries to pay an unknown API outside permission."
+              input={getX402ScenarioInput(x402Demo, 'blocked')}
+              disabled={!apiKey}
+              busy={busy === 'x402-blocked'}
+              onRun={() => void runX402Scenario('blocked')}
+            />
+          </div>
+
+          <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+            <X402ResultPanel result={x402Result} />
+            <EvidencePanel evidence={x402Evidence} />
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <LogPanel
+              title="x402 Proof Logs"
+              subtitle="Every payment intent creates a verifiable proof log."
+              logs={proofLogs.filter(isX402ProofLog)}
+            />
+            <SecurityLogPanel logs={securityLogs.filter(isX402SecurityLog)} />
+          </div>
+        </section>
+
         <section className="mt-6 grid gap-6 lg:grid-cols-2">
           <LogPanel title="Proof Logs" subtitle="Capability, intent, and policy decisions." logs={proofLogs} />
           <SecurityLogPanel logs={securityLogs} />
@@ -327,6 +474,44 @@ function getScenarioInput(demo: DeveloperDemoConfig, scenario: DemoScenario) {
     recipient: demo.approved_recipient,
     token: demo.token,
   };
+}
+
+function getX402ScenarioInput(demo: DeveloperX402DemoConfig, scenario: DemoScenario) {
+  if (scenario === 'blocked') {
+    return {
+      intent: 'Pay unknown API with high amount',
+      action: 'x402_pay',
+      domain: 'unknown-api.example',
+      endpoint: '/charge',
+      method: 'POST',
+      amount: '100',
+      token: 'USDC',
+      chainId: 'base-sepolia',
+      recipient: '0xUnknownPayTo',
+      paymentReference: 'req_demo_blocked_001',
+    };
+  }
+
+  return {
+    intent: 'Pay approved API invoice via x402',
+    action: 'x402_pay',
+    domain: demo.allowed_domains[0] || 'api.approved-service.com',
+    endpoint: '/v1/inference',
+    method: 'POST',
+    amount: demo.max_amount_per_request,
+    token: demo.allowed_tokens.includes('USDC') ? 'USDC' : demo.allowed_tokens[0] || 'TEST',
+    chainId: demo.allowed_chains.includes('base-sepolia') ? 'base-sepolia' : demo.allowed_chains[0] || 'base-sepolia',
+    recipient: demo.allowed_recipients[0] || '0xApprovedPayTo',
+    paymentReference: 'req_demo_001',
+  };
+}
+
+function isX402ProofLog(log: DeveloperProofLog) {
+  return log.metadata?.demo_area === 'x402_guardrail' || log.metadata?.type === 'x402_payment';
+}
+
+function isX402SecurityLog(log: DeveloperSecurityLog) {
+  return log.metadata?.domain != null && log.metadata?.payment_reference != null;
 }
 
 const ApiKeyPanel: React.FC<{
@@ -470,6 +655,81 @@ const ScenarioCard: React.FC<{
     </div>
   );
 };
+
+const X402ScenarioCard: React.FC<{
+  tone: DemoScenario;
+  title: string;
+  description: string;
+  input: ReturnType<typeof getX402ScenarioInput>;
+  disabled: boolean;
+  busy: boolean;
+  onRun: () => void;
+}> = ({ tone, title, description, input, disabled, busy, onRun }) => {
+  const isAllowed = tone === 'allowed';
+  return (
+    <div className={`rounded-3xl border p-6 ${isAllowed ? 'border-titan-success/25 bg-titan-success/5' : 'border-titan-danger/25 bg-titan-danger/5'}`}>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <Badge variant={isAllowed ? 'success' : 'danger'}>{isAllowed ? 'Expected: Allowed' : 'Expected: Blocked'}</Badge>
+          <h3 className="mt-4 text-2xl font-bold text-white">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-titan-subtext">{description}</p>
+        </div>
+        {isAllowed ? <CheckCircle2 className="text-titan-success" /> : <XCircle className="text-titan-danger" />}
+      </div>
+      <pre className="mb-5 overflow-x-auto rounded-2xl border border-titan-border bg-black/35 p-4 text-xs leading-6 text-titan-subtext">
+{JSON.stringify({
+  intent: input.intent,
+  action: input.action,
+  domain: input.domain,
+  endpoint: input.endpoint,
+  amount: input.amount,
+  token: input.token,
+  chain: input.chainId,
+  recipient: input.recipient,
+  paymentReference: input.paymentReference,
+}, null, 2)}
+      </pre>
+      <Button variant={isAllowed ? 'primary' : 'danger'} onClick={onRun} loading={busy} disabled={disabled} className="w-full">
+        <Play size={16} /> Run {isAllowed ? 'Allowed' : 'Blocked'} x402 Demo
+      </Button>
+    </div>
+  );
+};
+
+const X402ResultPanel: React.FC<{ result: DeveloperX402PaymentResult | null }> = ({ result }) => (
+  <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
+    <div className="mb-5 flex items-center justify-between gap-4">
+      <div>
+        <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">x402 latest result</p>
+        <h2 className="mt-1 text-xl font-bold text-white">Allowed or Blocked Payment Intent</h2>
+      </div>
+      {result ? (
+        <Badge variant={result.allowed ? 'success' : 'danger'}>{result.policyResult}</Badge>
+      ) : (
+        <Badge variant="neutral">Waiting</Badge>
+      )}
+    </div>
+    {result ? (
+      <div className="space-y-3 text-sm">
+        <InfoRow label="Domain" value={result.payment.domain} />
+        <InfoRow label="Endpoint" value={result.payment.endpoint} />
+        <InfoRow label="Amount" value={`${result.payment.amount} ${result.payment.token}`} />
+        <InfoRow label="Chain" value={result.payment.chainId} />
+        <InfoRow label="Recipient" value={result.payment.recipient} />
+        <InfoRow label="Payment ref" value={result.payment.paymentReference} />
+        <InfoRow label="Reason" value={result.reason} />
+        <InfoRow label="Proof ID" value={result.proofId} />
+        <InfoRow label="Proof hash" value={shortHash(result.proofHash)} />
+        <InfoRow label="Rail status" value={result.railStatus} />
+        <InfoRow label="Mode" value="Simulation, no real funds moved" />
+      </div>
+    ) : (
+      <div className="rounded-2xl border border-dashed border-titan-border p-8 text-center text-sm leading-6 text-titan-subtext">
+        Run an x402 allowed or blocked payment intent. TITAN checks the payment request and records proof without moving funds.
+      </div>
+    )}
+  </div>
+);
 
 const ResultPanel: React.FC<{ result: DeveloperDemoIntentResult | null }> = ({ result }) => (
   <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">

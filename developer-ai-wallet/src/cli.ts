@@ -106,6 +106,49 @@ async function main() {
     return;
   }
 
+  if (command === 'x402:check') {
+    const status = await client.getDemoStatus();
+    const scenario = stringArg('scenario') === 'blocked' ? 'blocked' : 'allowed';
+    const defaults = scenario === 'blocked'
+      ? {
+          intent: 'Pay unknown API with high amount',
+          action: 'x402_pay',
+          domain: 'unknown-api.example',
+          endpoint: '/charge',
+          amount: '100',
+          token: 'USDC',
+          chainId: 'base-sepolia',
+          recipient: '0xUnknownPayTo',
+          paymentReference: 'req_cli_blocked_001',
+        }
+      : {
+          intent: 'Pay approved API invoice via x402',
+          action: status.x402_demo.allowed_actions[0] || 'x402_pay',
+          domain: status.x402_demo.allowed_domains[0] || 'api.approved-service.com',
+          endpoint: '/v1/inference',
+          amount: status.x402_demo.max_amount_per_request,
+          token: status.x402_demo.allowed_tokens.includes('USDC') ? 'USDC' : status.x402_demo.allowed_tokens[0] || 'TEST',
+          chainId: status.x402_demo.allowed_chains.includes('base-sepolia') ? 'base-sepolia' : status.x402_demo.allowed_chains[0] || 'base-sepolia',
+          recipient: status.x402_demo.allowed_recipients[0] || '0xApprovedPayTo',
+          paymentReference: 'req_cli_allowed_001',
+        };
+    print(await client.checkX402Payment({
+      demoApiKey: stringArg('demo-api-key'),
+      scenario,
+      intent: stringArg('intent') || defaults.intent,
+      action: stringArg('action') || defaults.action,
+      domain: stringArg('domain') || defaults.domain,
+      endpoint: stringArg('endpoint') || defaults.endpoint,
+      method: stringArg('method') || 'POST',
+      amount: stringArg('amount') || defaults.amount,
+      token: stringArg('token') || defaults.token,
+      chainId: stringArg('x402-chain-id') || stringArg('chain') || defaults.chainId,
+      recipient: stringArg('recipient') || stringArg('to') || defaults.recipient,
+      paymentReference: stringArg('payment-reference') || defaults.paymentReference,
+    }));
+    return;
+  }
+
   if (command === 'demo:logs') {
     print(await client.getDemoLogs({
       demoApiKey: stringArg('demo-api-key'),
@@ -269,6 +312,8 @@ Commands:
   demo:key --label "TITAN Agent Intent Demo"
   demo:run --demo-api-key titan_demo_... --scenario allowed
   demo:run --demo-api-key titan_demo_... --scenario blocked
+  x402:check --demo-api-key titan_demo_... --scenario allowed
+  x402:check --demo-api-key titan_demo_... --scenario blocked
   demo:logs --demo-api-key titan_demo_...
   demo:anchor --demo-api-key titan_demo_... --owner-run-token <owner-only>
   security-status
