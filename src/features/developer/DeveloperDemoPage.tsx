@@ -309,6 +309,10 @@ const DeveloperDemoPage: React.FC = () => {
                   {message}
                 </p>
               ) : null}
+              <div className="mt-5 rounded-2xl border border-titan-accent/20 bg-titan-accent/5 px-4 py-3 text-sm leading-6 text-titan-subtext">
+                <strong className="text-titan-accent">One demo timeline:</strong> run Agent Intent or x402 Payment.
+                Both rails write into the same proof and security logs below, so the demo is easier to inspect.
+              </div>
             </div>
 
             <div className="rounded-3xl border border-titan-border bg-black/25 p-5">
@@ -349,7 +353,7 @@ const DeveloperDemoPage: React.FC = () => {
         <section id="run-demo" className="mt-6 grid gap-6 lg:grid-cols-2">
           <ScenarioCard
             tone="allowed"
-            title="Allowed Demo"
+            title="Allowed Agent Intent"
             description="Agent wants to pay an approved invoice."
             input={getScenarioInput(demo, 'allowed')}
             disabled={!apiKey}
@@ -358,7 +362,7 @@ const DeveloperDemoPage: React.FC = () => {
           />
           <ScenarioCard
             tone="blocked"
-            title="Blocked Demo"
+            title="Blocked Agent Intent"
             description="Agent tries to move funds outside permission."
             input={getScenarioInput(demo, 'blocked')}
             disabled={!apiKey}
@@ -386,7 +390,7 @@ const DeveloperDemoPage: React.FC = () => {
                 <span className="block text-titan-accent">TITAN makes sure they are allowed to pay.</span>
               </h2>
               <p className="mt-5 max-w-3xl text-base leading-8 text-titan-subtext">
-                Before an AI agent pays an API or service, TITAN checks intent, capability, policy, and records proof. Public demo mode never sends funds.
+                Before an AI agent pays an API or service, TITAN checks intent, capability, policy, and records proof. Public demo mode never sends funds. x402 uses the same unified log timeline as the Agent Intent rail below.
               </p>
             </div>
             <div className="rounded-3xl border border-titan-accent/25 bg-titan-accent/5 p-5 lg:w-[360px]">
@@ -437,18 +441,23 @@ const DeveloperDemoPage: React.FC = () => {
             <EvidencePanel evidence={x402Evidence} />
           </div>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <LogPanel
-              title="x402 Proof Logs"
-              subtitle="Every payment intent creates a verifiable proof log."
-              logs={proofLogs.filter(isX402ProofLog)}
-            />
-            <SecurityLogPanel logs={securityLogs.filter(isX402SecurityLog)} />
+          <div className="mt-6 rounded-3xl border border-titan-accent/20 bg-titan-accent/5 p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-white">Logs are unified</p>
+                <p className="mt-1 text-sm leading-6 text-titan-subtext">
+                  x402 payment checks and Agent Intent checks appear together in the unified proof timeline below.
+                </p>
+              </div>
+              <a href="#unified-demo-logs" className="inline-flex items-center gap-2 text-sm font-semibold text-titan-accent hover:text-white">
+                View unified logs <ArrowRight size={15} />
+              </a>
+            </div>
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-2">
-          <LogPanel title="Proof Logs" subtitle="Capability, intent, and policy decisions." logs={proofLogs} />
+        <section id="unified-demo-logs" className="mt-6 grid gap-6 lg:grid-cols-2">
+          <LogPanel title="Unified Proof Timeline" subtitle="Agent Intent and x402 Payment decisions in one place." logs={proofLogs} />
           <SecurityLogPanel logs={securityLogs} />
         </section>
       </main>
@@ -650,7 +659,7 @@ const ScenarioCard: React.FC<{
 }, null, 2)}
       </pre>
       <Button variant={isAllowed ? 'primary' : 'danger'} onClick={onRun} loading={busy} disabled={disabled} className="w-full">
-        <Play size={16} /> Run {isAllowed ? 'Allowed' : 'Blocked'} Demo
+        <Play size={16} /> Run {isAllowed ? 'Allowed' : 'Blocked'} Agent Intent
       </Button>
     </div>
   );
@@ -690,7 +699,7 @@ const X402ScenarioCard: React.FC<{
 }, null, 2)}
       </pre>
       <Button variant={isAllowed ? 'primary' : 'danger'} onClick={onRun} loading={busy} disabled={disabled} className="w-full">
-        <Play size={16} /> Run {isAllowed ? 'Allowed' : 'Blocked'} x402 Demo
+        <Play size={16} /> Run {isAllowed ? 'Allowed' : 'Blocked'} x402 Payment
       </Button>
     </div>
   );
@@ -809,20 +818,26 @@ const LogPanel: React.FC<{
       <Badge variant="neutral">{logs.length} logs</Badge>
     </div>
     <div className="space-y-3">
-      {logs.length ? logs.map((log) => (
-        <div key={log.id} className="rounded-2xl border border-titan-border bg-titan-bg/60 p-4">
-          <div className="mb-2 flex items-start justify-between gap-4">
-            <div>
-              <p className="font-semibold text-white">{log.type}</p>
-              <p className="text-xs text-titan-subtext">{new Date(log.created_at).toLocaleString()}</p>
+      {logs.length ? logs.map((log) => {
+        const railLabel = isX402ProofLog(log) ? 'x402 Payment' : 'Agent Intent';
+        return (
+          <div key={log.id} className="rounded-2xl border border-titan-border bg-titan-bg/60 p-4">
+            <div className="mb-2 flex items-start justify-between gap-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-white">{log.type}</p>
+                  <Badge variant="neutral">{railLabel}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-titan-subtext">{new Date(log.created_at).toLocaleString()}</p>
+              </div>
+              <Badge variant={log.status === 'allowed' || log.status === 'anchored' ? 'success' : log.status === 'blocked' ? 'danger' : 'neutral'}>
+                {log.status}
+              </Badge>
             </div>
-            <Badge variant={log.status === 'allowed' || log.status === 'anchored' ? 'success' : log.status === 'blocked' ? 'danger' : 'neutral'}>
-              {log.status}
-            </Badge>
+            <p className="text-sm leading-6 text-titan-subtext">{log.reason}</p>
           </div>
-          <p className="text-sm leading-6 text-titan-subtext">{log.reason}</p>
-        </div>
-      )) : (
+        );
+      }) : (
         <div className="rounded-2xl border border-dashed border-titan-border p-8 text-center text-sm text-titan-subtext">
           No proof logs yet.
         </div>
@@ -841,28 +856,34 @@ const SecurityLogPanel: React.FC<{ logs: DeveloperSecurityLog[] }> = ({ logs }) 
       <Badge variant="live" dot>{logs.length} logs</Badge>
     </div>
     <div className="space-y-3">
-      {logs.length ? logs.map((log) => (
-        <div key={log.id} className="rounded-2xl border border-titan-border bg-titan-bg/60 p-4">
-          <div className="mb-2 flex items-start justify-between gap-4">
-            <div>
-              <p className="font-semibold text-white">{log.type}</p>
-              <p className="text-xs text-titan-subtext">{new Date(log.created_at).toLocaleString()}</p>
+      {logs.length ? logs.map((log) => {
+        const railLabel = isX402SecurityLog(log) ? 'x402 Payment' : 'Agent Intent';
+        return (
+          <div key={log.id} className="rounded-2xl border border-titan-border bg-titan-bg/60 p-4">
+            <div className="mb-2 flex items-start justify-between gap-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-white">{log.type}</p>
+                  <Badge variant="neutral">{railLabel}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-titan-subtext">{new Date(log.created_at).toLocaleString()}</p>
+              </div>
+              <Badge variant={log.status === 'failed' ? 'danger' : 'success'}>{log.mode}</Badge>
             </div>
-            <Badge variant={log.status === 'failed' ? 'danger' : 'success'}>{log.mode}</Badge>
+            <p className="text-sm leading-6 text-titan-subtext">{log.reason}</p>
+            {log.tx_hash ? (
+              <a
+                href={`https://chainscan.0g.ai/tx/${log.tx_hash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-white"
+              >
+                Open anchor <ExternalLink size={13} />
+              </a>
+            ) : null}
           </div>
-          <p className="text-sm leading-6 text-titan-subtext">{log.reason}</p>
-          {log.tx_hash ? (
-            <a
-              href={`https://chainscan.0g.ai/tx/${log.tx_hash}`}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-white"
-            >
-              Open anchor <ExternalLink size={13} />
-            </a>
-          ) : null}
-        </div>
-      )) : (
+        );
+      }) : (
         <div className="rounded-2xl border border-dashed border-titan-border p-8 text-center text-sm text-titan-subtext">
           No security logs yet.
         </div>
