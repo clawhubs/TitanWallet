@@ -11,6 +11,8 @@ const UNISWAP_CHAIN_MAP: Record<string, string> = {
   ethereum: 'mainnet',
   arbitrum: 'arbitrum',
   base: 'base',
+  bnb: 'bnb',
+  optimism: 'optimism',
   polygon: 'polygon',
   sepolia: 'sepolia',
 };

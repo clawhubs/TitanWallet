@@ -1,4 +1,5 @@
 import type { Network, Token } from '../types';
+import { popularTokenDefinitions } from './mockTokens';
 
 const zeroValueToken = {
   balance: '0',
@@ -102,6 +103,21 @@ const SWAP_TOKEN_PRESETS: Record<string, Token[]> = {
   ],
 };
 
+function buildPopularTokenPresets(network: Network) {
+  return popularTokenDefinitions
+    .filter((token) => token.networkId === network.id)
+    .map<Token>((token) => ({
+      id: `swap-${token.id}`,
+      symbol: token.symbol,
+      name: token.name,
+      icon: token.icon,
+      logoUrl: token.logoUrl,
+      network: network.name,
+      contractAddress: token.contractAddress,
+      ...zeroValueToken,
+    }));
+}
+
 function normalizeSwapNetworkKey(value: string) {
   const normalized = value.trim().toLowerCase();
 
@@ -144,7 +160,10 @@ export function getSwapTokensForNetwork(network: Network, walletTokens: Token[])
   const walletTokensOnNetwork = walletTokens.filter(
     (token) => normalizeSwapNetworkKey(token.network) === networkKey,
   );
-  const presets = SWAP_TOKEN_PRESETS[network.id] || [];
+  const presets = [
+    ...buildPopularTokenPresets(network),
+    ...(SWAP_TOKEN_PRESETS[network.id] || []),
+  ];
   const merged = [...walletTokensOnNetwork, ...presets];
 
   const uniqueTokens = new Map<string, Token>();
