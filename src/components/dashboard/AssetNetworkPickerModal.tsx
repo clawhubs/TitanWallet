@@ -83,7 +83,7 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
         <img
           src={logoUrl}
           alt={network.name}
-          className="h-10 w-10 rounded-xl border border-white/10 bg-[#0F1116] object-cover"
+          className="h-10 w-10 rounded-xl border border-titan-border bg-titan-card object-cover"
         />
       );
     }
@@ -97,7 +97,7 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Select network" size="md" className="max-w-[360px]">
-      <div className="bg-[#111317]">
+      <div className="bg-titan-card">
         <div className="border-b border-white/5 px-5 pt-2">
           <div className="flex gap-6">
             {[
@@ -110,7 +110,7 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
                 onClick={() => setTab(item.id as NetworkPickerTab)}
                 className={cn(
                   'border-b-2 pb-3 text-[15px] font-semibold transition-colors',
-                  tab === item.id ? 'border-white text-white' : 'border-transparent text-white/55 hover:text-white/85',
+                  tab === item.id ? 'border-white text-titan-text' : 'border-transparent text-titan-text/55 hover:text-titan-text/85',
                 )}
               >
                 {item.label}
@@ -125,7 +125,7 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
               onClick={() => chooseNetwork('all')}
               className={cn(
                 'mx-3 flex w-[calc(100%-1.5rem)] items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors',
-                selectedNetwork === 'all' ? 'bg-white/[0.07] text-white' : 'text-white/85 hover:bg-white/[0.04]',
+                selectedNetwork === 'all' ? 'bg-white/[0.07] text-titan-text' : 'text-titan-text/85 hover:bg-white/[0.04]',
               )}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
@@ -144,7 +144,7 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
                   onClick={() => chooseNetwork(network.name)}
                   className={cn(
                     'flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors',
-                    selectedNetwork === network.name ? 'bg-white/[0.07] text-white' : 'text-white/85 hover:bg-white/[0.04]',
+                    selectedNetwork === network.name ? 'bg-white/[0.07] text-titan-text' : 'text-titan-text/85 hover:bg-white/[0.04]',
                   )}
                 >
                   {renderNetworkAvatar(network)}
@@ -167,7 +167,7 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
                     onClick={() => chooseNetwork(network.name)}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors',
-                      selectedNetwork === network.name ? 'bg-white/[0.07] text-white' : 'text-white/85 hover:bg-white/[0.04]',
+                      selectedNetwork === network.name ? 'bg-white/[0.07] text-titan-text' : 'text-titan-text/85 hover:bg-white/[0.04]',
                     )}
                   >
                     {renderNetworkAvatar(network)}
@@ -180,15 +180,15 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-white/10 bg-[#15171C] px-4 py-10 text-center text-sm text-titan-subtext">
+              <div className="rounded-2xl border border-dashed border-titan-border bg-titan-card px-4 py-10 text-center text-sm text-titan-subtext">
                 No bundled testnets available.
               </div>
             )}
           </div>
         ) : (
           <div className="max-h-[420px] overflow-y-auto p-4">
-            <div className="mb-4 rounded-2xl border border-titan-border bg-[#15171C] p-4">
-              <p className="text-sm font-semibold text-white">Custom RPC endpoints</p>
+            <div className="mb-4 rounded-2xl border border-titan-border bg-titan-card p-4">
+              <p className="text-sm font-semibold text-titan-text">Custom RPC endpoints</p>
               <p className="mt-1 text-xs text-titan-subtext">
                 Add your own network and surface it here for quick switching.
               </p>
@@ -205,7 +205,7 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
                     onClick={() => chooseNetwork(network.name)}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors',
-                      selectedNetwork === network.name ? 'bg-white/[0.07] text-white' : 'text-white/85 hover:bg-white/[0.04]',
+                      selectedNetwork === network.name ? 'bg-white/[0.07] text-titan-text' : 'text-titan-text/85 hover:bg-white/[0.04]',
                     )}
                   >
                     {renderNetworkAvatar(network)}
@@ -218,7 +218,7 @@ const AssetNetworkPickerModal: React.FC<AssetNetworkPickerModalProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-white/10 bg-[#15171C] px-4 py-10 text-center text-sm text-titan-subtext">
+              <div className="rounded-2xl border border-dashed border-titan-border bg-titan-card px-4 py-10 text-center text-sm text-titan-subtext">
                 No custom RPC added yet.
               </div>
             )}

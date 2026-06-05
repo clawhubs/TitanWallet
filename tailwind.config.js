@@ -1,4 +1,18 @@
 /** @type {import('tailwindcss').Config} */
+
+/**
+ * Helper: wraps a CSS variable so Tailwind's opacity modifier (/50, /20 etc.) works.
+ * Usage in config: withOpacity('--titan-accent') → supports bg-titan-accent/20
+ */
+function withOpacity(variableName) {
+  return ({ opacityValue }) => {
+    if (opacityValue !== undefined) {
+      return `rgba(var(${variableName}-rgb), ${opacityValue})`;
+    }
+    return `var(${variableName})`;
+  };
+}
+
 export default {
   content: [
     "./index.html",
@@ -8,23 +22,23 @@ export default {
     extend: {
       colors: {
         titan: {
-          bg: '#06080C',
-          surface: '#0C1017',
-          card: '#131821',
-          elevated: '#182030',
-          border: '#1A2233',
-          muted: '#1A2233',
-          text: '#E8ECF4',
-          subtext: '#6B7A90',
-          tertiary: '#3D4A5C',
-          accent: '#4ECDC4',
-          accentDark: '#3AA89F',
-          glow: 'rgba(78,205,196,0.08)',
-          gold: '#B8985A',
-          goldLight: '#A08548',
-          danger: '#E0544E',
-          success: '#3EBD7A',
-          warning: '#D4943A',
+          bg: withOpacity('--titan-bg'),
+          surface: withOpacity('--titan-surface'),
+          card: withOpacity('--titan-card'),
+          elevated: withOpacity('--titan-elevated'),
+          border: withOpacity('--titan-border'),
+          muted: withOpacity('--titan-muted'),
+          text: withOpacity('--titan-text'),
+          subtext: withOpacity('--titan-subtext'),
+          tertiary: withOpacity('--titan-tertiary'),
+          accent: withOpacity('--titan-accent'),
+          accentDark: withOpacity('--titan-accentDark'),
+          glow: 'var(--titan-glow)',
+          gold: withOpacity('--titan-gold'),
+          goldLight: withOpacity('--titan-goldLight'),
+          danger: withOpacity('--titan-danger'),
+          success: withOpacity('--titan-success'),
+          warning: withOpacity('--titan-warning'),
         }
       },
       fontFamily: {
@@ -32,13 +46,13 @@ export default {
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       boxShadow: {
-        'titan': '0 0 0 1px rgba(78, 205, 196, 0.15), 0 4px 24px rgba(0,0,0,0.4)',
-        'titan-glow': '0 0 40px rgba(78, 205, 196, 0.06)',
-        'card': '0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.03)',
-        'elevated': '0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(78,205,196,0.08)',
+        'titan': '0 0 0 1px rgba(var(--titan-accent-rgb), 0.15), 0 4px 24px var(--titan-shadow-heavy)',
+        'titan-glow': '0 0 40px rgba(var(--titan-accent-rgb), 0.06)',
+        'card': '0 1px 3px var(--titan-shadow-base), 0 0 0 1px var(--titan-shadow-outline)',
+        'elevated': '0 4px 24px var(--titan-shadow-heavy), 0 0 0 1px rgba(var(--titan-accent-rgb), 0.08)',
       },
       backgroundImage: {
-        'titan-gradient': 'linear-gradient(135deg, #06080C 0%, #0C1017 100%)',
+        'titan-gradient': 'linear-gradient(135deg, var(--titan-bg) 0%, var(--titan-surface) 100%)',
         'accent-gradient': 'linear-gradient(135deg, #4ECDC4 0%, #3AA89F 100%)',
       },
       animation: {

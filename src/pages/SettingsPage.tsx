@@ -42,7 +42,7 @@ const SettingsPage: React.FC = () => {
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Settings</h1>
+            <h1 className="text-2xl font-bold text-titan-text">Settings</h1>
             <p className="mt-1 text-sm text-titan-subtext">Wallet session, network routing, and token behavior.</p>
           </div>
           <Badge variant="success" dot size="md">Wallet Settings</Badge>
@@ -74,7 +74,7 @@ const SettingsPage: React.FC = () => {
             <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
               <div className="mb-5 flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-bold text-white">Token Registry</h2>
+                  <h2 className="text-lg font-bold text-titan-text">Token Registry</h2>
                   <p className="text-sm text-titan-subtext">Auto-detected tokens stay separate from manual imports so the dashboard can explain where each asset came from.</p>
                 </div>
                 <Badge variant="accent" size="sm">{networkTokens.length} on {activeNetwork.name}</Badge>
@@ -82,10 +82,10 @@ const SettingsPage: React.FC = () => {
 
               <div className="space-y-3">
                 {networkTokens.length ? networkTokens.map((token) => (
-                  <div key={token.id} className="flex flex-col gap-3 rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div key={token.id} className="flex flex-col gap-3 rounded-2xl border border-titan-border titan-deep px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">{token.symbol}</span>
+                        <span className="text-sm font-semibold text-titan-text">{token.symbol}</span>
                         <Badge
                           variant={token.source === 'custom' ? 'accent' : token.source === 'detected' ? 'success' : 'neutral'}
                           size="sm"
@@ -113,10 +113,10 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-              <h2 className="text-lg font-bold text-white">Custom Tokens</h2>
+              <h2 className="text-lg font-bold text-titan-text">Custom Tokens</h2>
               <p className="mt-1 text-sm text-titan-subtext">Imported manually from the dashboard.</p>
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-sm text-white">{networkCustomTokens.length} custom token{networkCustomTokens.length === 1 ? '' : 's'} on {activeNetwork.name}</span>
+                <span className="text-sm text-titan-text">{networkCustomTokens.length} custom token{networkCustomTokens.length === 1 ? '' : 's'} on {activeNetwork.name}</span>
                 <Badge variant="neutral" size="sm">Dashboard import flow</Badge>
               </div>
             </div>

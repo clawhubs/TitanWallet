@@ -23,7 +23,7 @@ const LayerStack: React.FC = () => {
           <div
             key={layer.num}
             className="relative group flex items-start gap-5 p-5 rounded-2xl border border-titan-border bg-titan-surface
-              transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-titan-accent/25 hover:bg-[#0F1520]
+              transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-titan-accent/25 hover:bg-titan-elevated
               hover:shadow-elevated cursor-default"
           >
             {/* Pulse dot */}
@@ -37,7 +37,7 @@ const LayerStack: React.FC = () => {
                 <span className="font-mono text-[12px] text-titan-accent/50 font-bold group-hover:text-titan-accent/80 transition-colors">
                   {layer.num}
                 </span>
-                <span className="text-[15px] font-semibold text-white group-hover:text-white transition-colors">
+                <span className="text-[15px] font-semibold text-titan-text group-hover:text-titan-text transition-colors">
                   {layer.name}
                 </span>
               </div>

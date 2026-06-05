@@ -2,6 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== TITAN Design System — Theme Variables ===== */
+/* Each color has a -rgb variant for Tailwind opacity modifier support */
+
+/* Dark theme (default) */
+:root,
+[data-theme="dark"] {
+  --titan-bg: #06080C;
+  --titan-bg-rgb: 6, 8, 12;
+  --titan-surface: #0C1017;
+  --titan-surface-rgb: 12, 16, 23;
+  --titan-card: #131821;
+  --titan-card-rgb: 19, 24, 33;
+  --titan-elevated: #182030;
+  --titan-elevated-rgb: 24, 32, 48;
+  --titan-border: #1A2233;
+  --titan-border-rgb: 26, 34, 51;
+  --titan-muted: #1A2233;
+  --titan-muted-rgb: 26, 34, 51;
+  --titan-text: #E8ECF4;
+  --titan-text-rgb: 232, 236, 244;
+  --titan-subtext: #6B7A90;
+  --titan-subtext-rgb: 107, 122, 144;
+  --titan-tertiary: #3D4A5C;
+  --titan-tertiary-rgb: 61, 74, 92;
+  --titan-accent: #4ECDC4;
+  --titan-accent-rgb: 78, 205, 196;
+  --titan-accentDark: #3AA89F;
+  --titan-accentDark-rgb: 58, 168, 159;
+  --titan-glow: rgba(78,205,196,0.08);
+  --titan-gold: #B8985A;
+  --titan-gold-rgb: 184, 152, 90;
+  --titan-goldLight: #A08548;
+  --titan-goldLight-rgb: 160, 133, 72;
+  --titan-danger: #E0544E;
+  --titan-danger-rgb: 224, 84, 78;
+  --titan-success: #3EBD7A;
+  --titan-success-rgb: 62, 189, 122;
+  --titan-warning: #D4943A;
+  --titan-warning-rgb: 212, 148, 58;
+
+  /* Shadows */
+  --titan-shadow-base: rgba(0,0,0,0.3);
+  --titan-shadow-heavy: rgba(0,0,0,0.4);
+  --titan-shadow-outline: rgba(255,255,255,0.03);
+
+  /* Glass */
+  --titan-glass-bg: rgba(12, 16, 23, 0.7);
+  --titan-glass-border: rgba(26, 34, 51, 0.6);
+
+  /* Deeper bg for nested panels */
+  --titan-deep: #0A0D14;
+
+  /* Modal */
+  --titan-modal-backdrop: rgba(6, 8, 12, 0.85);
+
+  color-scheme: dark;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --titan-bg: #F5F7FA;
+  --titan-bg-rgb: 245, 247, 250;
+  --titan-surface: #FFFFFF;
+  --titan-surface-rgb: 255, 255, 255;
+  --titan-card: #FFFFFF;
+  --titan-card-rgb: 255, 255, 255;
+  --titan-elevated: #F0F2F5;
+  --titan-elevated-rgb: 240, 242, 245;
+  --titan-border: #E2E6ED;
+  --titan-border-rgb: 226, 230, 237;
+  --titan-muted: #E2E6ED;
+  --titan-muted-rgb: 226, 230, 237;
+  --titan-text: #0F1729;
+  --titan-text-rgb: 15, 23, 41;
+  --titan-subtext: #5A6478;
+  --titan-subtext-rgb: 90, 100, 120;
+  --titan-tertiary: #8E99AB;
+  --titan-tertiary-rgb: 142, 153, 171;
+  --titan-accent: #3BB5AD;
+  --titan-accent-rgb: 59, 181, 173;
+  --titan-accentDark: #2E9A93;
+  --titan-accentDark-rgb: 46, 154, 147;
+  --titan-glow: rgba(59,181,173,0.08);
+  --titan-gold: #A38044;
+  --titan-gold-rgb: 163, 128, 68;
+  --titan-goldLight: #8B6E3A;
+  --titan-goldLight-rgb: 139, 110, 58;
+  --titan-danger: #D0403A;
+  --titan-danger-rgb: 208, 64, 58;
+  --titan-success: #2FA868;
+  --titan-success-rgb: 47, 168, 104;
+  --titan-warning: #C08430;
+  --titan-warning-rgb: 192, 132, 48;
+
+  /* Shadows */
+  --titan-shadow-base: rgba(0,0,0,0.06);
+  --titan-shadow-heavy: rgba(0,0,0,0.08);
+  --titan-shadow-outline: rgba(0,0,0,0.04);
+
+  /* Glass */
+  --titan-glass-bg: rgba(255, 255, 255, 0.8);
+  --titan-glass-border: rgba(226, 230, 237, 0.6);
+
+  /* Deeper bg for nested panels */
+  --titan-deep: #F0F2F5;
+
+  /* Modal */
+  --titan-modal-backdrop: rgba(15, 23, 41, 0.5);
+
+  color-scheme: light;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -12,7 +124,11 @@
   }
 
   body {
-    @apply bg-titan-bg text-titan-text font-sans antialiased;
+    background-color: var(--titan-bg);
+    color: var(--titan-text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
   }
 
@@ -22,64 +138,103 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-titan-bg;
+    background: var(--titan-bg);
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-titan-muted rounded-full border border-titan-bg;
+    background: rgba(var(--titan-muted-rgb), 1);
+    border-radius: 9999px;
+    border: 1px solid var(--titan-bg);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-titan-subtext;
+    background: rgba(var(--titan-subtext-rgb), 1);
   }
 
   ::selection {
-    @apply bg-titan-accent/20 text-titan-accent;
+    background: rgba(var(--titan-accent-rgb), 0.2);
+    color: var(--titan-accent);
   }
 }
 
 @layer components {
   .titan-card {
-    @apply bg-titan-surface border border-titan-border rounded-2xl shadow-card transition-all duration-200;
+    @apply bg-titan-surface border border-titan-border rounded-2xl transition-all duration-200;
+    box-shadow: 0 1px 3px var(--titan-shadow-base), 0 0 0 1px var(--titan-shadow-outline);
   }
 
   .titan-glass {
-    background: rgba(12, 16, 23, 0.7);
+    background: var(--titan-glass-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    @apply border border-titan-border/60;
+    border: 1px solid var(--titan-glass-border);
   }
 
   .titan-btn-primary {
-    @apply bg-titan-accent text-titan-bg font-semibold px-5 py-2.5 rounded-xl
+    background: var(--titan-accent);
+    color: #06080C;
+    @apply font-semibold px-5 py-2.5 rounded-xl
            hover:brightness-110 transition-all duration-150
-           focus:outline-none focus:ring-2 focus:ring-titan-accent/40
+           focus:outline-none
            disabled:opacity-40 disabled:cursor-not-allowed
            active:scale-[0.97];
+    box-shadow: 0 0 0 0 transparent;
+  }
+
+  .titan-btn-primary:focus {
+    box-shadow: 0 0 0 3px rgba(var(--titan-accent-rgb), 0.4);
   }
 
   .titan-btn-secondary {
     @apply bg-titan-surface text-titan-text border border-titan-border font-medium px-5 py-2.5 rounded-xl
-           hover:border-titan-accent/30 hover:bg-[#182030] transition-all duration-150
-           focus:outline-none focus:ring-2 focus:ring-titan-accent/20
+           transition-all duration-150
+           focus:outline-none
            active:scale-[0.97];
+  }
+
+  .titan-btn-secondary:hover {
+    background: var(--titan-elevated);
+    border-color: rgba(var(--titan-accent-rgb), 0.3);
+  }
+
+  .titan-btn-secondary:focus {
+    box-shadow: 0 0 0 3px rgba(var(--titan-accent-rgb), 0.2);
   }
 
   .titan-btn-ghost {
     @apply text-titan-subtext font-medium px-4 py-2 rounded-xl
-           hover:text-titan-text hover:bg-[#182030] transition-all duration-150
+           hover:text-titan-text transition-all duration-150
            active:scale-[0.97];
   }
 
+  .titan-btn-ghost:hover {
+    background: var(--titan-elevated);
+  }
+
   .titan-input {
-    @apply w-full bg-titan-surface border border-titan-border rounded-xl px-4 py-3
-           text-titan-text placeholder:text-[#3D4A5C]
-           focus:outline-none focus:border-titan-accent/60 focus:ring-1 focus:ring-titan-accent/20
+    @apply w-full border border-titan-border rounded-xl px-4 py-3
+           text-titan-text
            transition-all duration-200 font-mono text-sm;
+    background: var(--titan-surface);
+  }
+
+  .titan-input::placeholder {
+    color: var(--titan-tertiary);
+  }
+
+  .titan-input:focus {
+    outline: none;
+    border-color: rgba(var(--titan-accent-rgb), 0.6);
+    box-shadow: 0 0 0 2px rgba(var(--titan-accent-rgb), 0.2);
   }
 
   .titan-label {
     @apply text-titan-subtext text-[11px] font-medium uppercase tracking-[0.06em];
+  }
+
+  /* Deep panel (for nested backgrounds) */
+  .titan-deep {
+    background: var(--titan-deep);
   }
 }
 
@@ -92,7 +247,7 @@
   }
 
   .border-glow {
-    box-shadow: 0 0 0 1px rgba(78, 205, 196, 0.3), 0 0 20px rgba(78, 205, 196, 0.05);
+    box-shadow: 0 0 0 1px rgba(var(--titan-accent-rgb), 0.3), 0 0 20px rgba(var(--titan-accent-rgb), 0.05);
   }
 
   .animate-titan-marquee {
@@ -127,7 +282,7 @@
 
 /* Modal backdrop */
 .modal-backdrop {
-  background: rgba(6, 8, 12, 0.85);
+  background: var(--titan-modal-backdrop);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }

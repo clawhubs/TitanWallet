@@ -106,15 +106,15 @@ const AddTokenModal: React.FC<AddTokenModalProps> = ({ isOpen, onClose }) => {
               <p className="text-xs font-semibold uppercase tracking-wider text-titan-accent">Auto-filled</p>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-titan-subtext">Token Name</span>
-                <span className="font-semibold text-white">{metadata.name}</span>
+                <span className="font-semibold text-titan-text">{metadata.name}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-titan-subtext">Symbol</span>
-                <span className="font-semibold text-white">{metadata.symbol}</span>
+                <span className="font-semibold text-titan-text">{metadata.symbol}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-titan-subtext">Decimals</span>
-                <span className="font-semibold text-white">{metadata.decimals}</span>
+                <span className="font-semibold text-titan-text">{metadata.decimals}</span>
               </div>
             </div>
           ) : (

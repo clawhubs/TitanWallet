@@ -18,6 +18,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <script>
+      (function() {
+        try {
+          var raw = localStorage.getItem('titan-theme');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            var t = parsed && parsed.state && parsed.state.theme;
+            if (t === 'light') {
+              document.documentElement.setAttribute('data-theme', 'light');
+            } else if (t === 'system') {
+              var isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            }
+          }
+        } catch(e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

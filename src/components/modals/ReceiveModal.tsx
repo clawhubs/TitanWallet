@@ -41,18 +41,18 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose }) => {
 
         <div className="rounded-2xl border border-titan-border bg-titan-surface p-5">
           <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-titan-border bg-[#0A0D14]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-titan-border titan-deep">
               <Wallet size={18} className="text-titan-accent" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">Deposit to your TITAN wallet</p>
+              <p className="text-sm font-semibold text-titan-text">Deposit to your TITAN wallet</p>
               <p className="text-xs text-titan-subtext">Only send assets supported on {activeNetwork.name} to this address.</p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-titan-border bg-[#0A0D14] p-4">
+          <div className="rounded-xl border border-titan-border titan-deep p-4">
             <p className="text-xs uppercase tracking-wider text-titan-subtext">Wallet address</p>
-            <p className="mt-2 break-all font-mono text-sm text-white">
+            <p className="mt-2 break-all font-mono text-sm text-titan-text">
               {walletAddress || 'No wallet connected'}
             </p>
             {walletAddress ? (

@@ -262,14 +262,14 @@ const DeveloperDemoPage: React.FC = () => {
       <header className="border-b border-titan-border bg-titan-bg/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl mix-blend-screen">
-              <img src="/titan-logo.png" alt="TITAN Logo" className="h-full w-full scale-[1.45] object-cover" />
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl ">
+              <img src="/titan-logo-transparent.png" alt="TITAN Logo" className="h-full w-full scale-[1.45] object-cover" />
             </span>
-            <span className="font-bold text-white">TITAN Developer Demo</span>
+            <span className="font-bold text-titan-text">TITAN Developer Demo</span>
           </Link>
           <div className="flex items-center gap-2">
             <Badge variant="live" dot>Simulation safe</Badge>
-            <Link to="/developer/docs" className="hidden rounded-xl border border-titan-border px-4 py-2 text-sm font-semibold text-titan-subtext transition hover:border-titan-accent/30 hover:text-white sm:inline-flex">
+            <Link to="/developer/docs" className="hidden rounded-xl border border-titan-border px-4 py-2 text-sm font-semibold text-titan-subtext transition hover:border-titan-accent/30 hover:text-titan-text sm:inline-flex">
               Docs
             </Link>
           </div>
@@ -287,7 +287,7 @@ const DeveloperDemoPage: React.FC = () => {
                 <Badge variant="neutral">No real funds moved</Badge>
                 <Badge variant="gold">API key demo</Badge>
               </div>
-              <h1 className="max-w-3xl text-[42px] font-black leading-[1.02] tracking-[-0.04em] text-white sm:text-[58px]">
+              <h1 className="max-w-3xl text-[42px] font-black leading-[1.02] tracking-[-0.04em] text-titan-text sm:text-[58px]">
                 AI agents should not get unlimited wallet access.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-titan-subtext sm:text-lg">
@@ -299,7 +299,7 @@ const DeveloperDemoPage: React.FC = () => {
                 </Button>
                 <a
                   href="#run-demo"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-titan-border bg-titan-surface px-7 py-3.5 text-base font-semibold text-white transition hover:border-titan-accent/40"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-titan-border bg-titan-surface px-7 py-3.5 text-base font-semibold text-titan-text transition hover:border-titan-accent/40"
                 >
                   Run simulation <ArrowRight size={18} />
                 </a>
@@ -319,7 +319,7 @@ const DeveloperDemoPage: React.FC = () => {
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Demo capability</p>
-                  <h2 className="mt-1 text-xl font-bold text-white">{demo.capability_name}</h2>
+                  <h2 className="mt-1 text-xl font-bold text-titan-text">{demo.capability_name}</h2>
                 </div>
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-titan-accent/30 bg-titan-accent/10">
                   <Bot size={22} className="text-titan-accent" />
@@ -385,7 +385,7 @@ const DeveloperDemoPage: React.FC = () => {
                 <Badge variant="neutral">Developer only</Badge>
               </div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-titan-accent">Developer - Agent Payments</p>
-              <h2 className="mt-3 max-w-3xl text-4xl font-black leading-tight tracking-[-0.04em] text-white sm:text-5xl">
+              <h2 className="mt-3 max-w-3xl text-4xl font-black leading-tight tracking-[-0.04em] text-titan-text sm:text-5xl">
                 x402 lets agents pay.
                 <span className="block text-titan-accent">TITAN makes sure they are allowed to pay.</span>
               </h2>
@@ -397,7 +397,7 @@ const DeveloperDemoPage: React.FC = () => {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Capability</p>
-                  <h3 className="mt-1 text-lg font-bold text-white">{x402Demo.capability_name}</h3>
+                  <h3 className="mt-1 text-lg font-bold text-titan-text">{x402Demo.capability_name}</h3>
                 </div>
                 <CreditCard className="text-titan-accent" />
               </div>
@@ -444,12 +444,12 @@ const DeveloperDemoPage: React.FC = () => {
           <div className="mt-6 rounded-3xl border border-titan-accent/20 bg-titan-accent/5 p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-bold text-white">Logs are unified</p>
+                <p className="text-sm font-bold text-titan-text">Logs are unified</p>
                 <p className="mt-1 text-sm leading-6 text-titan-subtext">
                   x402 payment checks and Agent Intent checks appear together in the unified proof timeline below.
                 </p>
               </div>
-              <a href="#unified-demo-logs" className="inline-flex items-center gap-2 text-sm font-semibold text-titan-accent hover:text-white">
+              <a href="#unified-demo-logs" className="inline-flex items-center gap-2 text-sm font-semibold text-titan-accent hover:text-titan-text">
                 View unified logs <ArrowRight size={15} />
               </a>
             </div>
@@ -534,7 +534,7 @@ const ApiKeyPanel: React.FC<{
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Step 1</p>
-        <h2 className="mt-1 text-xl font-bold text-white">Create simulation API key</h2>
+        <h2 className="mt-1 text-xl font-bold text-titan-text">Create simulation API key</h2>
         <p className="mt-2 text-sm leading-6 text-titan-subtext">
           This key can only run the public demo policy. It cannot transfer funds.
         </p>
@@ -545,7 +545,7 @@ const ApiKeyPanel: React.FC<{
       <div className="rounded-2xl border border-titan-accent/25 bg-titan-accent/5 p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
           <Badge variant="accent">{apiKeyRecord?.prefix || 'titan_demo_...'}</Badge>
-          <button onClick={onCopy} className="inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-white">
+          <button onClick={onCopy} className="inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-titan-text">
             <Copy size={14} /> Copy
           </button>
         </div>
@@ -573,7 +573,7 @@ const LiveAnchorPanel: React.FC<{
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Owner-only</p>
-        <h2 className="mt-1 text-xl font-bold text-white">Live 0G security proof anchor</h2>
+        <h2 className="mt-1 text-xl font-bold text-titan-text">Live 0G security proof anchor</h2>
         <p className="mt-2 text-sm leading-6 text-titan-subtext">
           Optional live run writes the TITAN 10-layer security proof log to the 0G registry.
           This is not a token transfer.
@@ -586,7 +586,7 @@ const LiveAnchorPanel: React.FC<{
         value={ownerRunToken}
         onChange={(event) => onOwnerRunTokenChange(event.target.value)}
         placeholder={ready ? 'Owner run token' : 'Live anchor not configured'}
-        className="min-w-0 flex-1 rounded-xl border border-titan-border bg-titan-bg px-4 py-3 text-sm text-white outline-none focus:border-titan-accent/60"
+        className="min-w-0 flex-1 rounded-xl border border-titan-border bg-titan-bg px-4 py-3 text-sm text-titan-text outline-none focus:border-titan-accent/60"
         disabled={!ready}
       />
       <Button variant="secondary" onClick={onRun} loading={busy} disabled={!ready || !ownerRunToken.trim()}>
@@ -612,15 +612,15 @@ const LiveAnchorPanel: React.FC<{
           it does not send the 0.01 TEST demo amount.
         </p>
         <div className="mt-3 grid gap-2 text-xs text-titan-subtext sm:grid-cols-2">
-          <span>Tx type: <strong className="text-white">registry proof log</strong></span>
-          <span>On-chain value: <strong className="text-white">0 OG</strong></span>
+          <span>Tx type: <strong className="text-titan-text">registry proof log</strong></span>
+          <span>On-chain value: <strong className="text-titan-text">0 OG</strong></span>
         </div>
-        <p className="mt-3 break-all text-sm font-semibold text-white">{latestLiveAnchor.tx_hash}</p>
+        <p className="mt-3 break-all text-sm font-semibold text-titan-text">{latestLiveAnchor.tx_hash}</p>
         <a
           href={`https://chainscan.0g.ai/tx/${latestLiveAnchor.tx_hash}`}
           target="_blank"
           rel="noreferrer"
-          className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-white"
+          className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-titan-text"
         >
           Inspect on 0G explorer <ExternalLink size={13} />
         </a>
@@ -644,7 +644,7 @@ const ScenarioCard: React.FC<{
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <Badge variant={isAllowed ? 'success' : 'danger'}>{isAllowed ? 'Expected: Allowed' : 'Expected: Blocked'}</Badge>
-          <h2 className="mt-4 text-2xl font-bold text-white">{title}</h2>
+          <h2 className="mt-4 text-2xl font-bold text-titan-text">{title}</h2>
           <p className="mt-2 text-sm leading-6 text-titan-subtext">{description}</p>
         </div>
         {isAllowed ? <CheckCircle2 className="text-titan-success" /> : <XCircle className="text-titan-danger" />}
@@ -680,7 +680,7 @@ const X402ScenarioCard: React.FC<{
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <Badge variant={isAllowed ? 'success' : 'danger'}>{isAllowed ? 'Expected: Allowed' : 'Expected: Blocked'}</Badge>
-          <h3 className="mt-4 text-2xl font-bold text-white">{title}</h3>
+          <h3 className="mt-4 text-2xl font-bold text-titan-text">{title}</h3>
           <p className="mt-2 text-sm leading-6 text-titan-subtext">{description}</p>
         </div>
         {isAllowed ? <CheckCircle2 className="text-titan-success" /> : <XCircle className="text-titan-danger" />}
@@ -710,7 +710,7 @@ const X402ResultPanel: React.FC<{ result: DeveloperX402PaymentResult | null }> =
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">x402 latest result</p>
-        <h2 className="mt-1 text-xl font-bold text-white">Allowed or Blocked Payment Intent</h2>
+        <h2 className="mt-1 text-xl font-bold text-titan-text">Allowed or Blocked Payment Intent</h2>
       </div>
       {result ? (
         <Badge variant={result.allowed ? 'success' : 'danger'}>{result.policyResult}</Badge>
@@ -745,7 +745,7 @@ const ResultPanel: React.FC<{ result: DeveloperDemoIntentResult | null }> = ({ r
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Latest result</p>
-        <h2 className="mt-1 text-xl font-bold text-white">Allowed or Blocked</h2>
+        <h2 className="mt-1 text-xl font-bold text-titan-text">Allowed or Blocked</h2>
       </div>
       {result ? (
         <Badge variant={result.allowed ? 'success' : 'danger'}>{result.policyResult}</Badge>
@@ -786,7 +786,7 @@ const EvidencePanel: React.FC<{ evidence: DeveloperDemoEvidenceLayer[] }> = ({ e
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Security panel</p>
-        <h2 className="mt-1 text-xl font-bold text-white">10-Layer Rail Evidence</h2>
+        <h2 className="mt-1 text-xl font-bold text-titan-text">10-Layer Rail Evidence</h2>
       </div>
       <ShieldCheck className="text-titan-accent" />
     </div>
@@ -795,7 +795,7 @@ const EvidencePanel: React.FC<{ evidence: DeveloperDemoEvidenceLayer[] }> = ({ e
         <div key={layer.id} className="flex items-center justify-between gap-4 rounded-2xl border border-titan-border bg-titan-bg/60 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className="text-xs font-bold text-titan-accent">{layer.id}</span>
-            <span className="truncate text-sm font-semibold text-white">{layer.name}</span>
+            <span className="truncate text-sm font-semibold text-titan-text">{layer.name}</span>
           </div>
           <span className="shrink-0 text-xs font-semibold text-titan-success">{layer.status}</span>
         </div>
@@ -812,7 +812,7 @@ const LogPanel: React.FC<{
   <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
-        <h2 className="text-xl font-bold text-white">{title}</h2>
+        <h2 className="text-xl font-bold text-titan-text">{title}</h2>
         <p className="mt-1 text-sm text-titan-subtext">{subtitle}</p>
       </div>
       <Badge variant="neutral">{logs.length} logs</Badge>
@@ -825,7 +825,7 @@ const LogPanel: React.FC<{
             <div className="mb-2 flex items-start justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-white">{log.type}</p>
+                  <p className="font-semibold text-titan-text">{log.type}</p>
                   <Badge variant="neutral">{railLabel}</Badge>
                 </div>
                 <p className="mt-1 text-xs text-titan-subtext">{new Date(log.created_at).toLocaleString()}</p>
@@ -850,7 +850,7 @@ const SecurityLogPanel: React.FC<{ logs: DeveloperSecurityLog[] }> = ({ logs }) 
   <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
     <div className="mb-5 flex items-center justify-between gap-4">
       <div>
-        <h2 className="text-xl font-bold text-white">Security Logs</h2>
+        <h2 className="text-xl font-bold text-titan-text">Security Logs</h2>
         <p className="mt-1 text-sm text-titan-subtext">Separate rail events for security evidence.</p>
       </div>
       <Badge variant="live" dot>{logs.length} logs</Badge>
@@ -863,7 +863,7 @@ const SecurityLogPanel: React.FC<{ logs: DeveloperSecurityLog[] }> = ({ logs }) 
             <div className="mb-2 flex items-start justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-white">{log.type}</p>
+                  <p className="font-semibold text-titan-text">{log.type}</p>
                   <Badge variant="neutral">{railLabel}</Badge>
                 </div>
                 <p className="mt-1 text-xs text-titan-subtext">{new Date(log.created_at).toLocaleString()}</p>
@@ -876,7 +876,7 @@ const SecurityLogPanel: React.FC<{ logs: DeveloperSecurityLog[] }> = ({ logs }) 
                 href={`https://chainscan.0g.ai/tx/${log.tx_hash}`}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-white"
+                className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-titan-accent hover:text-titan-text"
               >
                 Open anchor <ExternalLink size={13} />
               </a>
@@ -895,7 +895,7 @@ const SecurityLogPanel: React.FC<{ logs: DeveloperSecurityLog[] }> = ({ logs }) 
 const InfoRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="flex items-start justify-between gap-4 rounded-xl border border-titan-border bg-titan-bg/50 px-4 py-3">
     <span className="shrink-0 text-titan-subtext">{label}</span>
-    <span className="min-w-0 break-words text-right font-semibold text-white">{value}</span>
+    <span className="min-w-0 break-words text-right font-semibold text-titan-text">{value}</span>
   </div>
 );
 

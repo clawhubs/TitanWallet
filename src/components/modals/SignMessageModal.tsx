@@ -166,7 +166,7 @@ const SignMessageModal: React.FC<SignMessageModalProps> = ({ isOpen, onClose, re
         </div>
 
         {status ? (
-          <div className="mb-4 rounded-xl border border-titan-border bg-[#0A0D14] px-4 py-3 text-xs text-titan-subtext">
+          <div className="mb-4 rounded-xl border border-titan-border titan-deep px-4 py-3 text-xs text-titan-subtext">
             {status}
           </div>
         ) : null}

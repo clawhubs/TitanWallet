@@ -589,8 +589,8 @@ const CreateWalletPage: React.FC = () => {
       <div className="w-full max-w-md animate-slide-up">
         {/* Logo */}
         <div className="flex items-center gap-2.5 justify-center mb-8">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden mix-blend-screen">
-            <img src="/titan-logo.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden ">
+            <img src="/titan-logo-transparent.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
           </div>
           <span className="font-bold text-titan-text">TITAN Wallet</span>
         </div>
@@ -668,10 +668,10 @@ const CreateWalletPage: React.FC = () => {
               </p>
               {!isAddAccountFlow && !isAddWalletFlow ? (
                 <>
-                  <div className="mb-6 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+                  <div className="mb-6 rounded-2xl border border-titan-border titan-deep p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-white">{socialLoginHeading}</p>
+                        <p className="text-sm font-semibold text-titan-text">{socialLoginHeading}</p>
                         <p className="text-xs text-titan-subtext">{socialLoginDescription}</p>
                       </div>
                       <Badge variant={hasSocialLogin && socialConfigReady ? 'accent' : 'neutral'} size="sm">
@@ -684,7 +684,7 @@ const CreateWalletPage: React.FC = () => {
                     </div>
                     {authLane === 'titan-managed' && socialAuthenticated ? (
                       <div className="mb-3 rounded-xl border border-titan-accent/20 bg-titan-accent/5 px-3 py-3 text-xs text-titan-subtext">
-                        <span className="font-medium text-white">Signed in:</span> {socialIdentityLabel}. Finish wallet creation below.
+                        <span className="font-medium text-titan-text">Signed in:</span> {socialIdentityLabel}. Finish wallet creation below.
                         {!managedWalletReady ? (
                           <span className="mt-1 block text-titan-warning">{managedWalletMessage}</span>
                         ) : null}
@@ -747,7 +747,7 @@ const CreateWalletPage: React.FC = () => {
               <div className="space-y-4">
                 {isGoogleLinkedLocalFlow ? (
                   <div className="rounded-2xl border border-titan-accent/20 bg-titan-accent/5 px-4 py-3 text-xs text-titan-subtext">
-                    <span className="font-medium text-white">Wallet name:</span> {googleWalletName}
+                    <span className="font-medium text-titan-text">Wallet name:</span> {googleWalletName}
                   </div>
                 ) : (
                   <div>
@@ -795,7 +795,7 @@ const CreateWalletPage: React.FC = () => {
               </div>
               {isGoogleLinkedLocalFlow ? (
                 <div className="mt-4 rounded-2xl border border-titan-accent/20 bg-titan-accent/5 px-4 py-3 text-xs text-titan-subtext">
-                  <span className="font-medium text-white">Google-linked:</span> creating your local wallet automatically. No extra wallet password or name step is needed for this Google flow.
+                  <span className="font-medium text-titan-text">Google-linked:</span> creating your local wallet automatically. No extra wallet password or name step is needed for this Google flow.
                 </div>
               ) : null}
               <Button

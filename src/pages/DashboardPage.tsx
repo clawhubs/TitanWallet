@@ -451,8 +451,8 @@ const DashboardPage: React.FC = () => {
     title: string,
     body: string,
   ) => (
-    <div className="rounded-[20px] border border-dashed border-white/10 bg-[#15171C] px-5 py-10 text-center">
-      <p className="text-[15px] font-semibold text-white">{title}</p>
+    <div className="rounded-[20px] border border-dashed border-titan-border bg-titan-card px-5 py-10 text-center">
+      <p className="text-[15px] font-semibold text-titan-text">{title}</p>
       <p className="mx-auto mt-2 max-w-sm text-sm text-titan-subtext">{body}</p>
       <p className="mt-4 inline-flex rounded-full border border-titan-border bg-titan-surface px-3 py-1 text-[11px] font-semibold text-titan-subtext">
         Live data only, no placeholder rows
@@ -463,7 +463,7 @@ const DashboardPage: React.FC = () => {
   const renderNonTokenAssetTab = () => {
     if (assetTab === 'activity') {
       return walletTimelineEvents.length ? (
-        <div className="overflow-hidden rounded-[20px] border border-white/6 bg-[#15171C]">
+        <div className="overflow-hidden rounded-[20px] border border-titan-border bg-titan-card">
           {walletTimelineEvents.slice(0, 5).map((event) => {
             if (event.kind === 'activity') {
               return (
@@ -503,7 +503,7 @@ const DashboardPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/activity')}
-            className="w-full border-t border-white/6 px-4 py-3 text-sm font-semibold text-titan-accent transition-colors hover:bg-white/[0.02] hover:text-white"
+            className="w-full border-t border-titan-border px-4 py-3 text-sm font-semibold text-titan-accent transition-colors hover:bg-white/[0.02] hover:text-titan-text"
           >
             Open full Activity
           </button>
@@ -548,7 +548,7 @@ const DashboardPage: React.FC = () => {
       <main className="max-w-4xl mx-auto px-6 py-10 pb-24">
         
         {/* ── Balance Card ───────────────────────────────────────────────── */}
-        <section className="bg-[#0A0D14] border border-titan-border rounded-[28px] p-8 sm:p-10 shadow-elevated mb-8 relative overflow-hidden animate-fade-in">
+        <section className="titan-deep border border-titan-border rounded-[28px] p-8 sm:p-10 shadow-elevated mb-8 relative overflow-hidden animate-fade-in">
           {/* Subtle glow */}
           <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-titan-accent/[0.04] rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
 
@@ -556,7 +556,7 @@ const DashboardPage: React.FC = () => {
             <div>
               <p className="text-[12px] font-semibold text-titan-accent uppercase tracking-[0.12em] mb-3">Total Balance</p>
               <div className="flex items-baseline gap-4">
-                <h1 className="text-[48px] sm:text-[56px] font-bold text-white tracking-tight leading-none">
+                <h1 className="text-[48px] sm:text-[56px] font-bold text-titan-text tracking-tight leading-none">
                   {displayedBalance}
                 </h1>
                 <span className="text-[14px] font-semibold text-titan-success bg-titan-success/10 px-2.5 py-1 rounded-md flex items-center gap-1">
@@ -571,7 +571,7 @@ const DashboardPage: React.FC = () => {
             </div>
             
             {/* Trust badge */}
-            <div className="flex items-center gap-2.5 bg-[#131821] border border-titan-border px-3 py-1.5 rounded-full">
+            <div className="flex items-center gap-2.5 bg-titan-card border border-titan-border px-3 py-1.5 rounded-full">
               <Shield size={12} className="text-titan-gold" />
                   <span className="text-[10px] text-titan-gold font-bold tracking-[0.15em] uppercase">TITAN Protocol</span>
             </div>
@@ -588,9 +588,9 @@ const DashboardPage: React.FC = () => {
               { icon: RefreshCw, label: 'Swap', onClick: () => setShowSwapPanel(true) },
               { icon: ShieldCheck, label: 'Security', onClick: () => navigate('/security') },
             ].map(action => (
-              <button key={action.label} onClick={action.onClick} className="bg-[#131821] border border-[#1A2233] hover:bg-[#182030] hover:border-titan-accent/30 transition-all duration-200 py-4 rounded-xl flex flex-col items-center justify-center gap-2.5 group">
+              <button key={action.label} onClick={action.onClick} className="bg-titan-card border border-titan-border hover:bg-titan-elevated hover:border-titan-accent/30 transition-all duration-200 py-4 rounded-xl flex flex-col items-center justify-center gap-2.5 group">
                 <action.icon size={18} className="text-titan-text group-hover:text-titan-accent transition-colors duration-200" />
-                <span className="text-[13px] font-semibold text-white tracking-wide">{action.label}</span>
+                <span className="text-[13px] font-semibold text-titan-text tracking-wide">{action.label}</span>
               </button>
             ))}
           </div>
@@ -604,13 +604,13 @@ const DashboardPage: React.FC = () => {
             
             <section>
               <div className="mb-5 flex items-center justify-between px-1">
-                <h2 className="text-[16px] font-bold tracking-wide text-white">Assets</h2>
+                <h2 className="text-[16px] font-bold tracking-wide text-titan-text">Assets</h2>
                 <span className="rounded-md border border-titan-border bg-titan-surface px-2.5 py-1 text-[12px] font-semibold text-titan-subtext">
                   {assetTabStatusLabel}
                 </span>
               </div>
 
-              <div className="overflow-hidden rounded-[24px] border border-titan-border bg-[#111317] shadow-card">
+              <div className="overflow-hidden rounded-[24px] border border-titan-border bg-titan-card shadow-card">
                 <div className="border-b border-white/5 px-4 pt-4">
                   <div className="flex gap-5 overflow-x-auto pb-3">
                     {ASSET_TABS.map((tab) => (
@@ -619,8 +619,8 @@ const DashboardPage: React.FC = () => {
                         onClick={() => setAssetTab(tab.id)}
                         className={`shrink-0 border-b-2 pb-2 text-[15px] font-semibold transition-colors ${
                           assetTab === tab.id
-                            ? 'border-white text-white'
-                            : 'border-transparent text-white/55 hover:text-white/85'
+                            ? 'border-white text-titan-text'
+                            : 'border-transparent text-titan-text/55 hover:text-titan-text/85'
                         }`}
                       >
                         {tab.label}
@@ -632,22 +632,22 @@ const DashboardPage: React.FC = () => {
                 <div className="flex flex-col gap-3 border-b border-white/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     onClick={() => setShowNetworkPicker(true)}
-                    className="flex h-11 min-w-0 flex-1 items-center justify-between rounded-xl border border-white/10 bg-[#1A1C21] px-4 text-sm font-semibold text-white transition-colors hover:border-white/20 sm:max-w-[250px]"
+                    className="flex h-11 min-w-0 flex-1 items-center justify-between rounded-xl border border-titan-border bg-titan-elevated px-4 text-sm font-semibold text-titan-text transition-colors hover:border-titan-accent/30 sm:max-w-[250px]"
                   >
                     <span className="truncate">{selectedAssetFilterLabel}</span>
-                    <ChevronDown size={16} className="shrink-0 text-white/65" />
+                    <ChevronDown size={16} className="shrink-0 text-titan-text/65" />
                   </button>
 
                   <div className="flex items-center gap-2 self-end sm:self-auto">
                     <button
                       onClick={() => setShowNetworkPicker(true)}
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#1A1C21] text-white/70 transition-colors hover:border-white/20 hover:text-white"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-titan-border bg-titan-elevated text-titan-text/70 transition-colors hover:border-titan-accent/30 hover:text-titan-text"
                     >
                       <SlidersHorizontal size={16} />
                     </button>
                     <button
                       onClick={() => setShowAddNetworkModal(true)}
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-[#1A1C21] text-white/70 transition-colors hover:border-white/20 hover:text-white"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-titan-border bg-titan-elevated text-titan-text/70 transition-colors hover:border-titan-accent/30 hover:text-titan-text"
                     >
                       <EllipsisVertical size={16} />
                     </button>
@@ -664,11 +664,11 @@ const DashboardPage: React.FC = () => {
                   <>
                     <div className="px-4 pb-2">
                       {assetDisplayedTokens.length ? (
-                        <div className="overflow-hidden rounded-[20px] border border-white/6 bg-[#15171C]">
+                        <div className="overflow-hidden rounded-[20px] border border-titan-border bg-titan-card">
                           {assetDisplayedTokens.map((token, i) => (
                             <div
                               key={token.id}
-                              className="border-b border-white/6 last:border-0 hover:bg-white/[0.02] transition-colors duration-200 animate-stagger-up"
+                              className="border-b border-titan-border last:border-0 hover:bg-white/[0.02] transition-colors duration-200 animate-stagger-up"
                               style={{ animationDelay: `${i * 50 + 120}ms` }}
                             >
                               <TokenRow token={token} variant="wallet-compact" />
@@ -676,7 +676,7 @@ const DashboardPage: React.FC = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="rounded-[20px] border border-dashed border-white/10 bg-[#15171C] px-4 py-10 text-center text-sm text-titan-subtext">
+                        <div className="rounded-[20px] border border-dashed border-titan-border bg-titan-card px-4 py-10 text-center text-sm text-titan-subtext">
                           No assets found for {assetFilter === 'all' ? 'your current wallet scope' : assetFilter}. Run a scan, switch networks, or import a token manually.
                         </div>
                       )}
@@ -701,7 +701,7 @@ const DashboardPage: React.FC = () => {
 
             <section id="approval-flows" className="scroll-mt-28">
               <div className="flex items-center justify-between mb-5 px-1">
-                <h2 className="text-[16px] font-bold text-white tracking-wide">Approval Flows</h2>
+                <h2 className="text-[16px] font-bold text-titan-text tracking-wide">Approval Flows</h2>
                 <span className="text-[12px] font-semibold text-titan-subtext px-2.5 py-1 bg-titan-surface rounded-md border border-titan-border">
                   Connect + Sign
                 </span>
@@ -724,30 +724,30 @@ const DashboardPage: React.FC = () => {
             {/* Activity */}
             <section>
               <div className="flex items-center justify-between mb-5 px-1">
-                <h2 className="text-[16px] font-bold text-white tracking-wide">Recent Integrity Events</h2>
+                <h2 className="text-[16px] font-bold text-titan-text tracking-wide">Recent Integrity Events</h2>
                 <button
                   type="button"
                   onClick={() => navigate('/activity?tab=proofs')}
-                  className="text-[12px] font-semibold text-titan-accent hover:text-white transition-colors duration-200"
+                  className="text-[12px] font-semibold text-titan-accent hover:text-titan-text transition-colors duration-200"
                 >
                   View all
                 </button>
               </div>
-              <div className="bg-[#0A0D14] border border-titan-border rounded-2xl overflow-hidden shadow-card animate-stagger-up" style={{ animationDelay: '400ms' }}>
+              <div className="titan-deep border border-titan-border rounded-2xl overflow-hidden shadow-card animate-stagger-up" style={{ animationDelay: '400ms' }}>
                 {proofEvents.length ? (
                   proofEvents.slice(0, 3).map((proof) => (
                     <button
                       key={proof.id}
                       type="button"
                       onClick={() => navigate('/activity?tab=proofs')}
-                      className="flex w-full items-center justify-between p-5 text-left border-b border-titan-border/40 last:border-0 hover:bg-[#0F1520] transition-colors duration-200"
+                      className="flex w-full items-center justify-between p-5 text-left border-b border-titan-border/40 last:border-0 hover:bg-titan-elevated transition-colors duration-200"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-[#131821] border border-[#1A2233] flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-titan-card border border-titan-border flex items-center justify-center">
                           <ShieldCheck size={16} className="text-titan-accent" />
                         </div>
                         <div>
-                          <p className="text-[14px] font-semibold text-white leading-none mb-1">{proof.type}</p>
+                          <p className="text-[14px] font-semibold text-titan-text leading-none mb-1">{proof.type}</p>
                           <p className="text-[12px] text-titan-subtext flex items-center gap-1 font-medium">
                             <Clock size={10} /> {formatTimeAgo(proof.timestamp)}
                           </p>
@@ -771,7 +771,7 @@ const DashboardPage: React.FC = () => {
             <section>
               <div className="flex items-center justify-between mb-5 px-1">
                 <div className="flex items-center gap-2.5">
-                  <h2 className="text-[16px] font-bold text-white tracking-wide">Proof Log</h2>
+                  <h2 className="text-[16px] font-bold text-titan-text tracking-wide">Proof Log</h2>
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-titan-success/10 rounded border border-titan-success/20">
                     <div className="w-1.5 h-1.5 rounded-full bg-titan-success animate-pulse" />
                     <span className="text-[10px] text-titan-success font-bold uppercase tracking-widest">Live</span>
@@ -779,7 +779,7 @@ const DashboardPage: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-[#0A0D14] border border-titan-border rounded-2xl p-6 shadow-card animate-stagger-up" style={{ animationDelay: '500ms' }}>
+              <div className="titan-deep border border-titan-border rounded-2xl p-6 shadow-card animate-stagger-up" style={{ animationDelay: '500ms' }}>
                 <div className="space-y-5">
                   {proofFeed.map((proof, i) => (
                     <div key={i} className="flex items-start gap-4">
@@ -793,7 +793,7 @@ const DashboardPage: React.FC = () => {
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className={`text-[14px] font-semibold transition-colors duration-200 ${i === proofIndex ? 'text-white' : 'text-titan-subtext'}`}>
+                        <p className={`text-[14px] font-semibold transition-colors duration-200 ${i === proofIndex ? 'text-titan-text' : 'text-titan-subtext'}`}>
                           {proof.label}
                         </p>
                         <p className="text-[12px] text-titan-tertiary mt-0.5 font-medium">{proof.time}</p>

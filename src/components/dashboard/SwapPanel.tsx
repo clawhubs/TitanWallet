@@ -101,7 +101,7 @@ const SwapPanel: React.FC<SwapPanelProps> = ({ isOpen, onClose }) => {
           <div className="flex justify-center">
             <button
               onClick={flipTokens}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-titan-border bg-[#0A0D14] text-titan-text transition-all hover:border-titan-accent/30"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-titan-border titan-deep text-titan-text transition-all hover:border-titan-accent/30"
             >
               <ArrowDownUp size={16} />
             </button>
@@ -130,10 +130,10 @@ const SwapPanel: React.FC<SwapPanelProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+          <div className="rounded-2xl border border-titan-border titan-deep p-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-titan-subtext">Swap venue</span>
-              <span className="font-semibold text-white">{route.provider}</span>
+              <span className="font-semibold text-titan-text">{route.provider}</span>
             </div>
             <div className="mt-2 flex items-center gap-2 text-sm">
               <ArrowRightLeft size={14} className="text-titan-accent" />

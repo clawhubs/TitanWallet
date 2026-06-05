@@ -273,7 +273,7 @@ const SwapSecurityCheck: React.FC<SwapSecurityCheckProps> = ({
         <div className="rounded-2xl border border-titan-border bg-titan-surface p-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-titan-subtext">Route</span>
-            <span className="font-semibold text-white">{amount || '0'} {fromToken.symbol} → {toToken.symbol}</span>
+            <span className="font-semibold text-titan-text">{amount || '0'} {fromToken.symbol} → {toToken.symbol}</span>
           </div>
           <div className="mt-3 flex items-start gap-3">
             {status === 'running' ? (

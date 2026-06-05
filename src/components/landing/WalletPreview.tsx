@@ -37,27 +37,27 @@ const WalletPreview: React.FC = () => {
       <div className="absolute -inset-8 rounded-[3rem] bg-gradient-to-b from-titan-accent/[0.08] to-transparent blur-3xl pointer-events-none" />
 
       {/* Main card */}
-      <div className="relative bg-[#0A0D14] border border-[#1A2233] rounded-[28px] overflow-hidden shadow-2xl shadow-black/50">
+      <div className="relative titan-deep border border-titan-border rounded-[28px] overflow-hidden shadow-2xl shadow-titan-bg/50">
         
         {/* Header bar */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#1A2233]/40">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-titan-border/40">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-titan-accent/10 border border-titan-accent/20 flex items-center justify-center overflow-hidden mix-blend-screen">
-              <img src="/titan-logo.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
+            <div className="w-8 h-8 rounded-xl bg-titan-accent/10 border border-titan-accent/20 flex items-center justify-center overflow-hidden ">
+              <img src="/titan-logo-transparent.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
             </div>
-            <span className="text-[13px] font-semibold text-white">TITAN</span>
+            <span className="text-[13px] font-semibold text-titan-text">TITAN</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#131821] border border-[#1A2233]">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-titan-card border border-titan-border">
             <div className="w-1.5 h-1.5 rounded-full bg-titan-success animate-pulse" />
             <span className="text-[11px] text-titan-subtext font-mono tracking-wide">0x3fE...64Ae</span>
           </div>
         </div>
 
         {/* Balance Area */}
-        <div className="px-6 pt-6 pb-5 border-b border-[#1A2233]/40">
+        <div className="px-6 pt-6 pb-5 border-b border-titan-border/40">
           <p className="text-[11px] text-titan-tertiary uppercase tracking-[0.15em] mb-1.5 font-semibold">Total Balance</p>
           <div className="flex items-baseline gap-2.5 mb-5">
-            <span className="text-[36px] font-bold text-white tracking-tight leading-none">
+            <span className="text-[36px] font-bold text-titan-text tracking-tight leading-none">
               ${balance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
             <span className="text-[13px] text-titan-success font-semibold px-2 py-0.5 rounded bg-titan-success/10">+$428</span>
@@ -65,15 +65,15 @@ const WalletPreview: React.FC = () => {
 
           {/* Quick actions mini */}
           <div className="grid grid-cols-3 gap-2.5">
-            <div className="py-2.5 rounded-xl bg-[#131821] border border-[#1A2233] flex flex-col items-center justify-center gap-1.5 hover:bg-[#182030] hover:border-titan-accent/30 transition-all cursor-pointer">
+            <div className="py-2.5 rounded-xl bg-titan-card border border-titan-border flex flex-col items-center justify-center gap-1.5 hover:bg-titan-elevated hover:border-titan-accent/30 transition-all cursor-pointer">
               <Send size={14} className="text-titan-text" />
               <span className="text-[11px] text-titan-text font-medium">Send</span>
             </div>
-            <div className="py-2.5 rounded-xl bg-[#131821] border border-[#1A2233] flex flex-col items-center justify-center gap-1.5 hover:bg-[#182030] hover:border-titan-accent/30 transition-all cursor-pointer">
+            <div className="py-2.5 rounded-xl bg-titan-card border border-titan-border flex flex-col items-center justify-center gap-1.5 hover:bg-titan-elevated hover:border-titan-accent/30 transition-all cursor-pointer">
               <ArrowDownLeft size={14} className="text-titan-text" />
               <span className="text-[11px] text-titan-text font-medium">Receive</span>
             </div>
-            <div className="py-2.5 rounded-xl bg-[#131821] border border-[#1A2233] flex flex-col items-center justify-center gap-1.5 hover:bg-[#182030] hover:border-titan-accent/30 transition-all cursor-pointer">
+            <div className="py-2.5 rounded-xl bg-titan-card border border-titan-border flex flex-col items-center justify-center gap-1.5 hover:bg-titan-elevated hover:border-titan-accent/30 transition-all cursor-pointer">
               <RefreshCw size={14} className="text-titan-text" />
               <span className="text-[11px] text-titan-text font-medium">Swap</span>
             </div>
@@ -83,16 +83,16 @@ const WalletPreview: React.FC = () => {
         {/* Tokens List */}
         <div className="px-6 py-2">
           {tokens.map((t) => (
-            <div key={t.symbol} className="flex items-center justify-between py-3.5 border-b border-[#1A2233]/40 last:border-0 group cursor-pointer">
+            <div key={t.symbol} className="flex items-center justify-between py-3.5 border-b border-titan-border/40 last:border-0 group cursor-pointer">
               <div className="flex items-center gap-3.5">
-                <div className={`w-2.5 h-2.5 rounded-full ${t.color} ring-4 ring-[#131821]`} />
+                <div className={`w-2.5 h-2.5 rounded-full ${t.color} ring-4 ring-titan-card`} />
                 <div>
-                  <p className="text-[14px] font-semibold text-white leading-tight mb-0.5">{t.symbol}</p>
+                  <p className="text-[14px] font-semibold text-titan-text leading-tight mb-0.5">{t.symbol}</p>
                   <p className="text-[12px] text-titan-subtext font-mono">{t.balance}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[14px] font-medium text-white leading-tight mb-0.5">{t.usd}</p>
+                <p className="text-[14px] font-medium text-titan-text leading-tight mb-0.5">{t.usd}</p>
                 <p className={`text-[12px] ${t.pos ? 'text-titan-success' : 'text-titan-danger'} font-medium`}>{t.change}</p>
               </div>
             </div>
@@ -100,7 +100,7 @@ const WalletPreview: React.FC = () => {
         </div>
 
         {/* Bottom Security Bar */}
-        <div className="px-6 py-4 bg-[#131821] border-t border-[#1A2233] rounded-b-[28px]">
+        <div className="px-6 py-4 bg-titan-card border-t border-titan-border rounded-b-[28px]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldCheck size={14} className="text-titan-success" />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Copy, Eye, EyeOff, Pencil, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Copy, Eye, EyeOff, Moon, Monitor, Pencil, ShieldCheck, Sun } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import { useWallet } from '../../hooks/useWallet';
@@ -8,6 +8,7 @@ import { handshakeLog } from '../../services/security';
 import { runMilitaryGradeOperation } from '../../services/militaryGrade';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useSecurityPreferencesStore } from '../../store/useSecurityPreferencesStore';
+import { useThemeStore, type ThemeMode } from '../../store/useThemeStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import { formatAddress } from '../../utils/cn';
 import { canAnchorSecurityLogsOnNetwork } from '../../services/securityLogRegistry';
@@ -140,10 +141,36 @@ const GeneralSettings: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {/* Theme Appearance */}
       <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-white">Wallet Session</h2>
+            <h2 className="text-lg font-bold text-titan-text">Appearance</h2>
+            <p className="text-sm text-titan-subtext">Choose your preferred color scheme. System will follow your OS setting.</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          {([{ id: 'light', icon: <Sun size={16} />, label: 'Light' }, { id: 'dark', icon: <Moon size={16} />, label: 'Dark' }, { id: 'system', icon: <Monitor size={16} />, label: 'System' }] as const).map((mode) => (
+            <button
+              key={mode.id}
+              onClick={() => useThemeStore.getState().setTheme(mode.id as ThemeMode)}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border text-sm font-medium transition-all duration-150 ${
+                useThemeStore.getState().theme === mode.id
+                  ? 'border-titan-accent bg-titan-accent/10 text-titan-accent'
+                  : 'border-titan-border bg-titan-surface text-titan-subtext hover:text-titan-text hover:border-titan-accent/30'
+              }`}
+            >
+              {mode.icon}
+              {mode.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-titan-text">Wallet Session</h2>
             <p className="text-sm text-titan-subtext">
               {isManagedSession
                 ? `Manage the active ${authLabel} managed wallet session.`
@@ -158,10 +185,10 @@ const GeneralSettings: React.FC = () => {
         </div>
 
         {hasWalletSession ? (
-          <div className="rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4">
+          <div className="rounded-2xl border border-titan-border titan-deep px-4 py-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white">{walletName}</p>
+                <p className="text-sm font-semibold text-titan-text">{walletName}</p>
                 <p className="mt-1 font-mono text-xs text-titan-subtext">{formatAddress(walletAddress || '', 10)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-titan-subtext">
@@ -210,7 +237,7 @@ const GeneralSettings: React.FC = () => {
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-titan-border px-4 py-10 text-center">
-            <p className="text-sm font-semibold text-white">No wallet session is active.</p>
+            <p className="text-sm font-semibold text-titan-text">No wallet session is active.</p>
             <p className="mt-2 text-sm text-titan-subtext">Create or import a wallet first to unlock dashboard, activity, security, and export controls.</p>
           </div>
         )}
@@ -219,7 +246,7 @@ const GeneralSettings: React.FC = () => {
       <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-white">Proof Anchoring</h2>
+            <h2 className="text-lg font-bold text-titan-text">Proof Anchoring</h2>
             <p className="text-sm text-titan-subtext">Control whether TITAN adds an extra on-chain security log after protected sends and swaps.</p>
           </div>
           <Badge variant={anchorOnChain ? 'warning' : 'success'} size="sm">
@@ -227,10 +254,10 @@ const GeneralSettings: React.FC = () => {
           </Badge>
         </div>
 
-        <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+        <div className="rounded-2xl border border-titan-border titan-deep p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="max-w-xl">
-              <p className="text-sm font-semibold text-white">Anchor security logs on-chain</p>
+              <p className="text-sm font-semibold text-titan-text">Anchor security logs on-chain</p>
               <p className="mt-1 text-sm text-titan-subtext">
                 When enabled, TITAN emits one extra registry transaction on supported 0G networks after a successful seal. Turning it off keeps the proof envelope off-chain and avoids that extra gas spend.
               </p>
@@ -265,7 +292,7 @@ const GeneralSettings: React.FC = () => {
       <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-white">Wallet Secrets</h2>
+            <h2 className="text-lg font-bold text-titan-text">Wallet Secrets</h2>
             <p className="text-sm text-titan-subtext">
               {isManagedSession
                 ? 'Managed wallets keep raw secrets outside the browser session. Export stays inside the provider-managed flow.'
@@ -285,7 +312,7 @@ const GeneralSettings: React.FC = () => {
               <div className="flex items-start gap-3">
                 <AlertTriangle size={16} className="mt-0.5 text-titan-warning" />
                 <div>
-                  <p className="text-sm font-semibold text-white">Current session</p>
+                  <p className="text-sm font-semibold text-titan-text">Current session</p>
                   <p className="text-xs text-titan-subtext">
                     {walletName} · {formatAddress(walletAddress || '')}
                   </p>
@@ -301,10 +328,10 @@ const GeneralSettings: React.FC = () => {
             </div>
 
             {isManagedSession ? (
-              <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+              <div className="rounded-2xl border border-titan-border titan-deep p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">{isTitanManagedSession ? 'Managed export not exposed yet' : 'Provider-managed export'}</p>
+                    <p className="text-sm font-semibold text-titan-text">{isTitanManagedSession ? 'Managed export not exposed yet' : 'Provider-managed export'}</p>
                     <p className="text-xs text-titan-subtext">
                       {isTitanManagedSession
                         ? 'This TITAN-managed wallet keeps the secret in the server lane. Export stays disabled until the dedicated managed export flow is wired.'
@@ -324,10 +351,10 @@ const GeneralSettings: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-              <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+              <div className="rounded-2xl border border-titan-border titan-deep p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Recovery phrase</p>
+                    <p className="text-sm font-semibold text-titan-text">Recovery phrase</p>
                     <p className="text-xs text-titan-subtext">Shown only if this session was created from or imported with a mnemonic.</p>
                   </div>
                   <div className="flex gap-2">
@@ -341,7 +368,7 @@ const GeneralSettings: React.FC = () => {
                     </Button>
                   </div>
                 </div>
-                <div className="rounded-xl border border-titan-border bg-titan-surface px-4 py-3 font-mono text-xs text-white">
+                <div className="rounded-xl border border-titan-border bg-titan-surface px-4 py-3 font-mono text-xs text-titan-text">
                   {mnemonic
                     ? showMnemonic
                       ? mnemonic
@@ -350,10 +377,10 @@ const GeneralSettings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+              <div className="rounded-2xl border border-titan-border titan-deep p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Private key</p>
+                    <p className="text-sm font-semibold text-titan-text">Private key</p>
                     <p className="text-xs text-titan-subtext">Available for imported wallets and newly-created wallets while this browser tab session stays open.</p>
                   </div>
                   <div className="flex gap-2">
@@ -367,7 +394,7 @@ const GeneralSettings: React.FC = () => {
                     </Button>
                   </div>
                 </div>
-                <div className="break-all rounded-xl border border-titan-border bg-titan-surface px-4 py-3 font-mono text-xs text-white">
+                <div className="break-all rounded-xl border border-titan-border bg-titan-surface px-4 py-3 font-mono text-xs text-titan-text">
                   {privateKey
                     ? showPrivateKey
                       ? privateKey
@@ -379,14 +406,14 @@ const GeneralSettings: React.FC = () => {
             )}
 
             {secretStatus ? (
-              <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-3 text-xs text-titan-subtext">
+              <div className="mt-4 rounded-2xl border border-titan-border titan-deep px-4 py-3 text-xs text-titan-subtext">
                 {secretStatus}
               </div>
             ) : null}
           </>
         ) : (
           <div className="rounded-2xl border border-dashed border-titan-border px-4 py-10 text-center">
-            <p className="text-sm font-semibold text-white">No local secrets are loaded.</p>
+            <p className="text-sm font-semibold text-titan-text">No local secrets are loaded.</p>
             <p className="mt-2 text-sm text-titan-subtext">Secret reveal and copy controls stay hidden until this browser has an active wallet session.</p>
           </div>
         )}

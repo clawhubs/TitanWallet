@@ -571,7 +571,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
 
         <div className="grid gap-4">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-white">Recipient</label>
+            <label className="mb-2 block text-sm font-semibold text-titan-text">Recipient</label>
             <input
               className="titan-input font-mono"
               placeholder="0x..."
@@ -581,7 +581,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-white">Amount</label>
+            <label className="mb-2 block text-sm font-semibold text-titan-text">Amount</label>
             <div className="flex gap-3">
               <input
                 className="titan-input"
@@ -589,7 +589,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
                 value={amount}
                 onChange={(event) => handleAmountChange(event.target.value)}
               />
-              <div className="min-w-24 rounded-xl border border-titan-border bg-titan-surface px-3 py-3 text-center text-sm font-semibold text-white">
+              <div className="min-w-24 rounded-xl border border-titan-border bg-titan-surface px-3 py-3 text-center text-sm font-semibold text-titan-text">
                 {activeNetwork.symbol}
               </div>
             </div>
@@ -599,19 +599,19 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
         <div className="rounded-xl border border-titan-border bg-titan-surface p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs text-titan-subtext">From</span>
-            <span className="text-xs font-mono text-white">
+            <span className="text-xs font-mono text-titan-text">
               {walletAddress ? formatAddress(walletAddress, 10) : 'No wallet connected'}
             </span>
           </div>
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs text-titan-subtext">To</span>
-            <span className="text-xs font-mono text-white">
+            <span className="text-xs font-mono text-titan-text">
               {to ? formatAddress(to, 10) : 'Waiting for recipient'}
             </span>
           </div>
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs text-titan-subtext">Amount</span>
-            <span className="text-sm font-semibold text-white">
+            <span className="text-sm font-semibold text-titan-text">
               {isValidAmount ? `${amount} ${activeNetwork.symbol}` : `0 ${activeNetwork.symbol}`}
             </span>
           </div>
@@ -624,7 +624,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
               )}
               <span className="text-xs text-titan-subtext">Estimated fee</span>
             </div>
-            <span className="text-xs font-mono text-white">
+            <span className="text-xs font-mono text-titan-text">
               {visibleQuote ? `${Number.parseFloat(visibleQuote.estimatedFeeNative).toFixed(6)} ${activeNetwork.symbol}` : 'Waiting for quote'}
             </span>
           </div>
@@ -632,11 +632,11 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
             <div className="mt-3 grid gap-2 text-xs text-titan-subtext">
               <div className="flex items-center justify-between">
                 <span>Gas limit</span>
-                <span className="font-mono text-white">{visibleQuote.gasLimitLabel}</span>
+                <span className="font-mono text-titan-text">{visibleQuote.gasLimitLabel}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Fee market</span>
-                <span className="font-mono text-white">
+                <span className="font-mono text-titan-text">
                   {visibleQuote.maxFeePerGasGwei
                     ? `${Number.parseFloat(visibleQuote.maxFeePerGasGwei).toFixed(2)} gwei max`
                     : visibleQuote.gasPriceGwei
@@ -660,16 +660,16 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           </div>
         </div>
 
-        <div className="rounded-xl border border-titan-border bg-[#0A0D14] p-4">
+        <div className="rounded-xl border border-titan-border titan-deep p-4">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-semibold text-white">Live review</p>
+            <p className="text-sm font-semibold text-titan-text">Live review</p>
             <span className="text-xs text-titan-subtext">{statusMessage}</span>
           </div>
           <div className="space-y-2">
             {securityRows.map((row) => (
               <div key={row.label} className="flex items-start justify-between gap-3 rounded-lg border border-titan-border/70 bg-titan-surface px-3 py-2">
                 <div>
-                  <p className="text-xs font-semibold text-white">{row.label}</p>
+                  <p className="text-xs font-semibold text-titan-text">{row.label}</p>
                   <p className="text-xs text-titan-subtext">{row.description}</p>
                 </div>
                 <Badge
@@ -705,7 +705,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
           <div className="rounded-xl border border-titan-success/20 bg-titan-success/10 px-4 py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-titan-text">
                   {receiptState === 'confirmed' ? 'Transaction confirmed' : receiptState === 'failed' ? 'Broadcast failed' : 'Broadcast successful'}
                 </p>
                 <p className="mt-1 break-all font-mono text-xs text-titan-subtext">{txHash}</p>
@@ -723,7 +723,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
                   href={txExplorerUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-titan-accent hover:text-white"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-titan-accent hover:text-titan-text"
                 >
                   Transfer <ExternalLink size={12} />
                 </a>
@@ -733,7 +733,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
               <div className="mt-3 border-t border-titan-success/20 pt-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-sm font-semibold text-titan-text">
                       TITAN security logs
                     </p>
                     <p className="mt-1 break-all font-mono text-xs text-titan-subtext">{securityLogTxHash}</p>
@@ -746,7 +746,7 @@ const SendTransactionModal: React.FC<SendTransactionModalProps> = ({ isOpen, onC
                       href={securityLogExplorerUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-titan-accent hover:text-white"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-titan-accent hover:text-titan-text"
                     >
                       Logs <ExternalLink size={12} />
                     </a>

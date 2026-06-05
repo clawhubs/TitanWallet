@@ -97,8 +97,8 @@ const OnboardingPage: React.FC = () => {
       <div className="w-full max-w-md animate-slide-up">
         {/* Logo */}
         <div className="flex items-center gap-2.5 justify-center mb-10">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden mix-blend-screen">
-            <img src="/titan-logo.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden ">
+            <img src="/titan-logo-transparent.png" alt="TITAN Logo" className="h-full w-full object-cover scale-[1.45]" />
           </div>
           <span className="font-bold text-titan-text text-lg">TITAN Wallet</span>
         </div>

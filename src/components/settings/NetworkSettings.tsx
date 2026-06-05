@@ -32,7 +32,7 @@ const NetworkSettings: React.FC = () => {
       <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold text-white">Networks</h2>
+            <h2 className="text-lg font-bold text-titan-text">Networks</h2>
             <p className="text-sm text-titan-subtext">Manage the RPCs your wallet can use for balance checks, proof calls, and swaps.</p>
           </div>
           <Button
@@ -49,11 +49,11 @@ const NetworkSettings: React.FC = () => {
 
         <div className="space-y-3">
           {networks.map((network) => (
-            <div key={network.id} className="rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4">
+            <div key={network.id} className="rounded-2xl border border-titan-border titan-deep px-4 py-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white">{network.name}</span>
+                    <span className="text-sm font-semibold text-titan-text">{network.name}</span>
                     {network.id === activeNetwork.id ? <Badge variant="success" size="sm">Active</Badge> : null}
                     {network.isDefault ? <Badge variant="neutral" size="sm">Default</Badge> : null}
                     {network.isTestnet ? <Badge variant="warning" size="sm">Testnet</Badge> : null}
@@ -92,9 +92,9 @@ const NetworkSettings: React.FC = () => {
           ))}
         </div>
 
-        <div className="mt-5 flex items-center justify-between rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-4">
+        <div className="mt-5 flex items-center justify-between rounded-2xl border border-titan-border titan-deep px-4 py-4">
           <div>
-            <p className="text-sm font-semibold text-white">Environment</p>
+            <p className="text-sm font-semibold text-titan-text">Environment</p>
             <p className="text-xs text-titan-subtext">Affects YieldBoost API calls only.</p>
           </div>
           <Button variant="secondary" size="sm" onClick={toggleEnvironment}>

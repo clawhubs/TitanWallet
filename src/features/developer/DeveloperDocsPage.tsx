@@ -201,10 +201,10 @@ const DeveloperDocsPage: React.FC = () => {
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <Link to="/" className="mb-4 inline-flex items-center gap-2 text-sm text-titan-subtext hover:text-white">
+            <Link to="/" className="mb-4 inline-flex items-center gap-2 text-sm text-titan-subtext hover:text-titan-text">
               <ArrowLeft size={15} /> Back to wallet
             </Link>
-            <h1 className="text-3xl font-bold text-white">Developer AI Wallet Docs</h1>
+            <h1 className="text-3xl font-bold text-titan-text">Developer AI Wallet Docs</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-titan-subtext">
               Build autonomous wallet flows with one connected system: owner wallet, project, agent wallet, capability, then wire the same identity into BYO Privy and MCP.
             </p>
@@ -217,7 +217,7 @@ const DeveloperDocsPage: React.FC = () => {
           </div>
         </div>
 
-        <section className="mb-4 rounded-3xl border border-titan-border bg-[#0A0D14] p-3">
+        <section className="mb-4 rounded-3xl border border-titan-border titan-deep p-3">
           <div className="flex flex-col gap-2 lg:flex-row">
             {DEVELOPER_DOC_SECTIONS.map((section) => (
               <button
@@ -226,8 +226,8 @@ const DeveloperDocsPage: React.FC = () => {
                 onClick={() => setActiveDocSection(section.id)}
                 className={`flex-1 rounded-2xl border px-4 py-3 text-left transition ${
                   activeDocSection === section.id
-                    ? 'border-titan-accent/40 bg-titan-accent/15 text-white'
-                    : 'border-transparent bg-transparent text-titan-subtext hover:border-titan-border hover:bg-titan-surface/80 hover:text-white'
+                    ? 'border-titan-accent/40 bg-titan-accent/15 text-titan-text'
+                    : 'border-transparent bg-transparent text-titan-subtext hover:border-titan-border hover:bg-titan-surface/80 hover:text-titan-text'
                 }`}
               >
                 <span className="block text-sm font-semibold">{section.label}</span>
@@ -244,7 +244,7 @@ const DeveloperDocsPage: React.FC = () => {
         <section className="mb-4 rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white">Build flow</h2>
+              <h2 className="text-lg font-bold text-titan-text">Build flow</h2>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-titan-subtext">
                 TITAN Developer should feel like one system. First create the project, then create the agent wallet,
                 then issue the capability. BYO Privy handles app login. MCP, SDK, and CLI all reuse the same capability after that.
@@ -259,15 +259,15 @@ const DeveloperDocsPage: React.FC = () => {
                 ['2. Agent Wallet', 'Autonomous Wallet Agent', 'Create an agent wallet under that project.'],
                 ['3. Capability', 'Reusable runtime token', 'Issue the capability used by SDK, CLI, and MCP.'],
               ].map(([step, title, detail]) => (
-                <div key={step} className="rounded-2xl border border-titan-border bg-[#0A0D14] p-5">
+                <div key={step} className="rounded-2xl border border-titan-border titan-deep p-5">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-titan-accent">{step}</p>
-                  <p className="mt-3 text-sm font-semibold text-white">{title}</p>
+                  <p className="mt-3 text-sm font-semibold text-titan-text">{title}</p>
                   <p className="mt-2 text-sm leading-6 text-titan-subtext">{detail}</p>
                 </div>
               ))}
             </div>
-            <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-5">
-              <p className="text-sm font-semibold text-white">Where BYO Privy and MCP fit</p>
+            <div className="rounded-2xl border border-titan-border titan-deep p-5">
+              <p className="text-sm font-semibold text-titan-text">Where BYO Privy and MCP fit</p>
               <div className="mt-3 space-y-3 text-sm leading-6 text-titan-subtext">
                 <p>BYO Privy belongs to the developer&apos;s own product and uses the developer&apos;s own Privy app keys.</p>
                 <p>MCP is only the runtime bridge. It should not invent a second secret or a second wallet identity.</p>
@@ -282,7 +282,7 @@ const DeveloperDocsPage: React.FC = () => {
         <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-white">Playground</h2>
+              <h2 className="text-lg font-bold text-titan-text">Playground</h2>
               <p className="mt-1 text-sm text-titan-subtext">Dry-run the 10-layer rail without needing an AI model.</p>
             </div>
             <Badge variant="live">Public docs</Badge>
@@ -308,7 +308,7 @@ const DeveloperDocsPage: React.FC = () => {
                 <Play size={15} /> Run playground
               </Button>
             </div>
-            <pre className="max-h-96 overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+            <pre className="max-h-96 overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
               <code>{output}</code>
             </pre>
           </div>
@@ -319,7 +319,7 @@ const DeveloperDocsPage: React.FC = () => {
         <section className="mt-4 rounded-3xl border border-titan-border bg-gradient-to-br from-[#07151B] via-titan-surface to-[#0B0D18] p-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+              <h2 className="flex items-center gap-2 text-lg font-bold text-titan-text">
                 <CreditCard size={18} className="text-titan-accent" /> x402 Guardrail / Agent Payment Rail
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-titan-subtext">
@@ -334,26 +334,26 @@ const DeveloperDocsPage: React.FC = () => {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-            <div className="rounded-2xl border border-titan-border bg-[#05080D] p-5">
+            <div className="rounded-2xl border border-titan-border titan-deep p-5">
               <p className="text-xs uppercase tracking-[0.18em] text-titan-subtext">Capability demo</p>
-              <h3 className="mt-2 text-base font-bold text-white">x402 API Payment Capability</h3>
+              <h3 className="mt-2 text-base font-bold text-titan-text">x402 API Payment Capability</h3>
               <div className="mt-4 grid gap-2 text-sm text-titan-subtext">
-                <p><span className="text-white">Allowed action:</span> x402_pay, api_payment</p>
-                <p><span className="text-white">Allowed domain:</span> api.approved-service.com</p>
-                <p><span className="text-white">Approved recipient:</span> 0xApprovedPayTo</p>
-                <p><span className="text-white">Max request:</span> 0.01 TEST / USDC</p>
-                <p><span className="text-white">Daily limit:</span> 0.10 simulated</p>
+                <p><span className="text-titan-text">Allowed action:</span> x402_pay, api_payment</p>
+                <p><span className="text-titan-text">Allowed domain:</span> api.approved-service.com</p>
+                <p><span className="text-titan-text">Approved recipient:</span> 0xApprovedPayTo</p>
+                <p><span className="text-titan-text">Max request:</span> 0.01 TEST / USDC</p>
+                <p><span className="text-titan-text">Daily limit:</span> 0.10 simulated</p>
               </div>
-              <Link to="/developer/demo#x402-guardrail" className="mt-5 inline-flex text-sm font-semibold text-titan-accent hover:text-white">
+              <Link to="/developer/demo#x402-guardrail" className="mt-5 inline-flex text-sm font-semibold text-titan-accent hover:text-titan-text">
                 Open x402 demo
               </Link>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+              <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
                 <code>{X402_SDK_SNIPPET}</code>
               </pre>
-              <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+              <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
                 <code>{X402_CLI_SNIPPET}</code>
               </pre>
             </div>
@@ -364,7 +364,7 @@ const DeveloperDocsPage: React.FC = () => {
         {activeDocSection === 'create-agent' || activeDocSection === 'mcp' ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-titan-text">
               <BookOpen size={18} className="text-titan-accent" /> Settings flow
             </h2>
             <div className="mt-4 space-y-3 text-sm text-titan-subtext">
@@ -377,7 +377,7 @@ const DeveloperDocsPage: React.FC = () => {
           </section>
 
           <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-titan-text">
               <ShieldCheck size={18} className="text-titan-accent" /> BYO Privy boundary
             </h2>
             <div className="mt-4 space-y-3 text-sm text-titan-subtext">
@@ -385,7 +385,7 @@ const DeveloperDocsPage: React.FC = () => {
               <p>If a developer wants Google or Apple login or embedded MPC wallets inside their own app, they must use their own Privy App ID, App Secret, and JWKS endpoint.</p>
               <p>Do not reuse the TITAN Wallet Privy app or share one Privy API across outside developer products.</p>
             </div>
-            <pre className="mt-4 overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+            <pre className="mt-4 overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
               <code>{BYO_PRIVY_SNIPPET}</code>
             </pre>
           </section>
@@ -396,7 +396,7 @@ const DeveloperDocsPage: React.FC = () => {
         <section className="mt-4 rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
-              <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+              <h2 className="flex items-center gap-2 text-lg font-bold text-titan-text">
                 <Terminal size={18} className="text-titan-accent" /> Runtime wiring
               </h2>
               <p className="mt-2 text-sm text-titan-subtext">The same capability token powers your env, SDK usage, CLI commands, and MCP host config.</p>
@@ -404,33 +404,33 @@ const DeveloperDocsPage: React.FC = () => {
             <Badge variant="success">Shared capability</Badge>
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
-            <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+            <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
               <code>{TITAN_ENV_SNIPPET}</code>
             </pre>
-            <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+            <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
               <code>{SDK_SNIPPET}</code>
             </pre>
           </div>
           <div className="mt-4 grid gap-4 lg:grid-cols-3">
-            <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+            <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
               <code>{CLI_SNIPPET}</code>
             </pre>
-            <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+            <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
               <code>{MCP_BOOT_SNIPPET}</code>
             </pre>
-            <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+            <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
               <code>{MCP_CONFIG_SNIPPET}</code>
             </pre>
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {MCP_TOOLS.map((tool) => (
-              <div key={tool} className="rounded-xl border border-titan-border bg-[#0A0D14] px-3 py-2 text-xs text-titan-text">
+              <div key={tool} className="rounded-xl border border-titan-border titan-deep px-3 py-2 text-xs text-titan-text">
                 {tool}
               </div>
             ))}
           </div>
           <p className="mt-4 text-sm text-titan-subtext">
-            Use the same capability token here that you copied from <span className="text-white">Settings - Developer</span>. Do not invent a separate MCP secret.
+            Use the same capability token here that you copied from <span className="text-titan-text">Settings - Developer</span>. Do not invent a separate MCP secret.
           </p>
         </section>
         ) : null}
@@ -438,12 +438,12 @@ const DeveloperDocsPage: React.FC = () => {
         {activeDocSection === 'create-agent' ? (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-titan-text">
               <ShieldCheck size={18} className="text-titan-accent" /> 10 layers
             </h2>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               {TEN_LAYERS.map((layer) => (
-                <div key={layer} className="rounded-xl border border-titan-border bg-[#0A0D14] px-3 py-2 text-xs text-titan-text">
+                <div key={layer} className="rounded-xl border border-titan-border titan-deep px-3 py-2 text-xs text-titan-text">
                   {layer}
                 </div>
               ))}
@@ -451,7 +451,7 @@ const DeveloperDocsPage: React.FC = () => {
           </section>
 
           <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
-            <h2 className="text-lg font-bold text-white">What stays separate</h2>
+            <h2 className="text-lg font-bold text-titan-text">What stays separate</h2>
             <div className="mt-4 space-y-3 text-sm text-titan-subtext">
               <p>Your AI model choice stays yours. TITAN does not force a model runtime.</p>
               <p>Your Privy app stays yours. TITAN does not share consumer Privy credentials with developer projects.</p>
@@ -463,12 +463,12 @@ const DeveloperDocsPage: React.FC = () => {
 
         {activeDocSection === 'ai-llm' ? (
         <section className="mt-4 rounded-3xl border border-titan-border bg-titan-surface p-6">
-          <h2 className="text-lg font-bold text-white">0G Private Computer</h2>
+          <h2 className="text-lg font-bold text-titan-text">0G Private Computer</h2>
           <p className="mt-2 text-sm text-titan-subtext">
             Prioritize 0G Private Computer for agent inference. Its router is OpenAI-compatible, so the developer&apos;s AI runtime stays independent and only the base URL changes.
           </p>
           <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
-            <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+            <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
               <code>{`from openai import OpenAI
 
 client = OpenAI(
@@ -486,14 +486,14 @@ response = client.chat.completions.create(
             <div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {ZERO_G_PC_MODELS.map((model) => (
-                  <div key={model} className="rounded-xl border border-titan-border bg-[#0A0D14] px-3 py-2 text-xs text-titan-text">
+                  <div key={model} className="rounded-xl border border-titan-border titan-deep px-3 py-2 text-xs text-titan-text">
                     {model}
                   </div>
                 ))}
               </div>
               <p className="mt-3 text-sm text-titan-subtext">
-                The router endpoint is <span className="text-white">POST https://router-api.0g.ai/v1/chat/completions</span>.
-                You can ask for TEE verification with <span className="text-white">verify_tee: true</span>.
+                The router endpoint is <span className="text-titan-text">POST https://router-api.0g.ai/v1/chat/completions</span>.
+                You can ask for TEE verification with <span className="text-titan-text">verify_tee: true</span>.
               </p>
             </div>
           </div>

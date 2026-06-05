@@ -374,7 +374,7 @@ const DeveloperSettings: React.FC = () => {
       <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">Developer API</h2>
+            <h2 className="text-lg font-bold text-titan-text">Developer API</h2>
             <p className="mt-1 text-sm text-titan-subtext">
               Bind TITAN rails to the wallet in this browser session. If a developer wants Privy in their own app, they must bring their own Privy app keys.
             </p>
@@ -390,20 +390,20 @@ const DeveloperSettings: React.FC = () => {
         <div className="grid gap-3 lg:grid-cols-3">
           <InfoTile icon={<WalletCards size={16} />} label="Owner wallet" value={address || 'No wallet connected'} />
           <InfoTile icon={<ShieldCheck size={16} />} label="API status" value={status} />
-          <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
+          <div className="rounded-2xl border border-titan-border titan-deep p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-titan-text">
               <BookOpen size={16} className="text-titan-accent" />
               Docs and playground
             </div>
             <p className="mt-2 text-xs text-titan-subtext">Developer docs cover BYO Privy guidance and the MCP server setup.</p>
-            <Link to="/developer/docs" className="mt-3 inline-flex text-sm font-semibold text-titan-accent hover:text-white">
+            <Link to="/developer/docs" className="mt-3 inline-flex text-sm font-semibold text-titan-accent hover:text-titan-text">
               Open docs
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-titan-border bg-[#0A0D14] p-3">
+      <section className="rounded-3xl border border-titan-border titan-deep p-3">
         <div className="flex flex-col gap-2 lg:flex-row">
           {DEVELOPER_SECTIONS.map((section) => (
             <button
@@ -412,8 +412,8 @@ const DeveloperSettings: React.FC = () => {
               onClick={() => setActiveSection(section.id)}
               className={`flex-1 rounded-2xl border px-4 py-3 text-left transition ${
                 activeSection === section.id
-                  ? 'border-titan-accent/40 bg-titan-accent/15 text-white'
-                  : 'border-transparent bg-transparent text-titan-subtext hover:border-titan-border hover:bg-titan-surface/80 hover:text-white'
+                  ? 'border-titan-accent/40 bg-titan-accent/15 text-titan-text'
+                  : 'border-transparent bg-transparent text-titan-subtext hover:border-titan-border hover:bg-titan-surface/80 hover:text-titan-text'
               }`}
             >
               <span className="block text-sm font-semibold">{section.label}</span>
@@ -436,23 +436,23 @@ const DeveloperSettings: React.FC = () => {
                 <Badge variant="success" dot>Owner wallet bound</Badge>
                 <Badge variant="neutral">Capability-first</Badge>
               </div>
-              <h3 className="text-xl font-bold text-white">Project, agent wallet, then capability</h3>
+              <h3 className="text-xl font-bold text-titan-text">Project, agent wallet, then capability</h3>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-titan-subtext">
                 This is the core TITAN developer system. First bind the owner wallet in this browser session, then create the
                 project, create the agent wallet under that project, and finally issue the capability that the SDK, CLI, and MCP
                 runtime will all reuse.
               </p>
             </div>
-            <div className="rounded-2xl border border-titan-border bg-[#0A0D14] px-4 py-3 text-right">
+            <div className="rounded-2xl border border-titan-border titan-deep px-4 py-3 text-right">
               <p className="text-[11px] uppercase tracking-[0.18em] text-titan-subtext">Shared identity</p>
-              <p className="mt-1 text-sm font-semibold text-white">{activeCapability ? 'Capability live' : 'Create the 3 steps first'}</p>
+              <p className="mt-1 text-sm font-semibold text-titan-text">{activeCapability ? 'Capability live' : 'Create the 3 steps first'}</p>
             </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <div className="rounded-3xl border border-titan-border bg-[#0A0D14] p-5">
+            <div className="rounded-3xl border border-titan-border titan-deep p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-titan-accent">1. Project</p>
-              <p className="mt-3 text-sm font-semibold text-white">AI Agent Project</p>
+              <p className="mt-3 text-sm font-semibold text-titan-text">AI Agent Project</p>
               <input className="titan-input mt-4" value={projectName} onChange={(event) => setProjectName(event.target.value)} />
               <Button className="mt-4 w-full" disabled={busy || !ownerSession} onClick={() => void createProject()}>
                 <Plus size={15} /> Create project
@@ -470,9 +470,9 @@ const DeveloperSettings: React.FC = () => {
               <p className="mt-3 break-all text-xs text-titan-subtext">{activeProject?.id || 'No project yet.'}</p>
             </div>
 
-            <div className="rounded-3xl border border-titan-border bg-[#0A0D14] p-5">
+            <div className="rounded-3xl border border-titan-border titan-deep p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-titan-accent">2. Agent Wallet</p>
-              <p className="mt-3 text-sm font-semibold text-white">Autonomous Wallet Agent</p>
+              <p className="mt-3 text-sm font-semibold text-titan-text">Autonomous Wallet Agent</p>
               <input className="titan-input mt-4" value={agentName} onChange={(event) => setAgentName(event.target.value)} />
               <Button className="mt-4 w-full" disabled={busy || !activeProject} onClick={() => void createAgentWallet()}>
                 <KeyRound size={15} /> Create agent wallet
@@ -490,9 +490,9 @@ const DeveloperSettings: React.FC = () => {
               <p className="mt-3 break-all text-xs text-titan-subtext">{activeAgentWallet?.id || 'Create a project first.'}</p>
             </div>
 
-            <div className="rounded-3xl border border-titan-border bg-[#0A0D14] p-5">
+            <div className="rounded-3xl border border-titan-border titan-deep p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-titan-accent">3. Capability</p>
-              <p className="mt-3 text-sm font-semibold text-white">Reusable runtime token</p>
+              <p className="mt-3 text-sm font-semibold text-titan-text">Reusable runtime token</p>
               <div className="mt-4 grid gap-2">
                 <input className="titan-input" value={maxValueWei} onChange={(event) => setMaxValueWei(event.target.value)} />
                 <input className="titan-input" value={dailyLimitWei} onChange={(event) => setDailyLimitWei(event.target.value)} />
@@ -516,7 +516,7 @@ const DeveloperSettings: React.FC = () => {
               <Badge variant="neutral">BYO Privy wiring</Badge>
               <Badge variant="success" dot>MCP bridge</Badge>
             </div>
-            <h3 className="text-xl font-bold text-white">How the developer stack stays connected</h3>
+            <h3 className="text-xl font-bold text-titan-text">How the developer stack stays connected</h3>
             <p className="mt-2 text-sm leading-6 text-titan-subtext">
               Project, agent wallet, and capability are the main system. BYO Privy and MCP do not sit outside of it. They wire
               the same owner-bound identity into the developer app and the external runtime.
@@ -541,18 +541,18 @@ const DeveloperSettings: React.FC = () => {
                   detail: 'Agent API payments can be checked as simulation-only intents before any real payment processor or facilitator is introduced.',
                 },
               ].map((item) => (
-                <div key={item.title} className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
-                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                <div key={item.title} className="rounded-2xl border border-titan-border titan-deep p-4">
+                  <p className="text-sm font-semibold text-titan-text">{item.title}</p>
                   <p className="mt-2 text-sm leading-6 text-titan-subtext">{item.detail}</p>
                 </div>
               ))}
             </div>
 
             <div className="mt-5 grid gap-4 xl:grid-cols-2">
-              <div className="rounded-2xl border border-titan-border bg-[#05080D] p-4">
+              <div className="rounded-2xl border border-titan-border titan-deep p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">Privy env example</p>
+                    <p className="text-sm font-semibold text-titan-text">Privy env example</p>
                     <p className="text-xs text-titan-subtext">This stays in the developer&apos;s own app or backend.</p>
                   </div>
                   <Button variant="secondary" size="sm" onClick={() => void copyText(BYO_PRIVY_SNIPPET, 'BYO Privy snippet copied.')}>
@@ -564,10 +564,10 @@ const DeveloperSettings: React.FC = () => {
                 </pre>
               </div>
 
-              <div className="rounded-2xl border border-titan-border bg-[#05080D] p-4">
+              <div className="rounded-2xl border border-titan-border titan-deep p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white">MCP boot</p>
+                    <p className="text-sm font-semibold text-titan-text">MCP boot</p>
                     <p className="text-xs text-titan-subtext">Run the packaged tool bridge after the same capability env is loaded.</p>
                   </div>
                   <Button variant="secondary" size="sm" onClick={() => void copyText(MCP_BOOT_SNIPPET, 'MCP boot command copied.')}>
@@ -580,7 +580,7 @@ const DeveloperSettings: React.FC = () => {
               </div>
             </div>
 
-            <Link to="/developer/docs" className="mt-5 inline-flex text-sm font-semibold text-titan-accent hover:text-white">
+            <Link to="/developer/docs" className="mt-5 inline-flex text-sm font-semibold text-titan-accent hover:text-titan-text">
               Open docs
             </Link>
           </div>
@@ -593,7 +593,7 @@ const DeveloperSettings: React.FC = () => {
         <div className={activeSection === 'create-agent' ? 'rounded-3xl border border-titan-border bg-titan-surface p-6' : 'hidden'}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-bold text-white">Capabilities</h3>
+              <h3 className="text-base font-bold text-titan-text">Capabilities</h3>
               <p className="mt-1 text-sm text-titan-subtext">Issued from the connected TITAN owner wallet and reused by the SDK, CLI, and MCP server.</p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => void refresh()} disabled={!ownerSession || busy}>Refresh</Button>
@@ -605,7 +605,7 @@ const DeveloperSettings: React.FC = () => {
           </div>
           <div className="max-h-[29rem] space-y-3 overflow-auto pr-1">
             {dashboard?.capabilities.length ? dashboard.capabilities.map((capability) => (
-              <div key={capability.id} className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+              <div key={capability.id} className="rounded-2xl border border-titan-border titan-deep p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <Badge variant={capability.status === 'active' ? 'success' : capability.status === 'expired' ? 'warning' : 'neutral'}>
                     {capability.status}
@@ -640,17 +640,17 @@ const DeveloperSettings: React.FC = () => {
           <div className="mt-5 border-t border-titan-border pt-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h4 className="text-sm font-bold text-white">Proof log</h4>
+                <h4 className="text-sm font-bold text-titan-text">Proof log</h4>
                 <p className="mt-1 text-xs text-titan-subtext">Server-side audit trail for project changes, runtime checks, and capability control.</p>
               </div>
               <Badge variant="neutral">{recentProofLogs.length} recent</Badge>
             </div>
             <div className="max-h-80 space-y-3 overflow-auto pr-1">
               {recentProofLogs.length ? recentProofLogs.map((entry) => (
-                <div key={entry.id} className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+                <div key={entry.id} className="rounded-2xl border border-titan-border titan-deep p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-white">{entry.type}</p>
+                      <p className="text-sm font-semibold text-titan-text">{entry.type}</p>
                       <p className="mt-1 text-xs uppercase tracking-[0.18em] text-titan-subtext">{entry.category}</p>
                     </div>
                     <Badge variant={/allowed|active|recorded|executed/.test(entry.status) ? 'success' : /blocked|revoked|disabled|paused|expired/.test(entry.status) ? 'warning' : 'neutral'}>
@@ -675,7 +675,7 @@ const DeveloperSettings: React.FC = () => {
         <div className="rounded-3xl border border-titan-border bg-titan-surface p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-base font-bold text-titan-text">
                 {activeSection === 'sdk-cli' ? 'SDK and CLI config' : activeSection === 'mcp' ? 'MCP config' : 'x402 Guardrail config'}
               </h3>
               <p className="mt-1 text-sm text-titan-subtext">
@@ -697,10 +697,10 @@ const DeveloperSettings: React.FC = () => {
 
           {activeSection === 'sdk-cli' || activeSection === 'mcp' ? (
           <div className="mt-5 grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
-            <div className="rounded-2xl border border-titan-border bg-[#05080D] p-4">
+            <div className="rounded-2xl border border-titan-border titan-deep p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">SDK and CLI env</p>
+                  <p className="text-sm font-semibold text-titan-text">SDK and CLI env</p>
                   <p className="text-xs text-titan-subtext">Paste this into the developer&apos;s runtime before using the SDK, CLI, or MCP.</p>
                 </div>
                 <Button variant="secondary" size="sm" onClick={() => void copyEnv()}>
@@ -712,10 +712,10 @@ const DeveloperSettings: React.FC = () => {
               </pre>
             </div>
 
-            <div className="rounded-2xl border border-titan-border bg-[#05080D] p-4">
+            <div className="rounded-2xl border border-titan-border titan-deep p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">MCP host config</p>
+                  <p className="text-sm font-semibold text-titan-text">MCP host config</p>
                   <p className="text-xs text-titan-subtext">This host config points at the same `developer-ai-wallet` SDK package and capability env.</p>
                 </div>
                 <Button variant="secondary" size="sm" onClick={() => void copyText(mcpConfigSnippet, 'MCP host config copied.')}>
@@ -730,9 +730,9 @@ const DeveloperSettings: React.FC = () => {
           ) : null}
 
           {activeSection === 'sdk-cli' ? (
-          <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+          <div className="mt-4 rounded-2xl border border-titan-border titan-deep p-4">
             <div className="mb-4">
-              <p className="text-sm font-semibold text-white">Example SDK call</p>
+              <p className="text-sm font-semibold text-titan-text">Example SDK call</p>
               <p className="mt-1 text-xs text-titan-subtext">The SDK, CLI, and MCP server all sit on top of the same identity created above.</p>
             </div>
             <pre className="overflow-auto rounded-2xl border border-titan-border bg-black/20 p-4 text-xs text-titan-subtext">
@@ -745,7 +745,7 @@ const DeveloperSettings: React.FC = () => {
           <div className="mt-4 rounded-2xl border border-titan-border bg-gradient-to-br from-[#07151B] to-[#0A0D14] p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                <p className="flex items-center gap-2 text-sm font-semibold text-titan-text">
                   <CreditCard size={15} className="text-titan-accent" /> x402 Guardrail module
                 </p>
                 <p className="mt-1 text-xs leading-5 text-titan-subtext">
@@ -777,10 +777,10 @@ const DeveloperSettings: React.FC = () => {
           ) : null}
 
           {activeSection === 'mcp' ? (
-          <div className="mt-4 rounded-2xl border border-titan-border bg-[#05080D] p-4">
+          <div className="mt-4 rounded-2xl border border-titan-border titan-deep p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold text-white">BYO Privy boundary</p>
+                <p className="text-sm font-semibold text-titan-text">BYO Privy boundary</p>
                 <p className="text-xs text-titan-subtext">Developer products must use their own Privy app keys.</p>
               </div>
               <Button variant="secondary" size="sm" onClick={() => void copyText(BYO_PRIVY_SNIPPET, 'BYO Privy snippet copied.')}>
@@ -794,10 +794,10 @@ const DeveloperSettings: React.FC = () => {
           ) : null}
 
           {activeSection === 'mcp' ? (
-          <div className="mt-4 rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
+          <div className="mt-4 rounded-2xl border border-titan-border titan-deep p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-sm font-semibold text-white">MCP boot</p>
+                <p className="text-sm font-semibold text-titan-text">MCP boot</p>
                 <p className="mt-1 text-xs text-titan-subtext">Run the packaged server after the same capability env is loaded.</p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => void copyText(MCP_BOOT_SNIPPET, 'MCP boot command copied.')}>
@@ -818,7 +818,7 @@ const DeveloperSettings: React.FC = () => {
       <section className="rounded-3xl border border-titan-border bg-titan-surface p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-base font-bold text-white">LLM priority: 0G Private Computer</h3>
+            <h3 className="text-base font-bold text-titan-text">LLM priority: 0G Private Computer</h3>
             <p className="mt-1 text-sm text-titan-subtext">
               Use 0G PC first for autonomous agent inference. It is OpenAI-compatible, so the developer keeps their own AI runtime and just swaps the base URL.
             </p>
@@ -827,7 +827,7 @@ const DeveloperSettings: React.FC = () => {
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-          <pre className="overflow-auto rounded-2xl border border-titan-border bg-[#05080D] p-4 text-xs text-titan-subtext">
+          <pre className="overflow-auto rounded-2xl border border-titan-border titan-deep p-4 text-xs text-titan-subtext">
             <code>{`export OPENAI_BASE_URL="https://router-api.0g.ai/v1"
 export OPENAI_API_KEY="<0G_PC_API_KEY>"
 
@@ -846,15 +846,15 @@ await client.chat.completions.create({
           <div>
             <div className="grid gap-2 sm:grid-cols-2">
               {ZERO_G_PC_MODELS.map((model) => (
-                <div key={model} className="rounded-xl border border-titan-border bg-[#0A0D14] px-3 py-2 text-xs text-titan-text">
+                <div key={model} className="rounded-xl border border-titan-border titan-deep px-3 py-2 text-xs text-titan-text">
                   {model}
                 </div>
               ))}
             </div>
             <p className="mt-3 text-xs text-titan-subtext">
-              Recommended starting models: <span className="text-white">qwen3.6-plus</span> for general agent work,
-              <span className="text-white"> 0GM-1.0-35B-A3B</span> for lighter agentic coding, and
-              <span className="text-white"> GLM-5.1-FP8</span> when you want reasoning enabled by default.
+              Recommended starting models: <span className="text-titan-text">qwen3.6-plus</span> for general agent work,
+              <span className="text-titan-text"> 0GM-1.0-35B-A3B</span> for lighter agentic coding, and
+              <span className="text-titan-text"> GLM-5.1-FP8</span> when you want reasoning enabled by default.
             </p>
           </div>
         </div>
@@ -865,8 +865,8 @@ await client.chat.completions.create({
 };
 
 const InfoTile: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
-  <div className="rounded-2xl border border-titan-border bg-[#0A0D14] p-4">
-    <div className="flex items-center gap-2 text-sm font-semibold text-white">
+  <div className="rounded-2xl border border-titan-border titan-deep p-4">
+    <div className="flex items-center gap-2 text-sm font-semibold text-titan-text">
       <span className="text-titan-accent">{icon}</span>
       {label}
     </div>

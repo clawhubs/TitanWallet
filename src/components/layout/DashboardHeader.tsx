@@ -6,6 +6,7 @@ import { useWallet } from '../../hooks/useWallet';
 import { useNetworkStore } from '../../store/useNetworkStore';
 import { useWalletStore } from '../../store/useWalletStore';
 import AccountSwitcherModal from './AccountSwitcherModal';
+import ThemeSwitcher from '../ui/ThemeSwitcher';
 import { getLocalWalletEvents } from '../../services/localActivity';
 
 const DashboardHeader: React.FC = () => {
@@ -58,10 +59,10 @@ const DashboardHeader: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden mix-blend-screen">
-            <img src="/titan-logo.png" alt="TITAN Logo" className="w-full h-full object-cover scale-[1.5]" />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden ">
+            <img src="/titan-logo-transparent.png" alt="TITAN Logo" className="w-full h-full object-cover scale-[1.5]" />
           </div>
-          <span className="font-bold text-white text-[15px] tracking-wide">TITAN</span>
+          <span className="font-bold text-titan-text text-[15px] tracking-wide">TITAN</span>
         </Link>
 
         {/* Nav */}
@@ -85,6 +86,9 @@ const DashboardHeader: React.FC = () => {
 
         {/* Right controls */}
         <div className="flex items-center gap-2">
+          {/* Theme switcher */}
+          <ThemeSwitcher />
+
           {/* Network selector */}
           <div className="relative">
             <button
@@ -127,7 +131,7 @@ const DashboardHeader: React.FC = () => {
             >
               <WalletCards size={14} className="text-titan-accent" />
               <div className="min-w-0">
-                <p className="max-w-[110px] truncate text-[11px] font-semibold text-white">{walletName}</p>
+                <p className="max-w-[110px] truncate text-[11px] font-semibold text-titan-text">{walletName}</p>
                 <p className="text-xs font-mono text-titan-subtext">{formatAddress(walletAddress)}</p>
               </div>
             </button>
@@ -162,7 +166,7 @@ const DashboardHeader: React.FC = () => {
               {showNotifications && (
                 <div className="absolute right-0 top-full mt-2 w-80 titan-card shadow-titan border border-titan-border rounded-xl overflow-hidden z-50">
                   <div className="flex items-center justify-between border-b border-titan-border px-4 py-3">
-                    <p className="text-sm font-semibold text-white">Notifications</p>
+                    <p className="text-sm font-semibold text-titan-text">Notifications</p>
                     <span className="text-xs text-titan-subtext">{notifications.length} live</span>
                   </div>
                   <div className="max-h-80 overflow-y-auto p-2">
@@ -199,7 +203,7 @@ const DashboardHeader: React.FC = () => {
                       setShowNotifications(false);
                       navigate('/activity');
                     }}
-                    className="w-full border-t border-titan-border px-4 py-3 text-sm font-semibold text-titan-accent transition-colors hover:bg-titan-muted/30 hover:text-white"
+                    className="w-full border-t border-titan-border px-4 py-3 text-sm font-semibold text-titan-accent transition-colors hover:bg-titan-muted/30 hover:text-titan-text"
                   >
                     Open Activity
                   </button>
@@ -213,9 +217,9 @@ const DashboardHeader: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => { setShowUserMenu(!showUserMenu); setShowNetworkMenu(false); setShowNotifications(false); }}
-                className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden hover:opacity-80 transition-all mix-blend-screen"
+                className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden hover:opacity-80 transition-all "
               >
-                <img src="/titan-logo.png" alt="Profile" className="w-full h-full object-cover scale-[1.5]" />
+                <img src="/titan-logo-transparent.png" alt="Profile" className="w-full h-full object-cover scale-[1.5]" />
               </button>
 
               {showUserMenu && (

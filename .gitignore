@@ -18,6 +18,7 @@ dist-ssr
 
 # Local-only operational and Playwright smoke scripts.
 scripts/
+developer-ai-wallet/tests/
 
 # Editor directories and files
 .vscode/*

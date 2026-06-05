@@ -196,7 +196,7 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                   <div
                     key={account.id}
                     className={`rounded-2xl border px-4 py-3 transition-colors ${
-                      isActive ? 'border-titan-accent/40 bg-titan-accent/5' : 'border-titan-border bg-[#11141B]'
+                      isActive ? 'border-titan-accent/40 bg-titan-accent/5' : 'border-titan-border bg-titan-card'
                     }`}
                     data-testid={`account-row-${account.id}`}
                   >
@@ -207,12 +207,12 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                           onClick={() => handleSwitchAccount(account.id)}
                           className="flex w-full min-w-0 items-center gap-3 text-left"
                         >
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-titan-accent/20 to-cyan-400/10 text-sm font-semibold text-white">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-titan-accent/20 to-cyan-400/10 text-sm font-semibold text-titan-text">
                             {monogram}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="truncate text-base font-semibold text-white">{account.walletName}</p>
+                              <p className="truncate text-base font-semibold text-titan-text">{account.walletName}</p>
                               {isActive ? (
                                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-titan-success/15 text-titan-success">
                                   <Check size={12} />
@@ -228,7 +228,7 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                             onClick={() => {
                               void handleCopyAddress(account.id, account.address);
                             }}
-                            className="inline-flex items-center gap-1 text-titan-subtext transition-colors hover:text-white"
+                            className="inline-flex items-center gap-1 text-titan-subtext transition-colors hover:text-titan-text"
                           >
                             <Copy size={12} />
                             {copiedAccountId === account.id ? 'Copied' : 'Copy'}
@@ -238,7 +238,7 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
 
                       <div className="relative flex items-start gap-2">
                         <div className="pt-1 text-right">
-                          <p className="text-lg font-semibold text-white">
+                          <p className="text-lg font-semibold text-titan-text">
                             {account.balanceUSD > 0 ? formatUSD(account.balanceUSD) : '$0.00'}
                           </p>
                           <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-titan-subtext">
@@ -252,18 +252,18 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                         <button
                           type="button"
                           onClick={() => setMenuAccountId((current) => (current === account.id ? null : account.id))}
-                          className="mt-1 flex h-8 w-8 items-center justify-center rounded-xl text-titan-subtext transition-colors hover:bg-white/5 hover:text-white"
+                          className="mt-1 flex h-8 w-8 items-center justify-center rounded-xl text-titan-subtext transition-colors hover:bg-white/5 hover:text-titan-text"
                           aria-label={`Account actions for ${account.walletName}`}
                         >
                           <MoreVertical size={15} />
                         </button>
 
                         {menuAccountId === account.id ? (
-                          <div className="absolute right-0 top-10 z-10 min-w-[170px] rounded-2xl border border-titan-border bg-[#11141B] p-1.5 shadow-titan">
+                          <div className="absolute right-0 top-10 z-10 min-w-[170px] rounded-2xl border border-titan-border bg-titan-card p-1.5 shadow-titan">
                             <button
                               type="button"
                               onClick={() => openRenameView(account.id)}
-                              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-white transition-colors hover:bg-white/5"
+                              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-titan-text transition-colors hover:bg-white/5"
                             >
                               <Pencil size={14} />
                               Rename account
@@ -306,14 +306,14 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
               type="button"
               onClick={() => void handleQuickAddAccount()}
               disabled={isSubmitting}
-              className="flex w-full items-center gap-3 rounded-2xl border border-titan-border bg-[#11141B] px-4 py-4 text-left transition-colors hover:border-titan-accent/30 hover:bg-white/[0.02] disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex w-full items-center gap-3 rounded-2xl border border-titan-border bg-titan-card px-4 py-4 text-left transition-colors hover:border-titan-accent/30 hover:bg-white/[0.02] disabled:cursor-not-allowed disabled:opacity-40"
               data-testid="add-account-button"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-titan-accent/10 text-titan-accent">
                 {isSubmitting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Plus size={18} />}
               </div>
               <div>
-                <p className="text-base font-semibold text-white">Add account</p>
+                <p className="text-base font-semibold text-titan-text">Add account</p>
                 <p className="text-sm text-titan-subtext">Create another account instantly in this wallet.</p>
               </div>
             </button>
@@ -324,7 +324,7 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                 setFormError(null);
                 setView('import');
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-titan-border bg-[#1A1C21] px-4 py-4 text-base font-semibold text-white transition-colors hover:border-titan-accent/30 hover:bg-white/[0.02]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-titan-border bg-titan-elevated px-4 py-4 text-base font-semibold text-titan-text transition-colors hover:border-titan-accent/30 hover:bg-white/[0.02]"
               data-testid="add-wallet-button"
             >
               <Wallet size={17} />
@@ -341,14 +341,14 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                 setFormError(null);
                 setView('list');
               }}
-              className="inline-flex items-center gap-2 text-sm text-titan-subtext transition-colors hover:text-white"
+              className="inline-flex items-center gap-2 text-sm text-titan-subtext transition-colors hover:text-titan-text"
             >
               <ArrowLeft size={14} />
               Back to accounts
             </button>
 
-            <div className="rounded-2xl border border-titan-border bg-[#11141B] p-4">
-              <p className="text-sm font-semibold text-white">Import a wallet directly</p>
+            <div className="rounded-2xl border border-titan-border bg-titan-card p-4">
+              <p className="text-sm font-semibold text-titan-text">Import a wallet directly</p>
               <p className="mt-1 text-xs text-titan-subtext">
                 Paste a recovery phrase or private key and TITAN will add it straight into this wallet list.
               </p>
@@ -402,14 +402,14 @@ const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({ isOpen, onC
                 setFormError(null);
                 setView('list');
               }}
-              className="inline-flex items-center gap-2 text-sm text-titan-subtext transition-colors hover:text-white"
+              className="inline-flex items-center gap-2 text-sm text-titan-subtext transition-colors hover:text-titan-text"
             >
               <ArrowLeft size={14} />
               Back to accounts
             </button>
 
-            <div className="rounded-2xl border border-titan-border bg-[#11141B] p-4">
-              <p className="text-sm font-semibold text-white">Rename wallet</p>
+            <div className="rounded-2xl border border-titan-border bg-titan-card p-4">
+              <p className="text-sm font-semibold text-titan-text">Rename wallet</p>
               <p className="mt-1 text-xs text-titan-subtext">
                 {renameTarget?.source === 'google'
                   ? 'This new name will stay tied to your linked Google wallet too.'

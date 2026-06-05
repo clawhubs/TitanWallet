@@ -4,6 +4,7 @@ import {
   ArrowRight, ShieldCheck, Eye, Zap, Lock, Globe, Users, Bot, Briefcase, User, Puzzle, Smartphone, Shield
 } from 'lucide-react';
 import LandingFooter from '../components/layout/LandingFooter';
+import ThemeSwitcher from '../components/ui/ThemeSwitcher';
 import WalletPreview from '../components/landing/WalletPreview';
 import TrustBar from '../components/landing/TrustBar';
 import LogoMarquee from '../components/landing/LogoMarquee';
@@ -106,7 +107,7 @@ const FAQItem: React.FC<{ q: string; a: string }> = ({ q, a }) => {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between py-5 text-left group gap-4"
       >
-        <span className="text-[15px] font-medium text-titan-text group-hover:text-white transition-colors">{q}</span>
+        <span className="text-[15px] font-medium text-titan-text group-hover:text-titan-text transition-colors">{q}</span>
         <span className={`text-titan-subtext text-xl font-light transition-transform duration-300 flex-shrink-0 ${open ? 'rotate-45' : ''}`}>+</span>
       </button>
       <div className={`grid transition-all duration-300 ease-in-out ${open ? 'grid-rows-[1fr] pb-5' : 'grid-rows-[0fr]'}`}>
@@ -138,19 +139,19 @@ const RailComparisonCard: React.FC<{
   return (
     <Link
       to={ctaHref}
-      className={`group relative overflow-hidden rounded-[28px] border ${border} bg-[#090D15] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated`}
+      className={`group relative overflow-hidden rounded-[28px] border ${border} bg-titan-card p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated`}
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${glow} to-transparent opacity-70`} />
-      <div className="absolute -bottom-24 left-8 h-48 w-48 rounded-full bg-white/[0.03] blur-3xl" />
+      <div className="absolute -bottom-24 left-8 h-48 w-48 rounded-full bg-titan-border/20 blur-3xl" />
 
       <div className="relative">
         <div className="mb-5 text-center">
           <p className={`text-[18px] font-black uppercase tracking-[0.08em] ${accent}`}>{title}</p>
-          <p className="mt-1 text-[14px] font-medium text-white">{subtitle}</p>
+          <p className="mt-1 text-[14px] font-medium text-titan-text">{subtitle}</p>
         </div>
 
         <div className="grid gap-5 md:grid-cols-[0.9fr_1.2fr] md:items-center">
-          <div className="relative flex min-h-[220px] items-center justify-center rounded-3xl border border-white/10 bg-black/20">
+          <div className="relative flex min-h-[220px] items-center justify-center rounded-3xl border border-titan-border bg-titan-bg/50">
             <div className={`absolute h-40 w-28 rounded-full ${isAgent ? 'bg-[#8B3DFF]/25' : 'bg-titan-accent/20'} blur-3xl`} />
             <div className={`absolute bottom-7 h-4 w-32 rounded-full ${isAgent ? 'bg-[#8B3DFF]/35' : 'bg-titan-accent/35'} blur-md`} />
             <div className={`relative flex h-32 w-32 items-center justify-center rounded-full border ${shieldBg}`}>
@@ -166,12 +167,12 @@ const RailComparisonCard: React.FC<{
               return (
                 <div
                   key={`${tone}-${rail}`}
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 transition-colors duration-200 group-hover:border-white/15"
+                  className="flex items-center gap-3 rounded-xl border border-titan-border bg-titan-surface/50 px-3 py-2.5 transition-colors duration-200 group-hover:border-titan-border"
                 >
                   <span className={`w-9 shrink-0 rounded-lg border ${shieldBg} py-1 text-center font-mono text-[12px] font-bold ${accent}`}>
                     {number}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-white">{rail}</span>
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-titan-text">{rail}</span>
                   {isNew ? (
                     <span className="rounded-md border border-[#C35CFF]/40 bg-[#C35CFF]/10 px-2 py-0.5 text-[10px] font-black text-[#E6B6FF]">
                       NEW
@@ -183,7 +184,7 @@ const RailComparisonCard: React.FC<{
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-titan-border bg-titan-bg/50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${shieldBg}`}>
               <ShieldCheck size={18} className={accent} />
@@ -193,7 +194,7 @@ const RailComparisonCard: React.FC<{
               <p className="text-[13px] text-titan-subtext">{footerText}</p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-white transition-colors duration-200 group-hover:text-titan-accent">
+          <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-titan-text transition-colors duration-200 group-hover:text-titan-accent">
             {ctaLabel}
             <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform duration-200" />
           </span>
@@ -217,24 +218,27 @@ const LandingPage: React.FC = () => {
       <header className="sticky top-0 z-50 titan-glass">
         <div className="max-w-6xl mx-auto px-6 h-[72px] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden mix-blend-screen">
-              <img src="/titan-logo.png" alt="TITAN Logo" className="w-full h-full object-cover scale-[1.5]" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden ">
+              <img src="/titan-logo-transparent.png" alt="TITAN Logo" className="w-full h-full object-cover scale-[1.5]" />
             </div>
-            <span className="font-bold text-white text-[15px] tracking-wide">TITAN</span>
+            <span className="font-bold text-titan-text text-[15px] tracking-wide">TITAN</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#product" className="text-[13px] text-titan-subtext hover:text-white transition-colors duration-200">Product</a>
-            <a href="#security" className="text-[13px] text-titan-subtext hover:text-white transition-colors duration-200">Security</a>
-            <a href="#faq" className="text-[13px] text-titan-subtext hover:text-white transition-colors duration-200">FAQ</a>
+            <a href="#product" className="text-[13px] text-titan-subtext hover:text-titan-text transition-colors duration-200">Product</a>
+            <a href="#security" className="text-[13px] text-titan-subtext hover:text-titan-text transition-colors duration-200">Security</a>
+            <a href="#faq" className="text-[13px] text-titan-subtext hover:text-titan-text transition-colors duration-200">FAQ</a>
           </nav>
 
-          <Link
-            to={primaryWalletHref}
-            className="bg-white text-[#06080C] font-semibold text-[13px] px-5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors duration-200"
-          >
-            {hasWalletSession ? 'Dashboard' : primaryWalletLabel}
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeSwitcher />
+            <Link
+              to={primaryWalletHref}
+              className="bg-titan-accent text-[#06080C] font-semibold text-[13px] px-5 py-2.5 rounded-xl hover:brightness-110 transition-colors duration-200"
+            >
+              {hasWalletSession ? 'Dashboard' : primaryWalletLabel}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -257,7 +261,7 @@ const LandingPage: React.FC = () => {
               <span className="text-[12px] font-semibold text-titan-text tracking-wide">Web Wallet — Live</span>
             </div>
 
-            <h1 className="text-[52px] sm:text-[64px] lg:text-[72px] font-extrabold text-white leading-[1.02] tracking-[-0.03em] mb-7">
+            <h1 className="text-[52px] sm:text-[64px] lg:text-[72px] font-extrabold text-titan-text leading-[1.02] tracking-[-0.03em] mb-7">
               The wallet that
               <br />
               <span className="text-gradient-accent">fights back.</span>
@@ -277,7 +281,7 @@ const LandingPage: React.FC = () => {
               </Link>
               <a
                 href="#security"
-                className="bg-titan-surface border border-titan-border text-titan-text font-semibold text-[15px] px-8 py-4 rounded-xl hover:bg-[#182030] hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+                className="bg-titan-surface border border-titan-border text-titan-text font-semibold text-[15px] px-8 py-4 rounded-xl hover:bg-titan-elevated hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
               >
                 <Shield size={16} /> View Security
               </a>
@@ -321,7 +325,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           <div className="mb-14">
             <p className="text-[11px] font-semibold text-titan-accent uppercase tracking-[0.12em] mb-4">Built for</p>
-            <h2 className="text-[36px] sm:text-[40px] font-bold text-white tracking-tight">Anyone who needs a real wallet.</h2>
+            <h2 className="text-[36px] sm:text-[40px] font-bold text-titan-text tracking-tight">Anyone who needs a real wallet.</h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -345,9 +349,9 @@ const LandingPage: React.FC = () => {
                     <span className="mb-3 inline-flex w-fit rounded-full border border-titan-accent/15 bg-titan-accent/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-titan-accent">
                       {uc.rail}
                     </span>
-                    <h3 className="text-[15px] font-semibold text-white mb-2.5">{uc.title}</h3>
+                    <h3 className="text-[15px] font-semibold text-titan-text mb-2.5">{uc.title}</h3>
                     <p className="text-[13px] text-titan-subtext leading-[1.7]">{uc.desc}</p>
-                    <span className="mt-auto pt-6 inline-flex items-center gap-2 text-[12px] font-semibold text-titan-accent group-hover:text-white transition-colors duration-200">
+                    <span className="mt-auto pt-6 inline-flex items-center gap-2 text-[12px] font-semibold text-titan-accent group-hover:text-titan-text transition-colors duration-200">
                       {cta}
                       <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform duration-200" />
                     </span>
@@ -360,11 +364,11 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* ── Benefits ───────────────────────────────────────────────────── */}
-      <section className="py-28 px-6 border-y border-titan-border/60 bg-gradient-to-b from-[#080A0F] to-titan-bg">
+      <section className="py-28 px-6 border-y border-titan-border/60 bg-gradient-to-b from-titan-card to-titan-bg">
         <div className="max-w-6xl mx-auto">
           <div className="mb-16 max-w-xl">
             <p className="text-[11px] font-semibold text-titan-accent uppercase tracking-[0.12em] mb-4">Why TITAN</p>
-            <h2 className="text-[36px] sm:text-[40px] font-bold text-white tracking-tight mb-5">Security without the compromise.</h2>
+            <h2 className="text-[36px] sm:text-[40px] font-bold text-titan-text tracking-tight mb-5">Security without the compromise.</h2>
             <p className="text-[16px] text-titan-subtext leading-relaxed">Most wallets protect your keys. TITAN protects every action.</p>
           </div>
 
@@ -377,7 +381,7 @@ const LandingPage: React.FC = () => {
                     <Icon size={20} className="text-titan-accent" />
                   </div>
                   <div>
-                    <h3 className="text-[15px] font-semibold text-white mb-2">{b.title}</h3>
+                    <h3 className="text-[15px] font-semibold text-titan-text mb-2">{b.title}</h3>
                     <p className="text-[13px] text-titan-subtext leading-[1.7]">{b.desc}</p>
                   </div>
                 </div>
@@ -395,7 +399,7 @@ const LandingPage: React.FC = () => {
               <div className="mb-4 inline-flex items-center px-3.5 py-1.5 rounded-full bg-titan-accent/10 border border-titan-accent/20">
                 <span className="text-[11px] font-bold text-titan-accent uppercase tracking-[0.12em]">Architecture</span>
               </div>
-              <h2 className="text-[34px] sm:text-[42px] font-black text-white tracking-tight leading-[1.05]">
+              <h2 className="text-[34px] sm:text-[42px] font-black text-titan-text tracking-tight leading-[1.05]">
                 Two security modes.
                 <br />
                 One TITAN rail system.
@@ -431,13 +435,13 @@ const LandingPage: React.FC = () => {
 
           <div className="mt-8 grid grid-cols-1 gap-3 rounded-2xl border border-titan-border bg-titan-surface/50 p-4 text-[12px] text-titan-subtext sm:grid-cols-3">
             <div>
-              <span className="text-white font-semibold">Consumer wallet:</span> create, sign, send, scan, and verify.
+              <span className="text-titan-text font-semibold">Consumer wallet:</span> create, sign, send, scan, and verify.
             </div>
             <div>
-              <span className="text-white font-semibold">Agent wallet:</span> capability tokens, policies, and audit trails.
+              <span className="text-titan-text font-semibold">Agent wallet:</span> capability tokens, policies, and audit trails.
             </div>
             <div>
-              <span className="text-white font-semibold">Proof path:</span> storage, ZK envelope, registry anchor, and Nitro continuity.
+              <span className="text-titan-text font-semibold">Proof path:</span> storage, ZK envelope, registry anchor, and Nitro continuity.
             </div>
           </div>
         </div>
@@ -449,7 +453,7 @@ const LandingPage: React.FC = () => {
           
           {/* FAQ */}
           <div className="lg:col-span-8">
-            <h2 className="text-[28px] font-bold text-white mb-10">Common questions</h2>
+            <h2 className="text-[28px] font-bold text-titan-text mb-10">Common questions</h2>
             <div>
               {faqs.map(faq => (
                 <FAQItem key={faq.q} q={faq.q} a={faq.a} />
@@ -500,7 +504,7 @@ const LandingPage: React.FC = () => {
             <span className="text-[12px] font-semibold text-titan-text tracking-wide">Web Wallet — Live Now</span>
           </div>
 
-          <h2 className="text-[44px] sm:text-[52px] font-extrabold text-white tracking-tight leading-[1.05] mb-6">
+          <h2 className="text-[44px] sm:text-[52px] font-extrabold text-titan-text tracking-tight leading-[1.05] mb-6">
             Your wallet is
             <br />already waiting.
           </h2>
@@ -511,7 +515,7 @@ const LandingPage: React.FC = () => {
 
           <Link
             to="/onboarding"
-            className="bg-white text-[#06080C] font-bold text-[16px] px-12 py-4.5 rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all duration-150 inline-flex items-center gap-2.5 shadow-lg shadow-white/10 mb-14"
+            className="bg-titan-accent text-[#06080C] font-bold text-[16px] px-12 py-4.5 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all duration-150 inline-flex items-center gap-2.5 shadow-lg shadow-titan-accent/10 mb-14"
           >
             Get Started — Free <ArrowRight size={18} strokeWidth={2.5} />
           </Link>

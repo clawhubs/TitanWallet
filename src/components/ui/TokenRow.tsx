@@ -62,7 +62,7 @@ const TokenRow: React.FC<TokenRowProps> = ({ token, onClick, variant = 'default'
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className="truncate text-[15px] font-semibold text-white">{token.name}</div>
+              <div className="truncate text-[15px] font-semibold text-titan-text">{token.name}</div>
               {shouldShowSourceBadge ? (
                 <Badge
                   variant={token.source === 'custom' ? 'accent' : 'success'}
@@ -83,7 +83,7 @@ const TokenRow: React.FC<TokenRowProps> = ({ token, onClick, variant = 'default'
         </div>
 
         <div className="shrink-0 text-right">
-          <div className="text-[15px] font-semibold text-white">{formatUSD(token.balanceUSD)}</div>
+          <div className="text-[15px] font-semibold text-titan-text">{formatUSD(token.balanceUSD)}</div>
           <div className="mt-1 text-xs font-medium text-titan-subtext">
             {formatTokenAmount(token.balance)} {token.symbol}
           </div>

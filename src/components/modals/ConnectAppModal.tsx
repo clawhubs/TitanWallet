@@ -138,17 +138,17 @@ const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClose, requ
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between gap-3">
               <span className="text-titan-subtext">Wallet</span>
-              <span className="font-mono text-white">
+              <span className="font-mono text-titan-text">
                 {walletAddress ? formatAddress(walletAddress, 10) : 'No wallet connected'}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-titan-subtext">Network</span>
-              <span className="text-white">{activeNetwork.name}</span>
+              <span className="text-titan-text">{activeNetwork.name}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-titan-subtext">Origin</span>
-              <span className="break-all font-mono text-white">{payload.appUrl}</span>
+              <span className="break-all font-mono text-titan-text">{payload.appUrl}</span>
             </div>
           </div>
         </div>
@@ -182,7 +182,7 @@ const ConnectAppModal: React.FC<ConnectAppModalProps> = ({ isOpen, onClose, requ
         </div>
 
         {status ? (
-          <div className="mb-4 rounded-xl border border-titan-border bg-[#0A0D14] px-4 py-3 text-xs text-titan-subtext">
+          <div className="mb-4 rounded-xl border border-titan-border titan-deep px-4 py-3 text-xs text-titan-subtext">
             {status}
           </div>
         ) : null}
