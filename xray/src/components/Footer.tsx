@@ -1,6 +1,7 @@
 'use client';
 
-import { Shield, Globe, MessageCircle } from 'lucide-react';
+import Image from 'next/image';
+import { Globe, MessageCircle } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -10,8 +11,8 @@ export default function Footer() {
           {/* Brand */}
           <div className="sm:col-span-2">
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--xray-accent)] to-[var(--xray-accent-dark)] flex items-center justify-center">
-                <Shield size={16} className="text-white" strokeWidth={2.5} />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                <Image src="/titan-logo-transparent.png" alt="TITAN Logo" width={32} height={32} className="w-full h-full object-cover scale-[1.5]" />
               </div>
               <span className="text-base font-bold text-[var(--xray-text)]">TITAN <span className="text-gradient-accent">X-Ray</span></span>
             </div>

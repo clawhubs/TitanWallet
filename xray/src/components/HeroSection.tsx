@@ -26,7 +26,7 @@ export default function HeroSection({ onScan }: { onScan: (address: string) => v
       <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full xray-eyebrow text-xs font-medium text-[var(--xray-text)] mb-7 animate-fade-in opacity-0-start">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--xray-success)] animate-pulse" />
-          Real multi-chain scan · powered by GoPlus + Qwen AI
+          Real multi-chain scan · powered by Qwen AI
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-[4.5rem] font-extrabold tracking-tight leading-[1.04] mb-5 animate-slide-up opacity-0-start">
@@ -38,7 +38,7 @@ export default function HeroSection({ onScan }: { onScan: (address: string) => v
           Paste any EVM wallet address for a read-only health scan. TITAN X-Ray auto-detects active chains, surfaces risky token approvals, and adds Qwen AI guidance — in seconds.
         </p>
 
-        {/* Scan bar — GoPlus-style segmented pill */}
+        {/* Scan bar — segmented pill */}
         <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto animate-slide-up opacity-0-start delay-200">
           <div className="relative flex items-center gap-2 p-1.5 rounded-2xl xray-search">
             <div className="hidden sm:flex items-center gap-2 pl-3 pr-3 py-2.5 text-sm font-semibold text-[var(--xray-subtext)] border-r border-[var(--xray-card-border)] whitespace-nowrap">
@@ -106,7 +106,7 @@ export default function HeroSection({ onScan }: { onScan: (address: string) => v
           {[
             { icon: <Eye size={14} />, text: 'Read-only, no connection' },
             { icon: <Lock size={14} />, text: 'No signatures or keys' },
-            { icon: <ShieldCheck size={14} />, text: 'GoPlus risk intel' },
+            { icon: <ShieldCheck size={14} />, text: 'Known-drainer detection' },
             { icon: <Sparkles size={14} />, text: 'Qwen AI narrative' },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-1.5 text-xs font-medium text-[var(--xray-subtext)]">
@@ -123,7 +123,7 @@ export default function HeroSection({ onScan }: { onScan: (address: string) => v
           {[
             { value: `${RPC_CHAIN_COUNT}+`, label: 'Fast RPC Chains' },
             { value: 'Qwen3.7', badge: 'MAX', label: 'AI Engine', featured: true },
-            { value: 'GoPlus', label: 'Risk Intel' },
+            { value: 'Live', label: 'Risk Engine' },
             { value: '0', label: 'Keys Needed' },
           ].map((stat, i) => (
             <div key={i} className={`xray-card px-3 py-5 text-center ${stat.featured ? 'xray-stat-featured' : ''}`}>

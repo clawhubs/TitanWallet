@@ -57,7 +57,7 @@ export async function scanChainApprovals(address: string, chainId: number): Prom
         profile,
       };
     }
-    warnings.push(`${chain.name}: GoPlus security API unavailable, used on-chain log scan instead.`);
+    warnings.push(`${chain.name}: risk provider unavailable, used on-chain log scan instead.`);
   }
 
   // Fallback: only hit the block explorer when one is actually configured for this chain.

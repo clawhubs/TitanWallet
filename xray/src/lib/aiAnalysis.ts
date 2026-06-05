@@ -3,7 +3,7 @@ import { withTimeout } from './rateLimiter';
 
 const DEFAULT_MODEL = process.env.DASHSCOPE_MODEL || 'qwen3.7-max';
 const DEFAULT_ENDPOINT = process.env.DASHSCOPE_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
-const AI_TIMEOUT_MS = Number(process.env.DASHSCOPE_TIMEOUT_MS || 15000);
+const AI_TIMEOUT_MS = Number(process.env.DASHSCOPE_TIMEOUT_MS || 20000);
 
 const SYSTEM_PROMPT = `You are Titan X-Ray AI, a blockchain security advisor.
 Analyze wallet token approvals and provide factual, non-fearmongering security guidance.
@@ -33,6 +33,9 @@ export async function analyzeScanWithAI(address: string, scanResults: ScanRespon
           temperature: 0.2,
           max_tokens: 900,
           response_format: { type: 'json_object' },
+          // qwen3.x-max defaults to a slow internal "thinking" phase (~25s+).
+          // Disable it for this structured task to keep responses fast (~5s).
+          enable_thinking: false,
         }),
       }),
       AI_TIMEOUT_MS,

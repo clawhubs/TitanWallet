@@ -20,6 +20,9 @@ dist-ssr
 scripts/
 developer-ai-wallet/tests/
 
+# Kiro spec (local planning docs)
+.kiro/specs/xray-landing-redesign/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
