@@ -45,7 +45,7 @@ export default function FeaturesSection() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--xray-border)] bg-[var(--xray-surface)] text-[10px] font-semibold text-[var(--xray-accent)] uppercase tracking-widest mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full xray-eyebrow text-[10px] font-semibold text-[var(--xray-accent)] uppercase tracking-widest mb-4">
             Features
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--xray-text)] tracking-tight">
@@ -56,17 +56,17 @@ export default function FeaturesSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {FEATURES.map((f, i) => (
             <div
               key={i}
-              className="group p-6 rounded-2xl border border-[var(--xray-border)] bg-[var(--xray-surface)] hover:border-[var(--xray-accent)]/25 transition-all duration-300 opacity-0-start animate-slide-up"
-              style={{ boxShadow: 'var(--xray-shadow-sm)', animationDelay: `${i * 80}ms` }}
+              className="group relative p-7 xray-card xray-card-interactive xray-card-accentbar opacity-0-start animate-slide-up"
+              style={{ animationDelay: `${i * 80}ms` }}
             >
-              <div className="w-11 h-11 rounded-xl bg-[rgba(78,205,196,0.08)] text-[var(--xray-accent)] flex items-center justify-center mb-4 group-hover:bg-[rgba(78,205,196,0.14)] transition-colors duration-300">
+              <div className="w-12 h-12 rounded-xl xray-icon-tile text-[var(--xray-accent)] flex items-center justify-center mb-5">
                 {f.icon}
               </div>
-              <h3 className="text-base font-bold text-[var(--xray-text)] mb-2">{f.title}</h3>
+              <h3 className="text-lg font-bold text-[var(--xray-text)] mb-2 tracking-tight">{f.title}</h3>
               <p className="text-sm text-[var(--xray-subtext)] leading-relaxed">{f.desc}</p>
             </div>
           ))}

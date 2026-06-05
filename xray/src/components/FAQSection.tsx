@@ -43,7 +43,7 @@ export default function FAQSection() {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--xray-border)] bg-[var(--xray-surface)] text-[10px] font-semibold text-[var(--xray-accent)] uppercase tracking-widest mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full xray-eyebrow text-[10px] font-semibold text-[var(--xray-accent)] uppercase tracking-widest mb-4">
             FAQ
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--xray-text)] tracking-tight">
@@ -55,19 +55,17 @@ export default function FAQSection() {
           {FAQ_ITEMS.map((item, i) => (
             <div
               key={i}
-              className="rounded-2xl border border-[var(--xray-border)] bg-[var(--xray-surface)] overflow-hidden transition-all duration-200"
-              style={{ boxShadow: openIndex === i ? 'var(--xray-shadow-md)' : 'var(--xray-shadow-sm)' }}
+              className={`xray-card overflow-hidden transition-all duration-300 ${openIndex === i ? 'border-[var(--xray-card-border-hover)]' : ''}`}
             >
               <button
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
-                className="w-full flex items-center justify-between px-5 py-4 text-left"
+                className="w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer"
                 id={`faq-${i}`}
               >
-                <span className="text-sm font-semibold text-[var(--xray-text)] pr-4">{item.q}</span>
-                <ChevronDown
-                  size={18}
-                  className={`shrink-0 text-[var(--xray-tertiary)] transition-transform duration-200 ${openIndex === i ? 'rotate-180' : ''}`}
-                />
+                <span className={`text-sm font-semibold pr-4 transition-colors duration-200 ${openIndex === i ? 'text-[var(--xray-accent)]' : 'text-[var(--xray-text)]'}`}>{item.q}</span>
+                <span className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200 ${openIndex === i ? 'bg-[rgba(78,205,196,0.15)] text-[var(--xray-accent)] rotate-180' : 'text-[var(--xray-tertiary)]'}`}>
+                  <ChevronDown size={18} />
+                </span>
               </button>
               <div
                 className={`overflow-hidden transition-all duration-300 ${openIndex === i ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'}`}

@@ -34,7 +34,7 @@ export default function HowItWorksSection() {
     <section id="how-it-works" className="py-20 sm:py-28 relative">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--xray-border)] bg-[var(--xray-surface)] text-[10px] font-semibold text-[var(--xray-accent)] uppercase tracking-widest mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full xray-eyebrow text-[10px] font-semibold text-[var(--xray-accent)] uppercase tracking-widest mb-4">
             How It Works
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--xray-text)] tracking-tight">
@@ -47,19 +47,20 @@ export default function HowItWorksSection() {
             <div key={i} className="relative group opacity-0-start animate-slide-up" style={{ animationDelay: `${i * 120}ms` }}>
               {/* Connector line */}
               {i < STEPS.length - 1 && (
-                <div className="hidden lg:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-[var(--xray-accent)]/30 to-transparent z-0" style={{ width: 'calc(100% - 2rem)' }} />
+                <div className="hidden lg:block absolute top-9 left-full h-px bg-gradient-to-r from-[var(--xray-accent)]/50 via-[var(--xray-accent)]/20 to-transparent z-0" style={{ width: 'calc(100% - 1.5rem)' }} />
               )}
 
-              <div className="relative p-6 rounded-2xl border border-[var(--xray-border)] bg-[var(--xray-surface)] hover:border-[var(--xray-accent)]/25 transition-all duration-300"
-                style={{ boxShadow: 'var(--xray-shadow-sm)' }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl font-extrabold text-[var(--xray-accent)]/20">{step.num}</span>
-                  <div className="w-10 h-10 rounded-xl bg-[rgba(78,205,196,0.08)] text-[var(--xray-accent)] flex items-center justify-center">
+              <div className="relative p-6 xray-card xray-card-interactive overflow-hidden">
+                {/* Oversized ghost number for depth */}
+                <span className="absolute -top-3 -right-1 text-7xl font-black leading-none text-[var(--xray-accent)]/[0.07] select-none pointer-events-none">{step.num}</span>
+                <div className="relative flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-xl xray-icon-tile text-[var(--xray-accent)] flex items-center justify-center">
                     {step.icon}
                   </div>
+                  <span className="text-xs font-bold text-[var(--xray-accent)] tracking-[0.2em] uppercase">Step {step.num}</span>
                 </div>
-                <h3 className="text-sm font-bold text-[var(--xray-text)] mb-2">{step.title}</h3>
-                <p className="text-sm text-[var(--xray-subtext)] leading-relaxed">{step.desc}</p>
+                <h3 className="relative text-base font-bold text-[var(--xray-text)] mb-2 tracking-tight">{step.title}</h3>
+                <p className="relative text-sm text-[var(--xray-subtext)] leading-relaxed">{step.desc}</p>
               </div>
             </div>
           ))}

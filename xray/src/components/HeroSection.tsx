@@ -15,22 +15,20 @@ export default function HeroSection({ onScan }: { onScan: (address: string) => v
   return (
     <section className="relative pt-28 pb-20 sm:pt-36 sm:pb-28 overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full opacity-30"
-          style={{ background: 'radial-gradient(circle, rgba(var(--xray-accent-rgb), 0.08) 0%, transparent 70%)' }}
-        />
+        <div className="absolute inset-0 xray-hero-aurora opacity-70" />
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--xray-border)] to-transparent" />
-        <div className="absolute inset-0 opacity-[0.03]"
-          style={{ backgroundImage: 'radial-gradient(var(--xray-subtext) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: 'linear-gradient(var(--xray-subtext) 1px, transparent 1px), linear-gradient(90deg, var(--xray-subtext) 1px, transparent 1px)', backgroundSize: '48px 48px', maskImage: 'radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%)', WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%)' }}
         />
       </div>
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[var(--xray-border)] bg-[var(--xray-surface)] text-xs font-medium text-[var(--xray-subtext)] mb-6 animate-fade-in opacity-0-start">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full xray-eyebrow text-xs font-medium text-[var(--xray-text)] mb-6 animate-fade-in opacity-0-start">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--xray-success)] animate-pulse" />
-          Real multi-chain scan - no wallet connection needed
+          Real multi-chain scan · no wallet connection needed
         </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-5 animate-slide-up opacity-0-start">
+        <h1 className="text-4xl sm:text-5xl lg:text-[4.25rem] font-extrabold tracking-tight leading-[1.05] mb-5 animate-slide-up opacity-0-start">
           Know Your Wallet&apos;s{' '}
           <span className="text-gradient-accent">True Health</span>
         </h1>
@@ -40,37 +38,36 @@ export default function HeroSection({ onScan }: { onScan: (address: string) => v
         </p>
 
         <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto animate-slide-up opacity-0-start delay-200">
-          <div className="relative group">
-            <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-[var(--xray-accent)]/20 via-[var(--xray-accent)]/5 to-[var(--xray-accent)]/20 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 blur-sm" />
-            <div className="relative flex items-center bg-[var(--xray-surface)] border border-[var(--xray-border)] rounded-2xl overflow-hidden transition-all duration-200 group-focus-within:border-[var(--xray-accent)]/40"
-              style={{ boxShadow: 'var(--xray-shadow-md)' }}>
-              <div className="pl-5 pr-2 text-[var(--xray-tertiary)]">
-                <Search size={20} />
-              </div>
+          <div className="relative flex items-center gap-2 p-2 rounded-2xl xray-search">
+            <div className="flex flex-1 items-center rounded-xl xray-search-field pl-4 pr-2">
+              <span className="text-[var(--xray-accent)]">
+                <Search size={18} />
+              </span>
               <input
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Paste wallet address (0x...)"
-                className="flex-1 px-2 py-4.5 bg-transparent text-[var(--xray-text)] placeholder:text-[var(--xray-tertiary)] font-mono text-sm focus:outline-none"
+                className="flex-1 px-3 py-3.5 bg-transparent text-[var(--xray-text)] placeholder:text-[var(--xray-tertiary)] font-mono text-sm focus:outline-none"
                 id="wallet-address-input"
                 autoComplete="off"
                 spellCheck="false"
               />
-              <button
-                type="submit"
-                className="mr-2 flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[var(--xray-accent)] to-[var(--xray-accent-dark)] text-white font-semibold text-sm rounded-xl hover:brightness-110 transition-all duration-150 active:scale-[0.97] shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled={!address.trim()}
-                id="scan-button"
-              >
-                <Radar size={15} />
-                Detect
-              </button>
             </div>
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[var(--xray-accent)] to-[var(--xray-accent-dark)] text-white font-semibold text-sm rounded-xl hover:brightness-110 transition-all duration-150 active:scale-[0.97] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+              style={{ boxShadow: '0 6px 18px -6px rgba(var(--xray-accent-rgb), 0.7)' }}
+              disabled={!address.trim()}
+              id="scan-button"
+            >
+              <Radar size={15} />
+              Detect
+            </button>
           </div>
         </form>
 
-        <div className="flex flex-wrap items-center justify-center gap-6 mt-8 animate-fade-in opacity-0-start delay-400">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-8 animate-fade-in opacity-0-start delay-400">
           {[
             { icon: <Eye size={14} />, text: 'Read-only RPC + explorer data' },
             { icon: <Lock size={14} />, text: 'No signatures or keys' },
@@ -83,15 +80,25 @@ export default function HeroSection({ onScan }: { onScan: (address: string) => v
           ))}
         </div>
 
-        <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto mt-12 animate-fade-in opacity-0-start delay-500">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-xl mx-auto mt-12 animate-fade-in opacity-0-start delay-500">
           {[
             { value: 'Live', label: 'RPC Detection' },
-            { value: 'Qwen', label: 'AI Analysis' },
+            { value: 'Qwen3.7', badge: 'MAX', label: 'AI Analysis', featured: true },
             { value: `${CHAINS.filter((chain) => chain.rpcUrl).length}`, label: 'Fast RPC Chains' },
           ].map((stat, i) => (
-            <div key={i} className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-[var(--xray-text)]">{stat.value}</div>
-              <div className="text-[11px] font-medium text-[var(--xray-subtext)] uppercase tracking-wider mt-0.5">{stat.label}</div>
+            <div key={i} className={`xray-card px-3 py-4 text-center ${stat.featured ? 'xray-stat-featured' : ''}`}>
+              <div className="flex flex-wrap items-center justify-center gap-1 leading-none">
+                <span className="text-xl sm:text-2xl font-extrabold text-gradient-accent whitespace-nowrap">{stat.value}</span>
+                {stat.badge && (
+                  <span
+                    className="text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded-md bg-[rgba(78,205,196,0.18)] text-[var(--xray-accent)]"
+                    style={{ WebkitTextFillColor: 'var(--xray-accent)' }}
+                  >
+                    {stat.badge}
+                  </span>
+                )}
+              </div>
+              <div className="text-[10px] sm:text-[11px] font-medium text-[var(--xray-subtext)] uppercase tracking-wider mt-1.5">{stat.label}</div>
             </div>
           ))}
         </div>
