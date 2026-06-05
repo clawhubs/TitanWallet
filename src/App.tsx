@@ -16,6 +16,8 @@ const ActivityPage = lazy(() => import('./pages/ActivityPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const DeveloperDocsPage = lazy(() => import('./features/developer/DeveloperDocsPage'));
 const DeveloperDemoPage = lazy(() => import('./features/developer/DeveloperDemoPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 
 function recordGoogleLinkedWalletProof(input: { address: string; createdAt?: string | null; restored: boolean }) {
   const activeNetwork = useNetworkStore.getState().activeNetwork;
@@ -166,6 +168,8 @@ const App: React.FC = () => {
           <Route path="/settings" element={<RequireWallet><SettingsPage /></RequireWallet>} />
           <Route path="/developer/docs" element={<DeveloperDocsPage />} />
           <Route path="/developer/demo" element={<DeveloperDemoPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           {/* Catch-all redirect */}
           <Route path="*" element={<LandingPage />} />
         </Routes>

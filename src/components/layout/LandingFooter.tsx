@@ -5,7 +5,7 @@ import { Shield, ExternalLink, MessageSquare, Globe } from 'lucide-react';
 const socialLinks = [
   {
     title: 'Contact support',
-    href: 'mailto:support@yieldboostai.xyz?subject=TITAN%20Wallet%20Support',
+    href: 'mailto:hallo@titanwallet.net?subject=TITAN%20Wallet%20Support',
     icon: MessageSquare,
     external: false,
   },
@@ -110,8 +110,13 @@ const LandingFooter: React.FC = () => {
               © 2026 TITAN Wallet. All rights reserved.
             </p>
             <p className="text-[10px] text-titan-tertiary uppercase tracking-wider font-medium">
-              A YieldBoost AI Product
+              A TitanX Layer Product
             </p>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-titan-subtext">
+            <Link to="/terms" className="hover:text-titan-text transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="hover:text-titan-text transition-colors">Privacy Policy</Link>
+            <a href="mailto:hallo@titanwallet.net" className="hover:text-titan-text transition-colors">Contact</a>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-titan-subtext">
             <Shield size={12} className="text-titan-success" />

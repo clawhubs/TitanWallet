@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, ShieldCheck, Eye, Zap, Lock, Globe, Users, Bot, Briefcase, User, Puzzle, Smartphone, Shield, ScanLine
+  ArrowRight, ShieldCheck, Eye, Zap, Lock, Globe, Users, Bot, Briefcase, User, Shield, ScanLine
 } from 'lucide-react';
 import LandingFooter from '../components/layout/LandingFooter';
 import ThemeSwitcher from '../components/ui/ThemeSwitcher';
@@ -262,13 +262,13 @@ const LandingPage: React.FC = () => {
             </div>
 
             <h1 className="text-[52px] sm:text-[64px] lg:text-[72px] font-extrabold text-titan-text leading-[1.02] tracking-[-0.03em] mb-7">
-              The wallet that
+              Your keys.
               <br />
-              <span className="text-gradient-accent">fights back.</span>
+              <span className="text-gradient-accent">Your crypto. Your control.</span>
             </h1>
 
             <p className="text-[17px] sm:text-[18px] text-titan-subtext leading-[1.7] mb-10 max-w-[480px]">
-              Open any browser. Create a wallet. Sensitive actions pass through the wallet rails that actually apply to signing, proof storage, governance, handshake logging, and Nitro continuity.
+              TITAN is a fully non-custodial wallet. Your private keys are generated and encrypted on your device — never uploaded, never shared. Open any browser, create a wallet in under two minutes, back it up with your own recovery phrase, and stay in complete control of your assets.
             </p>
 
             {/* CTAs */}
@@ -455,43 +455,14 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ── FAQ + Coming Soon ─────────────────────────────────────────── */}
+      {/* ── FAQ ───────────────────────────────────────────────────────── */}
       <section id="faq" className="py-28 px-6 border-t border-titan-border/60">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-20">
-          
-          {/* FAQ */}
-          <div className="lg:col-span-8">
-            <h2 className="text-[28px] font-bold text-titan-text mb-10">Common questions</h2>
-            <div>
-              {faqs.map(faq => (
-                <FAQItem key={faq.q} q={faq.q} a={faq.a} />
-              ))}
-            </div>
-          </div>
-
-          {/* Coming Soon */}
-          <div className="lg:col-span-4">
-            <p className="text-[11px] font-semibold text-titan-subtext uppercase tracking-[0.12em] mb-6">Coming soon</p>
-            <div className="space-y-3">
-              <div className="flex items-center gap-4 p-5 border border-titan-border/50 rounded-2xl bg-titan-surface/40">
-                <div className="w-10 h-10 rounded-xl bg-titan-bg border border-titan-border flex items-center justify-center">
-                  <Puzzle size={18} className="text-titan-subtext" />
-                </div>
-                <div>
-                  <span className="text-[14px] font-semibold text-titan-subtext">Chrome Extension</span>
-                  <p className="text-[11px] text-titan-tertiary mt-0.5">In development</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 p-5 border border-titan-border/50 rounded-2xl bg-titan-surface/40">
-                <div className="w-10 h-10 rounded-xl bg-titan-bg border border-titan-border flex items-center justify-center">
-                  <Smartphone size={18} className="text-titan-subtext" />
-                </div>
-                <div>
-                  <span className="text-[14px] font-semibold text-titan-subtext">Mobile App</span>
-                  <p className="text-[11px] text-titan-tertiary mt-0.5">iOS & Android</p>
-                </div>
-              </div>
-            </div>
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-[28px] font-bold text-titan-text mb-10">Common questions</h2>
+          <div>
+            {faqs.map(faq => (
+              <FAQItem key={faq.q} q={faq.q} a={faq.a} />
+            ))}
           </div>
         </div>
       </section>
