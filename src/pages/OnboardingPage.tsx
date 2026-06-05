@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Key, Download, Fingerprint, Mail, Shield, Globe } from 'lucide-react';
+import { ArrowRight, Key, Download, Mail, Shield, Globe } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import { useWallet } from '../hooks/useWallet';
@@ -62,22 +62,6 @@ const OnboardingPage: React.FC = () => {
       desc: 'Apple login is reserved for a later TITAN-managed auth release.',
       disabled: !socialEnabled || !appleLoginEnabled,
     }] : []),
-    {
-      id: 'passkey' as OnboardingOption,
-      icon: Fingerprint,
-      title: 'Continue with Passkey',
-      desc: 'Use your device biometrics for seamless login.',
-      badge: 'Soon',
-      disabled: true,
-    },
-    {
-      id: 'email' as OnboardingOption,
-      icon: Mail,
-      title: 'Continue with Email',
-      desc: 'Simple email-based wallet with MPC key management.',
-      badge: 'Soon',
-      disabled: true,
-    },
   ];
 
   const handleContinue = () => {
@@ -177,7 +161,6 @@ const OnboardingPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-titan-text">{opt.title}</span>
                       {opt.recommended && <Badge variant="accent" size="sm">Recommended</Badge>}
-                      {opt.badge && <Badge variant={isDisabled ? 'warning' : 'neutral'} size="sm">{opt.badge}</Badge>}
                     </div>
                     <p className="text-xs text-titan-subtext mt-0.5">{opt.desc}</p>
                   </div>

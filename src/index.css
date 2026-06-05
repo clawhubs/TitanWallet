@@ -22,10 +22,10 @@
   --titan-muted-rgb: 26, 34, 51;
   --titan-text: #E8ECF4;
   --titan-text-rgb: 232, 236, 244;
-  --titan-subtext: #6B7A90;
-  --titan-subtext-rgb: 107, 122, 144;
-  --titan-tertiary: #3D4A5C;
-  --titan-tertiary-rgb: 61, 74, 92;
+  --titan-subtext: #9FB0C9;
+  --titan-subtext-rgb: 159, 176, 201;
+  --titan-tertiary: #6E7E95;
+  --titan-tertiary-rgb: 110, 126, 149;
   --titan-accent: #4ECDC4;
   --titan-accent-rgb: 78, 205, 196;
   --titan-accentDark: #3AA89F;
@@ -165,9 +165,22 @@
 
   .titan-glass {
     background: var(--titan-glass-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
     border: 1px solid var(--titan-glass-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Frosted glass surface for cards/panels */
+  .titan-glass-card {
+    background: var(--titan-glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--titan-glass-border);
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    border-radius: 1rem;
   }
 
   .titan-btn-primary {

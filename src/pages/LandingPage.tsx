@@ -89,13 +89,22 @@ const agentRails = [
   'AWS Nitro Enclaves',
 ];
 
-const faqs = [
-  { q: 'Do I need to install anything?', a: 'No. TITAN Wallet runs entirely in your browser. No extension, no app, no setup — just open the website and your wallet is ready.' },
-  { q: 'How is my private key protected?', a: 'The wallet routes sensitive operations through the Secure Compute / TEE lane, keeps wallet context inside Sovereign Memory, and can escalate high-sensitivity paths into AWS Nitro Enclaves.' },
-  { q: 'What proof layers are used?', a: 'Wallet actions can use the 0G Storage Proof Layer, the Zero-Knowledge Proof Layer, and the ProofRegistry Anchor so security events become verifiable evidence instead of hidden backend claims.' },
-  { q: 'What networks are supported?', a: 'Ethereum, Arbitrum, Base, Optimism, and Polygon. More networks are being added regularly.' },
-  { q: 'Is it self-custodial?', a: 'Completely. Your keys are generated on your device and never sent to any server. TITAN has zero access to your funds.' },
+const userFaqs = [
+  { q: 'Do I need to install anything?', a: 'No. TITAN Wallet runs entirely in your browser. No extension, no app, no setup — just open the website and your wallet is ready in about two minutes.' },
+  { q: 'Is it really self-custodial?', a: 'Completely. Your keys are generated and encrypted on your device and never sent to any server. TITAN has zero access to your funds — only you can move them.' },
+  { q: 'How is my private key protected?', a: 'Sensitive operations route through the Secure Compute / TEE lane, wallet context stays inside Sovereign Memory, and high-sensitivity paths can escalate into AWS Nitro Enclaves.' },
+  { q: 'What are the 9 security layers?', a: 'TITAN protects every sensitive action with 9 layers: (1) Integrity Auditor, (2) Secure Compute / TEE, (3) 0G Storage Proof Layer, (4) Zero-Knowledge Proof Layer, (5) ProofRegistry Anchor, (6) Sovereign Memory, (7) AWS Nitro Enclaves, (8) handshake logging, and (9) governance + recovery controls. Together they turn security events into verifiable evidence instead of hidden backend claims.' },
+  { q: 'What networks are supported?', a: 'Ethereum, Arbitrum, Base, Optimism, and Polygon today, with more networks added regularly.' },
+  { q: 'What if I lose my device?', a: 'Restore your wallet on any browser using your recovery phrase. As long as you saved your recovery phrase, your wallet is never tied to a single device.' },
 ];
+
+const devFaqs = [
+  { q: 'Is there an API for developers?', a: 'Yes. The Developer API demo shows the allowed-vs-blocked intent flow with an API key, proof log, security log, and 10-layer evidence trail you can integrate into your own product.' },
+  { q: 'How do AI agents get wallets?', a: 'Through TITAN rails: create an AI project, issue an agent wallet, grant a capability token, and connect MCP tools — each action is logged and proof-anchored.' },
+  { q: 'Do developers use the consumer auth?', a: 'No. Consumer wallets use TITAN-managed auth, while developers bring their own Privy for their apps. The boundary between consumer, developer, and agent stays clean.' },
+  { q: 'Where are the proofs stored?', a: 'Security events can be written to the 0G Storage Proof Layer and anchored via ProofRegistry, so integrators get verifiable evidence rather than opaque logs.' },
+];
+
 
 // ─── FAQ Item ─────────────────────────────────────────────────────────────────
 
@@ -271,11 +280,11 @@ const LandingPage: React.FC = () => {
               TITAN is a fully non-custodial wallet. Your private keys are generated and encrypted on your device — never uploaded, never shared. Open any browser, create a wallet in under two minutes, back it up with your own recovery phrase, and stay in complete control of your assets.
             </p>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 w-full sm:w-auto mb-5">
+            {/* CTAs — 2x2 grid on desktop, stacked on mobile */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full sm:max-w-[440px] mb-5">
               <Link
                 to={primaryWalletHref}
-                className="bg-titan-accent text-[#06080C] font-bold text-[14px] px-6 py-3 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-titan-accent/20"
+                className="w-full bg-titan-accent text-[#06080C] font-bold text-[14px] px-6 py-3 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-titan-accent/20"
               >
                 {primaryWalletLabel} <ArrowRight size={16} strokeWidth={2.5} />
               </Link>
@@ -283,19 +292,19 @@ const LandingPage: React.FC = () => {
                 href="https://xray.titanwallet.net"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-titan-surface border border-titan-accent/30 text-titan-accent font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-accent/10 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+                className="w-full bg-titan-surface border border-titan-accent/30 text-titan-accent font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-accent/10 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
               >
                 <ScanLine size={15} /> Wallet X-Ray
               </a>
               <a
                 href="#security"
-                className="bg-titan-surface border border-titan-border text-titan-text font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-elevated hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+                className="w-full bg-titan-surface border border-titan-border text-titan-text font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-elevated hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
               >
                 <Shield size={15} /> View Security
               </a>
               <Link
                 to="/developer/demo"
-                className="bg-titan-surface border border-titan-border text-titan-subtext font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-elevated hover:text-titan-text hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+                className="w-full bg-titan-surface border border-titan-border text-titan-subtext font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-elevated hover:text-titan-text hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
               >
                 <Bot size={15} /> Developer API Demo
               </Link>
@@ -457,12 +466,21 @@ const LandingPage: React.FC = () => {
 
       {/* ── FAQ ───────────────────────────────────────────────────────── */}
       <section id="faq" className="py-28 px-6 border-t border-titan-border/60">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-[28px] font-bold text-titan-text mb-10">Common questions</h2>
-          <div>
-            {faqs.map(faq => (
-              <FAQItem key={faq.q} q={faq.q} a={faq.a} />
-            ))}
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-[28px] font-bold text-titan-text mb-10 text-center">Common questions</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+            <div>
+              <p className="text-[11px] font-bold text-titan-accent uppercase tracking-[0.14em] mb-4">For everyone</p>
+              {userFaqs.map(faq => (
+                <FAQItem key={faq.q} q={faq.q} a={faq.a} />
+              ))}
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-titan-accent uppercase tracking-[0.14em] mb-4">For developers</p>
+              {devFaqs.map(faq => (
+                <FAQItem key={faq.q} q={faq.q} a={faq.a} />
+              ))}
+            </div>
           </div>
         </div>
       </section>
