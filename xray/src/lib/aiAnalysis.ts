@@ -43,7 +43,7 @@ export async function analyzeScanWithAI(address: string, scanResults: ScanRespon
       throw new Error('DashScope response did not include message content.');
     }
 
-    return normalizeAIJson(JSON.parse(content), DEFAULT_MODEL);
+    return normalizeAIJson(JSON.parse(content), DEFAULT_MODEL, scanResults);
   } catch (error) {
     return buildFallbackAnalysis(scanResults, error instanceof Error ? error.message : 'Qwen analysis failed.');
   }
@@ -52,6 +52,7 @@ export async function analyzeScanWithAI(address: string, scanResults: ScanRespon
 function buildAnalysisPrompt(address: string, scanResults: ScanResponse) {
   const compact = Object.values(scanResults.results).map((chain) => ({
     chain: chain.chain.name,
+    approvalScanMode: chain.chain.approvalScanMode || 'onchain',
     score: chain.healthScore,
     approvals: chain.approvals.map((approval) => {
       const risk = chain.riskAssessments.find((item) => item.approvalId === approval.id);
@@ -71,20 +72,27 @@ function buildAnalysisPrompt(address: string, scanResults: ScanResponse) {
     address,
     overallScore: scanResults.overallScore,
     chains: compact,
-    instruction: 'Return JSON only. recommendations must be short actionable strings.',
+    instruction: 'Return JSON only. recommendations must be short actionable strings. For chains with approvalScanMode=offchain, do not mention missing explorer APIs, block explorer verification, or explorer coverage gaps. Describe those chains as TITAN off-chain visibility rails.',
   });
 }
 
-function normalizeAIJson(value: Record<string, unknown>, model: string): AIAnalysisResult {
+function normalizeAIJson(value: Record<string, unknown>, model: string, scanResults: ScanResponse): AIAnalysisResult {
   const recommendations = Array.isArray(value.recommendations)
     ? value.recommendations.map(String).slice(0, 5)
     : ['Review high-risk approvals and revoke anything you do not recognize.'];
   const urgency = String(value.urgencyLevel || 'monitor');
+  const offchainOnly = isOffchainOnlyScan(scanResults);
 
   return {
-    summary: String(value.summary || 'Titan X-Ray completed a read-only wallet risk scan.'),
-    riskNarrative: String(value.riskNarrative || 'No detailed AI narrative was returned.'),
-    recommendations,
+    summary: sanitizeOffchainExplorerCopy(
+      String(value.summary || 'Titan X-Ray completed a read-only wallet risk scan.'),
+      offchainOnly,
+    ),
+    riskNarrative: sanitizeOffchainExplorerCopy(
+      String(value.riskNarrative || 'No detailed AI narrative was returned.'),
+      offchainOnly,
+    ),
+    recommendations: recommendations.map((item) => sanitizeOffchainExplorerCopy(item, offchainOnly)),
     urgencyLevel: urgency === 'immediate' || urgency === 'soon' || urgency === 'safe' ? urgency : 'monitor',
     titanWalletBenefit: String(value.titanWalletBenefit || 'Titan Wallet keeps security rails visible before sensitive wallet actions.'),
     provider: 'qwen3.7-max',
@@ -97,12 +105,17 @@ function buildFallbackAnalysis(scanResults: ScanResponse, reason: string): AIAna
   const approvals = chains.flatMap((chain) => chain.approvals);
   const critical = chains.flatMap((chain) => chain.riskAssessments).filter((risk) => risk.riskLevel === 'critical' || risk.riskLevel === 'high');
   const urgencyLevel = critical.length ? 'soon' : approvals.length ? 'monitor' : 'safe';
+  const offchainOnly = isOffchainOnlyScan(scanResults);
 
   return {
     summary: approvals.length
       ? `Titan X-Ray found ${approvals.length} approval record(s) across ${chains.length} chain(s). ${critical.length} item(s) deserve priority review.`
-      : `Titan X-Ray did not find active approvals in the scanned chains. Explorer coverage can vary, so keep monitoring important wallets.`,
-    riskNarrative: reason,
+      : offchainOnly
+        ? 'Titan X-Ray did not find active approvals in the selected off-chain visibility rail.'
+        : 'Titan X-Ray did not find active approvals in the scanned chains. Explorer coverage can vary, so keep monitoring important wallets.',
+    riskNarrative: offchainOnly
+      ? '0G uses TITAN off-chain visibility for this report, so no block explorer approval API is required.'
+      : reason,
     recommendations: approvals.length
       ? ['Revoke unknown unlimited approvals first.', 'Review unverified spenders before reusing the wallet.', 'Run another scan after revoking approvals.']
       : ['No immediate approval action is visible from this read-only scan.', 'Rescan after new dApp activity or wallet imports.'],
@@ -111,4 +124,21 @@ function buildFallbackAnalysis(scanResults: ScanResponse, reason: string): AIAna
     provider: 'rules-fallback',
     model: DEFAULT_MODEL,
   };
+}
+
+function isOffchainOnlyScan(scanResults: ScanResponse) {
+  const chains = Object.values(scanResults.results);
+  return chains.length > 0 && chains.every((chain) => chain.chain.approvalScanMode === 'offchain');
+}
+
+function sanitizeOffchainExplorerCopy(value: string, offchainOnly: boolean) {
+  if (!offchainOnly) {
+    return value;
+  }
+
+  return value
+    .replace(/0G explorer API is not configured\.?/gi, '0G uses TITAN off-chain visibility for this report.')
+    .replace(/explorer API (?:is )?unconfigured/gi, 'off-chain visibility is used')
+    .replace(/block explorer/gi, 'TITAN off-chain rail')
+    .replace(/explorer coverage gaps?/gi, 'off-chain visibility boundaries');
 }

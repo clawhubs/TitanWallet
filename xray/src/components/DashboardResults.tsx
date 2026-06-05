@@ -99,6 +99,7 @@ export default function DashboardResults({ result, onReset }: { result: XRaySess
   const criticalCount = risks.filter((risk) => risk.riskLevel === 'critical' || risk.riskLevel === 'high').length;
   const unlimitedCount = approvals.filter((approval) => approval.allowance.includes('Unlimited') || approval.allowance.includes('ApprovalForAll')).length;
   const warnings = activeResults.flatMap((chain) => chain.warnings);
+  const offchainOnly = activeResults.length > 0 && activeResults.every((chain) => chain.chain.approvalScanMode === 'offchain');
   const shortAddr = result.address.length > 16 ? `${result.address.slice(0, 10)}...${result.address.slice(-8)}` : result.address;
   const activeScore = activeResults.length
     ? Math.round(activeResults.reduce((sum, chain) => sum + chain.healthScore, 0) / activeResults.length)
@@ -194,7 +195,9 @@ export default function DashboardResults({ result, onReset }: { result: XRaySess
             <CheckCircle2 className="mx-auto text-[var(--xray-success)]" />
             <h3 className="mt-4 font-bold text-[var(--xray-text)]">No active approvals found</h3>
             <p className="mt-2 text-sm leading-6 text-[var(--xray-subtext)]">
-              This scan did not find approval logs on the selected chains. If explorer API access is limited, connect explorer API keys in env and rescan for deeper coverage.
+              {offchainOnly
+                ? '0G uses TITAN off-chain visibility for this report. No block explorer approval API is required for this result.'
+                : 'This scan did not find approval logs on the selected chains. If explorer API access is limited, connect explorer API keys in env and rescan for deeper coverage.'}
             </p>
           </div>
         )}

@@ -23,6 +23,17 @@ export async function scanChainApprovals(address: string, chainId: number): Prom
   const warnings: string[] = [];
   let logs: ExplorerLog[] = [];
 
+  if (chain.approvalScanMode === 'offchain') {
+    return {
+      chain,
+      approvals: [],
+      riskAssessments: [],
+      healthScore: 100,
+      totalExposureUsd: 0,
+      warnings,
+    };
+  }
+
   try {
     logs = await fetchExplorerApprovalLogs(address, chain);
   } catch (error) {
