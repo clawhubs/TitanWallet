@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, ShieldCheck, Eye, Zap, Lock, Globe, Users, Bot, Briefcase, User, Puzzle, Smartphone, Shield
+  ArrowRight, ShieldCheck, Eye, Zap, Lock, Globe, Users, Bot, Briefcase, User, Puzzle, Smartphone, Shield, ScanLine
 } from 'lucide-react';
 import LandingFooter from '../components/layout/LandingFooter';
 import ThemeSwitcher from '../components/ui/ThemeSwitcher';
@@ -272,24 +272,32 @@ const LandingPage: React.FC = () => {
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mb-5">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2.5 w-full sm:w-auto mb-5">
               <Link
                 to={primaryWalletHref}
-                className="bg-titan-accent text-[#06080C] font-bold text-[15px] px-8 py-4 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2.5 shadow-lg shadow-titan-accent/20"
+                className="bg-titan-accent text-[#06080C] font-bold text-[14px] px-6 py-3 rounded-xl hover:brightness-110 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-titan-accent/20"
               >
-                {primaryWalletLabel} <ArrowRight size={18} strokeWidth={2.5} />
+                {primaryWalletLabel} <ArrowRight size={16} strokeWidth={2.5} />
               </Link>
               <a
-                href="#security"
-                className="bg-titan-surface border border-titan-border text-titan-text font-semibold text-[15px] px-8 py-4 rounded-xl hover:bg-titan-elevated hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+                href="https://xray.titanwallet.net"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-titan-surface border border-titan-accent/30 text-titan-accent font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-accent/10 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
               >
-                <Shield size={16} /> View Security
+                <ScanLine size={15} /> Wallet X-Ray
+              </a>
+              <a
+                href="#security"
+                className="bg-titan-surface border border-titan-border text-titan-text font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-elevated hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+              >
+                <Shield size={15} /> View Security
               </a>
               <Link
                 to="/developer/demo"
-                className="bg-titan-surface border border-titan-accent/30 text-titan-accent font-semibold text-[15px] px-8 py-4 rounded-xl hover:bg-titan-accent/10 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+                className="bg-titan-surface border border-titan-border text-titan-subtext font-semibold text-[14px] px-6 py-3 rounded-xl hover:bg-titan-elevated hover:text-titan-text hover:border-titan-accent/20 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
               >
-                <Bot size={16} /> Developer API Demo
+                <Bot size={15} /> Developer API Demo
               </Link>
             </div>
 
