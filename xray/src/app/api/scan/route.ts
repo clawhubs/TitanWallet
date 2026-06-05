@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { getChainByChainId } from '@/data/chains';
 import { isValidEvmAddress } from '@/lib/chainDetector';
 import { scanChainApprovals } from '@/lib/explorerApi';
+import { runWithConcurrency } from '@/lib/rateLimiter';
 import type { ChainScanResult, ScanResponse } from '@/types/scanner';
+
+const MAX_SCAN_CHAINS = 30;
 
 export async function POST(request: Request) {
   const started = Date.now();
@@ -17,8 +20,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'At least one chain must be selected.' }, { status: 400 });
   }
 
-  const uniqueChains = [...new Set(chains)].filter((chainId) => Boolean(getChainByChainId(chainId))).slice(0, 10);
-  const scanned = await Promise.all(uniqueChains.map((chainId) => scanChainApprovals(address, chainId)));
+  const uniqueChains = [...new Set(chains)].filter((chainId) => Boolean(getChainByChainId(chainId))).slice(0, MAX_SCAN_CHAINS);
+  const scanned = await runWithConcurrency(uniqueChains, 5, (chainId) => scanChainApprovals(address, chainId));
   const validResults = scanned.filter((result): result is ChainScanResult => Boolean(result));
   const results = Object.fromEntries(validResults.map((result) => [String(result.chain.chainId), result]));
   const resultValues = Object.values(results);
