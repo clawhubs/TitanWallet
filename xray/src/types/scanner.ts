@@ -42,6 +42,17 @@ export interface RiskAssessment {
   flags: string[];
 }
 
+export interface WalletChainProfile {
+  chainId: number;
+  nativeSymbol: string;
+  nativeBalanceRaw: string;
+  nativeBalanceFormatted: string;
+  hasNativeBalance: boolean;
+  txCount: number;
+  isContract: boolean;
+  hasActivity: boolean;
+}
+
 export interface ChainScanResult {
   chain: ChainInfo;
   approvals: TokenApproval[];
@@ -49,6 +60,7 @@ export interface ChainScanResult {
   healthScore: number;
   totalExposureUsd: number;
   warnings: string[];
+  profile?: WalletChainProfile;
 }
 
 export interface ScanResponse {

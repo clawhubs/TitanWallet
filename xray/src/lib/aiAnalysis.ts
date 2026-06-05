@@ -1,7 +1,9 @@
 import type { AIAnalysisResult, ScanResponse } from '@/types/scanner';
+import { withTimeout } from './rateLimiter';
 
 const DEFAULT_MODEL = process.env.DASHSCOPE_MODEL || 'qwen3.7-max';
 const DEFAULT_ENDPOINT = process.env.DASHSCOPE_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
+const AI_TIMEOUT_MS = Number(process.env.DASHSCOPE_TIMEOUT_MS || 15000);
 
 const SYSTEM_PROMPT = `You are Titan X-Ray AI, a blockchain security advisor.
 Analyze wallet token approvals and provide factual, non-fearmongering security guidance.
@@ -15,23 +17,27 @@ export async function analyzeScanWithAI(address: string, scanResults: ScanRespon
   }
 
   try {
-    const response = await fetch(DEFAULT_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: buildAnalysisPrompt(address, scanResults) },
-        ],
-        temperature: 0.2,
-        max_tokens: 900,
-        response_format: { type: 'json_object' },
+    const response = await withTimeout(
+      fetch(DEFAULT_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: DEFAULT_MODEL,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: buildAnalysisPrompt(address, scanResults) },
+          ],
+          temperature: 0.2,
+          max_tokens: 900,
+          response_format: { type: 'json_object' },
+        }),
       }),
-    });
+      AI_TIMEOUT_MS,
+      'Qwen analysis',
+    );
 
     if (!response.ok) {
       throw new Error(`DashScope returned HTTP ${response.status}.`);
@@ -54,6 +60,12 @@ function buildAnalysisPrompt(address: string, scanResults: ScanResponse) {
     chain: chain.chain.name,
     approvalScanMode: chain.chain.approvalScanMode || 'onchain',
     score: chain.healthScore,
+    footprint: chain.profile ? {
+      nativeBalance: chain.profile.nativeBalanceFormatted,
+      transactions: chain.profile.txCount,
+      accountType: chain.profile.isContract ? 'smart-contract' : 'EOA',
+      hasActivity: chain.profile.hasActivity,
+    } : undefined,
     approvals: chain.approvals.map((approval) => {
       const risk = chain.riskAssessments.find((item) => item.approvalId === approval.id);
       return {
@@ -72,7 +84,7 @@ function buildAnalysisPrompt(address: string, scanResults: ScanResponse) {
     address,
     overallScore: scanResults.overallScore,
     chains: compact,
-    instruction: 'Return JSON only. recommendations must be short actionable strings. For chains with approvalScanMode=offchain, do not mention missing explorer APIs, block explorer verification, or explorer coverage gaps. Describe those chains as TITAN off-chain visibility rails.',
+    instruction: 'Return JSON only. recommendations must be short actionable strings. Use the per-chain footprint (native balance, transactions, account type) to describe the wallet substantively even when there are no approvals. For chains with approvalScanMode=offchain, do not mention missing explorer APIs, block explorer verification, or explorer coverage gaps. Describe those chains as TITAN off-chain visibility rails.',
   });
 }
 
@@ -107,18 +119,27 @@ function buildFallbackAnalysis(scanResults: ScanResponse, reason: string): AIAna
   const urgencyLevel = critical.length ? 'soon' : approvals.length ? 'monitor' : 'safe';
   const offchainOnly = isOffchainOnlyScan(scanResults);
 
+  const profiles = chains.map((chain) => chain.profile).filter((profile) => Boolean(profile));
+  const totalTx = profiles.reduce((sum, profile) => sum + (profile?.txCount || 0), 0);
+  const activeChains = profiles.filter((profile) => profile?.hasActivity).length;
+  const footprintLine = profiles.length
+    ? `Footprint: ${totalTx.toLocaleString('en-US')} transaction(s) across ${activeChains} active chain(s).`
+    : '';
+
   return {
     summary: approvals.length
       ? `Titan X-Ray found ${approvals.length} approval record(s) across ${chains.length} chain(s). ${critical.length} item(s) deserve priority review.`
       : offchainOnly
-        ? 'Titan X-Ray did not find active approvals in the selected off-chain visibility rail.'
-        : 'Titan X-Ray did not find active approvals in the scanned chains. Explorer coverage can vary, so keep monitoring important wallets.',
+        ? `No active approvals in the selected off-chain visibility rail. ${footprintLine}`.trim()
+        : `No token approvals are currently exposing this wallet. ${footprintLine} That is a clean result — nothing to revoke right now.`.trim(),
     riskNarrative: offchainOnly
       ? '0G uses TITAN off-chain visibility for this report, so no block explorer approval API is required.'
-      : reason,
+      : approvals.length
+        ? reason
+        : 'The scan read live on-chain data and found no approval grants that put your tokens at risk. Your exposure surface is minimal.',
     recommendations: approvals.length
       ? ['Revoke unknown unlimited approvals first.', 'Review unverified spenders before reusing the wallet.', 'Run another scan after revoking approvals.']
-      : ['No immediate approval action is visible from this read-only scan.', 'Rescan after new dApp activity or wallet imports.'],
+      : ['No approval action needed right now.', 'Rescan after connecting to new dApps or signing approvals.', 'Bookmark and re-run X-Ray periodically to stay clean.'],
     urgencyLevel,
     titanWalletBenefit: 'Titan Wallet can keep approval review and security logs closer to the wallet action flow.',
     provider: 'rules-fallback',

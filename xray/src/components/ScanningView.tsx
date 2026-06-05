@@ -24,16 +24,26 @@ export default function ScanningView({ address, chains, onComplete, onError }: S
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(8);
   const started = useRef(false);
+  const aliveRef = useRef(true);
 
   useEffect(() => {
+    aliveRef.current = true;
     if (started.current) return;
     started.current = true;
 
-    let cancelled = false;
+    const setStepSafe = (value: number) => { if (aliveRef.current) setCurrentStep(value); };
+    const setProgressSafe = (value: number) => { if (aliveRef.current) setProgress(value); };
+
+    const timer = setInterval(() => {
+      if (!aliveRef.current) return;
+      setProgress((value) => Math.min(value + 4, 72));
+      setCurrentStep((step) => Math.min(step + 1, 3));
+    }, 1100);
+
     async function run() {
       try {
-        setCurrentStep(0);
-        setProgress(18);
+        setStepSafe(0);
+        setProgressSafe(18);
         const scanResponse = await fetch('/api/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -41,10 +51,9 @@ export default function ScanningView({ address, chains, onComplete, onError }: S
         });
         const scanPayload = await scanResponse.json();
         if (!scanResponse.ok) throw new Error(scanPayload.error || 'Wallet scan failed.');
-        if (cancelled) return;
 
-        setCurrentStep(4);
-        setProgress(76);
+        setStepSafe(4);
+        setProgressSafe(76);
         const aiResponse = await fetch('/api/ai-analysis', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,50 +61,44 @@ export default function ScanningView({ address, chains, onComplete, onError }: S
         });
         const aiPayload = await aiResponse.json();
         if (!aiResponse.ok) throw new Error(aiPayload.error || 'AI analysis failed.');
-        if (cancelled) return;
 
-        setCurrentStep(5);
-        setProgress(100);
-        setTimeout(() => {
-          const detectedChains = Object.values((scanPayload as ScanResponse).results).map((result) => ({
-            chainId: result.chain.chainId,
-            chainName: result.chain.name,
-            chainShortName: result.chain.shortName,
-            nativeSymbol: result.chain.nativeSymbol || result.chain.shortName,
-            nativeBalance: '0',
-            nativeBalanceFormatted: `Active ${result.chain.shortName}`,
-            hasActivity: true,
-            explorerUrl: result.chain.explorerUrl,
-          }));
-          onComplete({
-            address,
-            detectedChains,
-            scan: scanPayload as ScanResponse,
-            ai: aiPayload as AIAnalysisResult,
-          });
-        }, 350);
+        setStepSafe(5);
+        setProgressSafe(100);
+        const detectedChains = Object.values((scanPayload as ScanResponse).results).map((result) => ({
+          chainId: result.chain.chainId,
+          chainName: result.chain.name,
+          chainShortName: result.chain.shortName,
+          nativeSymbol: result.chain.nativeSymbol || result.chain.shortName,
+          nativeBalance: '0',
+          nativeBalanceFormatted: `Active ${result.chain.shortName}`,
+          hasActivity: true,
+          explorerUrl: result.chain.explorerUrl,
+        }));
+        onComplete({
+          address,
+          detectedChains,
+          scan: scanPayload as ScanResponse,
+          ai: aiPayload as AIAnalysisResult,
+        });
       } catch (error) {
-        if (!cancelled) onError(error instanceof Error ? error.message : 'X-Ray scan failed.');
+        onError(error instanceof Error ? error.message : 'X-Ray scan failed.');
+      } finally {
+        clearInterval(timer);
       }
     }
 
     void run();
-    const timer = setInterval(() => {
-      setProgress((value) => Math.min(value + 4, 72));
-      setCurrentStep((step) => Math.min(step + 1, 3));
-    }, 1100);
 
     return () => {
-      cancelled = true;
-      clearInterval(timer);
+      aliveRef.current = false;
     };
   }, [address, chains, onComplete, onError]);
 
   const short = (a: string) => a.length > 16 ? `${a.slice(0, 8)}...${a.slice(-6)}` : a;
 
   return (
-    <section className="min-h-[80vh] flex items-center justify-center px-4">
-      <div className="w-full max-w-lg text-center">
+    <section className="min-h-screen flex flex-col px-4 pt-24 pb-12">
+      <div className="my-auto w-full max-w-lg mx-auto text-center">
         <div className="relative w-32 h-32 mx-auto mb-8">
           <div className="absolute inset-0 rounded-full border-2 border-[var(--xray-border)] opacity-30" />
           <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 128 128">

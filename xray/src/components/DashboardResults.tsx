@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, Copy, Info, Wallet } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, Copy, Info, Wallet, Activity, Coins, FileCode2, Network } from 'lucide-react';
 import AIInsightsPanel from './AIInsightsPanel';
-import type { RiskLevel, TokenApproval, XRaySessionResult } from '@/types/scanner';
+import type { RiskLevel, TokenApproval, WalletChainProfile, XRaySessionResult } from '@/types/scanner';
 
 const riskConfig: Record<RiskLevel, { color: string; bg: string; label: string; icon: ReactNode }> = {
   critical: { color: 'var(--xray-danger)', bg: 'rgba(224,84,78,0.08)', label: 'Critical', icon: <XCircle size={14} /> },
@@ -85,6 +85,16 @@ function ApprovalRow({ approval, riskLevel, onWhyRisky }: { approval: TokenAppro
   );
 }
 
+function FootprintCard({ icon, value, label, title }: { icon: ReactNode; value: string; label: string; title?: string }) {
+  return (
+    <div className="xray-card p-4 flex flex-col gap-2 animate-slide-up opacity-0-start">
+      <div className="w-9 h-9 rounded-lg xray-icon-tile text-[var(--xray-accent)] flex items-center justify-center">{icon}</div>
+      <div className="text-lg font-extrabold text-[var(--xray-text)] truncate" title={title || value}>{value}</div>
+      <div className="text-[10px] font-medium text-[var(--xray-subtext)] uppercase tracking-wider">{label}</div>
+    </div>
+  );
+}
+
 export default function DashboardResults({ result, onReset }: { result: XRaySessionResult; onReset: () => void }) {
   const [showAll, setShowAll] = useState(false);
   const [whyRiskyId, setWhyRiskyId] = useState<string | null>(null);
@@ -100,12 +110,29 @@ export default function DashboardResults({ result, onReset }: { result: XRaySess
   const unlimitedCount = approvals.filter((approval) => approval.allowance.includes('Unlimited') || approval.allowance.includes('ApprovalForAll')).length;
   const warnings = activeResults.flatMap((chain) => chain.warnings);
   const offchainOnly = activeResults.length > 0 && activeResults.every((chain) => chain.chain.approvalScanMode === 'offchain');
+
+  // Read-only on-chain wallet footprint (balance, activity, account type)
+  const profiles = activeResults
+    .map((chain) => chain.profile)
+    .filter((profile): profile is WalletChainProfile => Boolean(profile));
+  const totalTx = profiles.reduce((sum, profile) => sum + profile.txCount, 0);
+  const activeChainCount = profiles.filter((profile) => profile.hasActivity).length;
+  const chainsWithBalance = profiles.filter((profile) => profile.hasNativeBalance);
+  const isContractWallet = profiles.some((profile) => profile.isContract);
+  const singleChainProfile = activeChain !== 'all' ? profiles[0] : undefined;
+  const balanceDisplay = singleChainProfile
+    ? singleChainProfile.nativeBalanceFormatted
+    : chainsWithBalance.length === 1
+      ? chainsWithBalance[0].nativeBalanceFormatted
+      : `${chainsWithBalance.length} chain${chainsWithBalance.length === 1 ? '' : 's'}`;
+  const balanceSubLabel = singleChainProfile || chainsWithBalance.length <= 1 ? 'Native Balance' : 'Chains Holding Funds';
+
   const shortAddr = result.address.length > 16 ? `${result.address.slice(0, 10)}...${result.address.slice(-8)}` : result.address;
   const activeScore = activeResults.length
     ? Math.round(activeResults.reduce((sum, chain) => sum + chain.healthScore, 0) / activeResults.length)
     : result.scan.overallScore;
 
-  const riskByApproval = useMemo(() => Object.fromEntries(risks.map((risk) => [risk.approvalId, risk])), [risks]);
+  const riskByApproval = Object.fromEntries(risks.map((risk) => [risk.approvalId, risk]));
   const whyRisk = whyRiskyId ? riskByApproval[whyRiskyId] : null;
 
   const handleCopy = () => {
@@ -165,6 +192,22 @@ export default function DashboardResults({ result, onReset }: { result: XRaySess
           <AIInsightsPanel analysis={result.ai} />
         </div>
 
+        {profiles.length ? (
+          <div className="mb-8">
+            <div className="mb-3 flex items-center gap-2 flex-wrap">
+              <Activity size={15} className="text-[var(--xray-accent)]" />
+              <h3 className="text-sm font-bold text-[var(--xray-text)]">Wallet Footprint</h3>
+              <span className="text-[11px] text-[var(--xray-tertiary)]">· Read-only on-chain data, no connection</span>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <FootprintCard icon={<Coins size={18} />} value={balanceDisplay} label={balanceSubLabel} />
+              <FootprintCard icon={<Activity size={18} />} value={totalTx.toLocaleString('en-US')} label="Transactions" />
+              <FootprintCard icon={<FileCode2 size={18} />} value={isContractWallet ? 'Contract' : 'EOA'} label="Account Type" title={isContractWallet ? 'Smart contract account' : 'Externally owned account'} />
+              <FootprintCard icon={<Network size={18} />} value={`${activeChainCount}`} label={activeChainCount === 1 ? 'Active Chain' : 'Active Chains'} />
+            </div>
+          </div>
+        ) : null}
+
         {warnings.length ? (
           <div className="mb-6 rounded-2xl border border-[rgba(212,148,58,0.25)] bg-[rgba(212,148,58,0.06)] p-4 text-sm leading-6 text-[var(--xray-warning)]">
             {warnings.slice(0, 3).map((warning) => <div key={warning}>• {warning}</div>)}
@@ -191,13 +234,26 @@ export default function DashboardResults({ result, onReset }: { result: XRaySess
             )}
           </>
         ) : (
-          <div className="rounded-2xl border border-dashed border-[var(--xray-border)] p-8 text-center">
-            <CheckCircle2 className="mx-auto text-[var(--xray-success)]" />
-            <h3 className="mt-4 font-bold text-[var(--xray-text)]">No active approvals found</h3>
-            <p className="mt-2 text-sm leading-6 text-[var(--xray-subtext)]">
+          <div className="rounded-2xl xray-card p-8 text-center">
+            <div className="mx-auto w-14 h-14 rounded-2xl xray-icon-tile flex items-center justify-center mb-4">
+              <CheckCircle2 className="text-[var(--xray-accent)]" size={26} />
+            </div>
+            <h3 className="font-bold text-lg text-[var(--xray-text)]">No risky approvals — this wallet is clean</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--xray-subtext)] max-w-md mx-auto">
+              TITAN X-Ray reviewed{' '}
+              <span className="font-semibold text-[var(--xray-text)]">{totalTx.toLocaleString('en-US')}</span> transaction(s) across{' '}
+              <span className="font-semibold text-[var(--xray-text)]">{activeChainCount || activeResults.length}</span> active chain(s) and found{' '}
+              <span className="font-semibold text-[var(--xray-accent)]">0</span> token approvals exposing this wallet. Nothing needs to be revoked right now.
+            </p>
+            <div className="mt-5 inline-flex flex-wrap items-center justify-center gap-2 text-[11px]">
+              <span className="px-2.5 py-1 rounded-lg bg-[rgba(62,189,122,0.1)] text-[var(--xray-success)] font-semibold">Health {activeScore}/100</span>
+              <span className="px-2.5 py-1 rounded-lg bg-[var(--xray-elevated)] text-[var(--xray-subtext)] font-medium">{balanceDisplay} {balanceSubLabel === 'Native Balance' ? '' : 'with funds'}</span>
+              <span className="px-2.5 py-1 rounded-lg bg-[var(--xray-elevated)] text-[var(--xray-subtext)] font-medium">{isContractWallet ? 'Smart contract' : 'EOA'}</span>
+            </div>
+            <p className="mt-5 text-[11px] text-[var(--xray-tertiary)] max-w-md mx-auto leading-relaxed">
               {offchainOnly
-                ? '0G uses TITAN off-chain visibility for this report. No block explorer approval API is required for this result.'
-                : 'This scan did not find approval logs on the selected chains. If explorer API access is limited, connect explorer API keys in env and rescan for deeper coverage.'}
+                ? 'Approval-event coverage on this chain depends on RPC log availability. Footprint data above is live on-chain.'
+                : 'Approvals are scanned from on-chain logs. Keep monitoring after new dApp activity, or connect explorer API keys for deeper historical coverage.'}
             </p>
           </div>
         )}

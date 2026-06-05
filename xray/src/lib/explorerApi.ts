@@ -2,6 +2,8 @@ import { getChainByChainId, type ChainInfo } from '@/data/chains';
 import type { ChainScanResult, TokenApproval } from '@/types/scanner';
 import { assessApprovalRisk, computeHealthScore } from './riskEngine';
 import { rpcCall, toTopicAddress } from './rpc';
+import { fetchWalletChainProfile } from './walletProfile';
+import { fetchGoPlusApprovals, isGoPlusSupported } from './goPlusApi';
 
 const ERC20_APPROVAL_TOPIC = '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925';
 const APPROVAL_FOR_ALL_TOPIC = '0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31';
@@ -21,6 +23,11 @@ export async function scanChainApprovals(address: string, chainId: number): Prom
   if (!chain) return null;
 
   const warnings: string[] = [];
+
+  // Always gather a read-only wallet footprint (balance, tx count, account type).
+  // Cheap RPC calls that work on every chain (incl. 0G) without an API key or gas.
+  const profile = await fetchWalletChainProfile(address, chain).catch(() => undefined);
+
   let logs: ExplorerLog[] = [];
 
   if (chain.approvalScanMode === 'offchain') {
@@ -31,21 +38,42 @@ export async function scanChainApprovals(address: string, chainId: number): Prom
       healthScore: 100,
       totalExposureUsd: 0,
       warnings,
+      profile,
     };
   }
 
-  try {
-    logs = await fetchExplorerApprovalLogs(address, chain);
-  } catch (error) {
-    warnings.push(error instanceof Error ? error.message : `${chain.name} explorer scan failed.`);
+  // Preferred provider: GoPlus security API — fast, broad token coverage, and
+  // returns spender risk intel in one call. Falls back below if unsupported/unavailable.
+  if (isGoPlusSupported(chain.chainId)) {
+    const goPlus = await fetchGoPlusApprovals(address, chain).catch(() => null);
+    if (goPlus) {
+      return {
+        chain,
+        approvals: goPlus.approvals,
+        riskAssessments: goPlus.riskAssessments,
+        healthScore: computeHealthScore(goPlus.riskAssessments),
+        totalExposureUsd: 0,
+        warnings,
+        profile,
+      };
+    }
+    warnings.push(`${chain.name}: GoPlus security API unavailable, used on-chain log scan instead.`);
+  }
+
+  // Fallback: only hit the block explorer when one is actually configured for this chain.
+  if (chain.explorerApiUrl) {
+    try {
+      logs = await fetchExplorerApprovalLogs(address, chain);
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : `${chain.name} explorer scan failed.`);
+    }
   }
 
   if (!logs.length) {
     try {
       logs = await fetchRecentRpcApprovalLogs(address, chain);
-      if (logs.length) warnings.push('Explorer API unavailable; scanned recent RPC logs only.');
     } catch (error) {
-      warnings.push(error instanceof Error ? error.message : `${chain.name} RPC log fallback failed.`);
+      warnings.push(error instanceof Error ? error.message : `${chain.name} RPC log scan failed.`);
     }
   }
 
@@ -60,6 +88,7 @@ export async function scanChainApprovals(address: string, chainId: number): Prom
     healthScore,
     totalExposureUsd: 0,
     warnings,
+    profile,
   };
 }
 
