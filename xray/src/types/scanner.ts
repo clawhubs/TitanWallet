@@ -86,3 +86,22 @@ export interface XRaySessionResult {
   scan: ScanResponse;
   ai: AIAnalysisResult | null;
 }
+
+export type ContractFindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+
+export interface ContractFinding {
+  severity: ContractFindingSeverity;
+  title: string;
+  detail: string;
+  recommendation?: string;
+}
+
+export interface ContractAuditResult {
+  sourceName: string;
+  summary: string;
+  overallRisk: 'critical' | 'high' | 'medium' | 'low' | 'safe';
+  score: number;
+  findings: ContractFinding[];
+  provider: 'qwen3.7-max' | 'rules-fallback';
+  model: string;
+}

@@ -6,13 +6,14 @@ import HeroSection from '@/components/HeroSection';
 import ChainDetectionView from '@/components/ChainDetectionView';
 import ScanningView from '@/components/ScanningView';
 import DashboardResults from '@/components/DashboardResults';
+import ContractAuditView, { type AuditInput } from '@/components/ContractAuditView';
 import FeaturesSection from '@/components/FeaturesSection';
 import HowItWorksSection from '@/components/HowItWorksSection';
 import FAQSection from '@/components/FAQSection';
 import Footer from '@/components/Footer';
 import type { DetectedChain, XRaySessionResult } from '@/types/scanner';
 
-type AppView = 'home' | 'detecting' | 'selecting' | 'scanning' | 'results';
+type AppView = 'home' | 'detecting' | 'selecting' | 'scanning' | 'results' | 'audit';
 
 export default function Home() {
   const [view, setView] = useState<AppView>('home');
@@ -21,7 +22,13 @@ export default function Home() {
   const [detectedChains, setDetectedChains] = useState<DetectedChain[]>([]);
   const [detectDuration, setDetectDuration] = useState(0);
   const [result, setResult] = useState<XRaySessionResult | null>(null);
+  const [auditInput, setAuditInput] = useState<AuditInput | null>(null);
   const [error, setError] = useState('');
+
+  const handleAudit = (input: AuditInput) => {
+    setAuditInput(input);
+    setView('audit');
+  };
 
   const handleScan = async (address: string) => {
     setError('');
@@ -68,6 +75,7 @@ export default function Home() {
     setDetectedChains([]);
     setDetectDuration(0);
     setResult(null);
+    setAuditInput(null);
     setError('');
   };
 
@@ -77,7 +85,7 @@ export default function Home() {
 
       {view === 'home' && (
         <>
-          <HeroSection onScan={handleScan} />
+          <HeroSection onScan={handleScan} onAudit={handleAudit} />
           <FeaturesSection />
           <HowItWorksSection />
           <FAQSection />
@@ -122,6 +130,10 @@ export default function Home() {
           result={result}
           onReset={handleReset}
         />
+      )}
+
+      {view === 'audit' && auditInput && (
+        <ContractAuditView input={auditInput} onBack={handleReset} />
       )}
 
       <Footer />

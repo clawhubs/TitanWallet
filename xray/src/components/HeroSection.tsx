@@ -1,18 +1,47 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, ShieldCheck, Lock, Eye, Radar, Upload, Link2, Sparkles } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Search, ShieldCheck, Lock, Eye, Radar, Upload, Link2, Sparkles, Loader2 } from 'lucide-react';
 import { CHAINS } from '@/data/chains';
+import { readContractFile } from '@/lib/readContractFile';
+import type { AuditInput } from './ContractAuditView';
 
 const NETWORK_CHIPS = CHAINS.filter((chain) => chain.category === 'popular').slice(0, 8);
 const RPC_CHAIN_COUNT = CHAINS.filter((chain) => chain.rpcUrl).length;
 
-export default function HeroSection({ onScan }: { onScan: (address: string) => void }) {
+export default function HeroSection({ onScan, onAudit }: { onScan: (address: string) => void; onAudit: (input: AuditInput) => void }) {
   const [address, setAddress] = useState('');
+  const [showGithub, setShowGithub] = useState(false);
+  const [githubUrl, setGithubUrl] = useState('');
+  const [reading, setReading] = useState(false);
+  const [fileError, setFileError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (address.trim()) onScan(address.trim());
+  };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileError('');
+    setReading(true);
+    try {
+      const { name, source } = await readContractFile(file);
+      if (!source.trim()) throw new Error('File is empty.');
+      onAudit({ source, sourceName: name });
+    } catch (err) {
+      setFileError(err instanceof Error ? err.message : 'Could not read file.');
+    } finally {
+      setReading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const submitGithub = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (githubUrl.trim()) onAudit({ githubUrl: githubUrl.trim() });
   };
 
   return (
@@ -79,27 +108,53 @@ export default function HeroSection({ onScan }: { onScan: (address: string) => v
           <span className="h-px flex-1 bg-[var(--xray-border)]" />
         </div>
 
-        {/* Contract audit entry points (visual — wiring lands later) */}
+        {/* Contract audit entry points */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in opacity-0-start delay-300">
-          {[
-            { icon: <Upload size={15} />, label: 'Upload File (.sol/.zip)' },
-            { icon: <Link2 size={15} />, label: 'Import GitHub Link' },
-          ].map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              title="Contract audit — coming soon"
-              aria-disabled="true"
-              onClick={(e) => e.preventDefault()}
-              className="group relative flex items-center gap-2 px-5 py-3 rounded-xl border border-[var(--xray-card-border)] bg-[var(--xray-card-gradient)] text-sm font-semibold text-[var(--xray-subtext)] hover:text-[var(--xray-text)] hover:border-[var(--xray-accent)]/30 transition-all cursor-default"
-              style={{ background: 'var(--xray-card-gradient)' }}
-            >
-              <span className="text-[var(--xray-accent)]">{item.icon}</span>
-              {item.label}
-              <span className="ml-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[rgba(78,205,196,0.14)] text-[var(--xray-accent)]">Soon</span>
-            </button>
-          ))}
+          <input ref={fileRef} type="file" accept=".sol,.txt,.zip" className="hidden" onChange={handleFile} id="contract-file-input" />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={reading}
+            className="group relative flex items-center gap-2 px-5 py-3 rounded-xl border border-[var(--xray-card-border)] text-sm font-semibold text-[var(--xray-text)] hover:border-[var(--xray-accent)]/40 hover:text-[var(--xray-accent)] transition-all disabled:opacity-60"
+            style={{ background: 'var(--xray-card-gradient)' }}
+          >
+            <span className="text-[var(--xray-accent)]">{reading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}</span>
+            {reading ? 'Reading…' : 'Upload File (.sol/.zip)'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowGithub((v) => !v)}
+            className="group relative flex items-center gap-2 px-5 py-3 rounded-xl border border-[var(--xray-card-border)] text-sm font-semibold text-[var(--xray-text)] hover:border-[var(--xray-accent)]/40 hover:text-[var(--xray-accent)] transition-all"
+            style={{ background: 'var(--xray-card-gradient)' }}
+          >
+            <span className="text-[var(--xray-accent)]"><Link2 size={15} /></span>
+            Import GitHub Link
+          </button>
         </div>
+
+        {fileError && <p className="mt-3 text-xs text-[var(--xray-danger)]">{fileError}</p>}
+
+        {showGithub && (
+          <form onSubmit={submitGithub} className="mt-4 max-w-xl mx-auto flex items-center gap-2 p-1.5 rounded-2xl xray-search animate-slide-down">
+            <input
+              type="url"
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo/blob/main/Contract.sol"
+              className="flex-1 min-w-0 px-3 py-3 bg-transparent text-[var(--xray-text)] placeholder:text-[var(--xray-tertiary)] font-mono text-xs sm:text-sm focus:outline-none"
+              id="github-url-input"
+              autoComplete="off"
+              spellCheck="false"
+            />
+            <button
+              type="submit"
+              disabled={!githubUrl.trim()}
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[var(--xray-accent)] to-[var(--xray-accent-dark)] text-white font-bold text-sm rounded-xl hover:brightness-110 transition-all active:scale-[0.97] disabled:opacity-40 shrink-0"
+            >
+              Audit
+            </button>
+          </form>
+        )}
 
         {/* Trust row */}
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 mt-9 animate-fade-in opacity-0-start delay-400">

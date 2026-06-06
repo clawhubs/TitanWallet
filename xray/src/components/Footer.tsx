@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { Globe, MessageCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Globe, Mail } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -35,9 +36,10 @@ export default function Footer() {
           <div>
             <h4 className="text-xs font-semibold text-[var(--xray-subtext)] uppercase tracking-wider mb-3">Legal</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-sm text-[var(--xray-subtext)] hover:text-[var(--xray-accent)] transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-sm text-[var(--xray-subtext)] hover:text-[var(--xray-accent)] transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="text-sm text-[var(--xray-subtext)] hover:text-[var(--xray-accent)] transition-colors">Disclaimer</a></li>
+              <li><Link href="/privacy" className="text-sm text-[var(--xray-subtext)] hover:text-[var(--xray-accent)] transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-sm text-[var(--xray-subtext)] hover:text-[var(--xray-accent)] transition-colors">Terms of Service</Link></li>
+              <li><Link href="/disclaimer" className="text-sm text-[var(--xray-subtext)] hover:text-[var(--xray-accent)] transition-colors">Disclaimer</Link></li>
+              <li><a href="mailto:hallo@titanwallet.net" className="text-sm text-[var(--xray-subtext)] hover:text-[var(--xray-accent)] transition-colors">Contact</a></li>
             </ul>
           </div>
         </div>
@@ -47,10 +49,10 @@ export default function Footer() {
             © 2026 Titan X-Ray. Not financial advice. Results are informational only.
           </p>
           <div className="flex items-center gap-3">
-            <a href="#" className="p-2 rounded-lg text-[var(--xray-tertiary)] hover:text-[var(--xray-accent)] hover:bg-[var(--xray-elevated)] transition-all">
-              <MessageCircle size={16} />
+            <a href="mailto:hallo@titanwallet.net" title="Email us" aria-label="Email us" className="p-2 rounded-lg text-[var(--xray-tertiary)] hover:text-[var(--xray-accent)] hover:bg-[var(--xray-elevated)] transition-all">
+              <Mail size={16} />
             </a>
-            <a href="#" className="p-2 rounded-lg text-[var(--xray-tertiary)] hover:text-[var(--xray-accent)] hover:bg-[var(--xray-elevated)] transition-all">
+            <a href="https://titanwallet.net" target="_blank" rel="noopener noreferrer" title="TitanWallet" aria-label="TitanWallet" className="p-2 rounded-lg text-[var(--xray-tertiary)] hover:text-[var(--xray-accent)] hover:bg-[var(--xray-elevated)] transition-all">
               <Globe size={16} />
             </a>
           </div>
