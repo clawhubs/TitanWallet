@@ -96,7 +96,7 @@ const DashboardHeader: React.FC = () => {
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-titan-surface border border-titan-border text-xs font-medium text-titan-text hover:border-titan-accent/30 transition-all"
             >
               <span className="w-2 h-2 rounded-full bg-titan-success" />
-              {activeNetwork.name}
+              <span className="hidden sm:inline">{activeNetwork.name}</span>
               <ChevronDown size={12} className="text-titan-subtext" />
             </button>
 
@@ -130,7 +130,7 @@ const DashboardHeader: React.FC = () => {
               data-testid="account-switcher-trigger"
             >
               <WalletCards size={14} className="text-titan-accent" />
-              <div className="min-w-0">
+              <div className="hidden sm:block min-w-0">
                 <p className="max-w-[110px] truncate text-[11px] font-semibold text-titan-text">{walletName}</p>
                 <p className="text-xs font-mono text-titan-subtext">{formatAddress(walletAddress)}</p>
               </div>
@@ -224,6 +224,23 @@ const DashboardHeader: React.FC = () => {
 
               {showUserMenu && (
                 <div className="absolute right-0 top-full mt-2 w-44 titan-card shadow-titan border border-titan-border rounded-xl overflow-hidden z-50">
+                  {/* Mobile-only navigation (nav links are hidden in the bar on small screens) */}
+                  <div className="md:hidden border-b border-titan-border">
+                    {navLinks.map((link) => (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        onClick={() => setShowUserMenu(false)}
+                        className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-all hover:bg-titan-muted/30 ${
+                          location.pathname === link.to || (link.to === '/security' && location.pathname === '/securitycenter')
+                            ? 'text-titan-accent font-semibold'
+                            : 'text-titan-text'
+                        }`}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
                   <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-titan-muted/30 text-sm text-titan-text transition-all">
                     <Settings size={14} className="text-titan-subtext" /> Settings
                   </Link>
