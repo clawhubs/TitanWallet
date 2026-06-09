@@ -8,11 +8,14 @@ export interface Opportunity {
   ecosystem: string;
   category: OpportunityCategory;
   logo?: string;
-  url?: string;            // official website
+  url?: string;            // official website / listing page
   twitter?: string;        // X / Twitter handle (without @)
   tvl?: number;
   tokenStatus: 'none' | 'live'; // 'none' => no token yet (prime airdrop candidate)
-  airdropStatus: string;   // human-readable status, e.g. "Pre-token · farming live"
+  airdropStatus: string;   // human-readable status, e.g. "Confirmed · ongoing"
+  statusKind: 'ongoing' | 'confirmed' | 'claim-live' | 'pre-token'; // drives badge color
+  popularity?: number;     // 0-100+ heat / temperature
+  requirements?: string[]; // e.g. ['X', 'Telegram', 'KYC']
   isNew: boolean;          // recently listed
   aiScore: number;         // 0-100
   securityScore: number;   // 0-100
@@ -26,7 +29,8 @@ export interface Opportunity {
     recommendedAction: string;
     confidence: number;   // 0-100
   };
-  source: string;
+  source: string;          // human-readable origin label
+  sourceType: 'defillama' | 'airdrops.io';
   updatedAt: string;
 }
 

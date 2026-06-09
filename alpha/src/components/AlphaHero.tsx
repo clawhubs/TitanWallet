@@ -2,7 +2,7 @@
 
 export default function AlphaHero() {
   return (
-    <section className="relative pt-28 pb-6 sm:pt-32 sm:pb-8 overflow-hidden">
+    <section className="relative pt-28 pb-8 sm:pt-32 sm:pb-10 overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 xray-hero-aurora opacity-50" />
         <div className="absolute inset-0 opacity-[0.04]"
@@ -11,17 +11,14 @@ export default function AlphaHero() {
       </div>
 
       <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full xray-eyebrow text-[11px] font-medium text-[var(--xray-text)] mb-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--xray-success)] animate-pulse" />
-          AI-powered Web3 intelligence · live now
-        </div>
-
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.08] mb-3">
-          Discover Web3 Airdrops <span className="text-gradient-accent">Before Everyone Else</span>
+        <p className="text-xs font-semibold text-[var(--xray-accent)] uppercase tracking-[0.2em] mb-4">
+          Web3 Opportunity Intelligence
+        </p>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.08] mb-4">
+          Discover Web3 airdrops <span className="text-gradient-accent">before everyone else</span>
         </h1>
-
         <p className="text-sm sm:text-base text-[var(--xray-subtext)] max-w-xl mx-auto leading-relaxed">
-          AI continuously scans on-chain data to surface, score, and explain pre-token protocols with real airdrop potential.
+          Live airdrops and pre-token protocols, scored and explained by AI — so you know what to do and how to claim.
         </p>
       </div>
     </section>
