@@ -20,6 +20,9 @@ function getPackageNameFromNodeModules(id: string) {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    global: 'globalThis',
+  },
   build: {
     chunkSizeWarningLimit: 1800,
     rolldownOptions: {

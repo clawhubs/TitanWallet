@@ -183,6 +183,14 @@ const OnboardingPage: React.FC = () => {
           >
             Continue <ArrowRight size={16} />
           </Button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/multichain')}
+            className="mt-3 w-full text-center text-xs text-titan-subtext hover:text-titan-accent transition-colors"
+          >
+            Or create a Solana or TON wallet →
+          </button>
         </div>
 
         {/* Security note */}

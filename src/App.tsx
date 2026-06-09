@@ -10,6 +10,7 @@ import { addLocalWalletProof } from './services/localActivity';
 
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const CreateWalletPage = lazy(() => import('./pages/CreateWalletPage'));
+const MultiChainWalletPage = lazy(() => import('./pages/MultiChainWalletPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
 const ActivityPage = lazy(() => import('./pages/ActivityPage'));
@@ -161,6 +162,8 @@ const App: React.FC = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/create-wallet" element={<CreateWalletPage />} />
+          <Route path="/multichain" element={<MultiChainWalletPage />} />
+          <Route path="/create-solana-ton" element={<MultiChainWalletPage />} />
           <Route path="/dashboard" element={<RequireWallet><DashboardPage /></RequireWallet>} />
           <Route path="/security" element={<RequireWallet><SecurityPage /></RequireWallet>} />
           <Route path="/securitycenter" element={<RequireWallet><SecurityPage /></RequireWallet>} />
