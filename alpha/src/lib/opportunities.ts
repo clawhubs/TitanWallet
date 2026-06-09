@@ -153,13 +153,20 @@ interface GlmScore {
   aiSummary: string;
 }
 
-function clampRisk(v: unknown): RiskLevel { const s = String(v).toLowerCase(); return s === 'high' || s === 'medium' || s === 'low' ? (s as RiskLevel) : 'medium'; }
 function clampYield(v: unknown): YieldPotential { const s = String(v).toLowerCase(); return s === 'high' || s === 'medium' || s === 'low' ? (s as YieldPotential) : 'medium'; }
 function clampCat(v: unknown): OpportunityCategory {
   const s = String(v).toLowerCase();
   return (['airdrop', 'testnet', 'ecosystem', 'incentive', 'points', 'rewards'] as string[]).includes(s) ? (s as OpportunityCategory) : 'airdrop';
 }
 function clampScore(v: unknown, fallback = 70): number { const n = Number(v); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : fallback; }
+
+/** Risk derived from the security score so the badge never contradicts the displayed score. */
+function deriveRisk(securityScore: number, statusKind: Opportunity['statusKind']): RiskLevel {
+  let r: RiskLevel = securityScore >= 80 ? 'low' : securityScore >= 60 ? 'medium' : 'high';
+  // Pre-token plays carry extra uncertainty (no confirmed airdrop) — never label them "low".
+  if (statusKind === 'pre-token' && r === 'low') r = 'medium';
+  return r;
+}
 
 async function scoreWithGlm(seeds: Seed[]): Promise<GlmScore[]> {
   const compact = seeds.map((s) => ({
@@ -285,6 +292,7 @@ export async function getOpportunities(force = false): Promise<Opportunity[]> {
 
   const data: Opportunity[] = usable.map((seed, i) => {
     const s = scoreByName.get(seed.name) || heuristicScore(seed);
+    const securityScore = clampScore(s.securityScore);
     return {
       id: `${seed.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${i}`,
       name: seed.name,
@@ -301,8 +309,8 @@ export async function getOpportunities(force = false): Promise<Opportunity[]> {
       requirements: seed.requirements,
       isNew: seed.isNew,
       aiScore: clampScore(s.aiScore),
-      securityScore: clampScore(s.securityScore),
-      riskLevel: clampRisk(s.riskLevel),
+      securityScore,
+      riskLevel: deriveRisk(securityScore, seed.statusKind),
       yieldPotential: clampYield(s.yieldPotential),
       aiSummary: s.aiSummary || heuristicScore(seed).aiSummary,
       narrative: { whyItMatters: '', opportunity: '', risk: '', recommendedAction: '', confidence: clampScore(s.aiScore) },
