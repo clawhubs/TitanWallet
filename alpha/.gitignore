@@ -43,3 +43,6 @@ next-env.d.ts
 # AI assistant files
 AGENTS.md
 CLAUDE.md
+
+# worker state
+worker/.posted.json

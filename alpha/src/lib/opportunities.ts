@@ -195,6 +195,30 @@ function formatUsd(n: number): string {
 
 /* --------------------------------- Engine ---------------------------------- */
 
+const CHECK_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
+
+/** Returns false only on definitive dead signals (DNS/timeout/refused, 404/410, 5xx). */
+async function linkAlive(url?: string): Promise<boolean> {
+  if (!url) return false;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': CHECK_UA, Accept: 'text/html,application/xhtml+xml,*/*' },
+      signal: ctrl.signal,
+    });
+    // Treat 404/410/5xx as dead. Keep 200/3xx and bot-blocked (401/403/405/429) as alive.
+    if (res.status === 404 || res.status === 410 || res.status >= 500) return false;
+    return true;
+  } catch {
+    return false; // network error / DNS failure / timeout
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 export async function getOpportunities(force = false): Promise<Opportunity[]> {
   if (!force && cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.data;
 
@@ -209,7 +233,7 @@ export async function getOpportunities(force = false): Promise<Opportunity[]> {
     const existing = byName.get(key);
     if (!existing || s.preScore > existing.preScore) byName.set(key, s);
   }
-  const seeds = [...byName.values()].sort((a, b) => b.preScore - a.preScore).slice(0, MAX_ITEMS);
+  const seeds = [...byName.values()].sort((a, b) => b.preScore - a.preScore).slice(0, 28);
 
   if (!seeds.length) return cache?.data || [];
 
@@ -222,13 +246,22 @@ export async function getOpportunities(force = false): Promise<Opportunity[]> {
     }
   }));
 
+  // Validate links — drop dead ones so users never hit a broken site.
+  await Promise.allSettled(seeds.map(async (seed) => {
+    if (seed.url && !(await linkAlive(seed.url))) {
+      seed.url = undefined; // fall back to the project's X profile in the UI
+    }
+  }));
+  // Keep only opportunities that have a working action link (official site or X profile).
+  const usable = seeds.filter((s) => s.url || s.twitter).slice(0, MAX_ITEMS);
+
   let scores: GlmScore[] = [];
   if (hasCerebras()) {
-    try { scores = await scoreWithGlm(seeds); } catch { scores = []; }
+    try { scores = await scoreWithGlm(usable); } catch { scores = []; }
   }
   const scoreByName = new Map(scores.map((s) => [s.name, s]));
 
-  const data: Opportunity[] = seeds.map((seed, i) => {
+  const data: Opportunity[] = usable.map((seed, i) => {
     const s = scoreByName.get(seed.name) || heuristicScore(seed);
     return {
       id: `${seed.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${i}`,
