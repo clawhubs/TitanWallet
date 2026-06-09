@@ -83,9 +83,16 @@ async function fetchPage(url: string): Promise<AirdropsIoItem[]> {
   return parseListing(await res.text());
 }
 
-/** Fetches current airdrops from airdrops.io (latest + hottest), deduped. */
+/** Fetches current airdrops from airdrops.io across multiple listings, deduped. */
 export async function fetchAirdropsIo(): Promise<AirdropsIoItem[]> {
-  const pages = ['https://airdrops.io/latest/', 'https://airdrops.io/'];
+  // latest = newest, hot = trending, confirmed = token confirmed, speculative = retroactive/potential.
+  const pages = [
+    'https://airdrops.io/latest/',
+    'https://airdrops.io/hot/',
+    'https://airdrops.io/confirmed/',
+    'https://airdrops.io/speculative/',
+    'https://airdrops.io/',
+  ];
   const results = await Promise.allSettled(pages.map(fetchPage));
   const seen = new Set<string>();
   const merged: AirdropsIoItem[] = [];

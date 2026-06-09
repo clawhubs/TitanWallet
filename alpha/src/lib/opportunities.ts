@@ -3,8 +3,21 @@ import { fetchAirdropsIo, resolveOfficial } from './airdropsIo';
 import type { Opportunity, OpportunityCategory, RiskLevel, YieldPotential } from './types';
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
-const MAX_ITEMS = 18;
+const MAX_ITEMS = 30;   // displayed opportunities
+const POOL = 60;        // candidate pool before link validation
 let cache: { at: number; data: Opportunity[] } | null = null;
+
+/** Runs async tasks with bounded concurrency (polite to upstreams, avoids blocks). */
+async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      try { await fn(items[idx]); } catch { /* ignore */ }
+    }
+  });
+  await Promise.all(workers);
+}
 
 /* ----------------------------- DefiLlama source ---------------------------- */
 
@@ -166,7 +179,7 @@ The projects below are live airdrop / points / incentive opportunities (from Def
 Judge each project's airdrop/alpha potential realistically and without hype.
 Return ONLY JSON: {"items":[{name, category (airdrop|testnet|points|incentive|ecosystem|rewards), ecosystem, aiScore (0-100, higher=stronger airdrop potential), securityScore (0-100, higher=safer), riskLevel (low|medium|high), yieldPotential (low|medium|high), aiSummary (<=20 words, the airdrop angle)}]}. Keep name identical to input.`;
   const user = JSON.stringify({ projects: compact, instruction: 'Score every project. One item per input project.' });
-  const out = await glmJson<{ items: GlmScore[] }>(system, user, 4000);
+  const out = await glmJson<{ items: GlmScore[] }>(system, user, 8000);
   return Array.isArray(out.items) ? out.items : [];
 }
 
@@ -233,25 +246,21 @@ export async function getOpportunities(force = false): Promise<Opportunity[]> {
     const existing = byName.get(key);
     if (!existing || s.preScore > existing.preScore) byName.set(key, s);
   }
-  const seeds = [...byName.values()].sort((a, b) => b.preScore - a.preScore).slice(0, 28);
+  const seeds = [...byName.values()].sort((a, b) => b.preScore - a.preScore).slice(0, POOL);
 
   if (!seeds.length) return cache?.data || [];
 
-  // Resolve official project links for airdrops.io items (so we never link to airdrops.io).
-  await Promise.allSettled(seeds.map(async (seed) => {
-    if (seed.sourceType === 'airdrops.io' && seed.detailUrl) {
-      const { officialUrl, twitter } = await resolveOfficial(seed.detailUrl);
-      if (officialUrl) seed.url = officialUrl;
-      if (twitter) seed.twitter = twitter;
-    }
-  }));
+  // Resolve official project links for airdrops.io items (bounded concurrency, never link to airdrops.io).
+  await mapLimit(seeds.filter((s) => s.sourceType === 'airdrops.io' && s.detailUrl), 5, async (seed) => {
+    const { officialUrl, twitter } = await resolveOfficial(seed.detailUrl!);
+    if (officialUrl) seed.url = officialUrl;
+    if (twitter) seed.twitter = twitter;
+  });
 
   // Validate links — drop dead ones so users never hit a broken site.
-  await Promise.allSettled(seeds.map(async (seed) => {
-    if (seed.url && !(await linkAlive(seed.url))) {
-      seed.url = undefined; // fall back to the project's X profile in the UI
-    }
-  }));
+  await mapLimit(seeds.filter((s) => s.url), 8, async (seed) => {
+    if (!(await linkAlive(seed.url))) seed.url = undefined; // fall back to the project's X profile
+  });
   // Keep only opportunities that have a working action link (official site or X profile).
   const usable = seeds.filter((s) => s.url || s.twitter).slice(0, MAX_ITEMS);
 
