@@ -1,6 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { glmJson, hasCerebras } from './cerebras';
 import { fetchAirdropsIo, resolveOfficial } from './airdropsIo';
 import type { Opportunity, OpportunityCategory, RiskLevel, YieldPotential } from './types';
 
@@ -36,6 +35,7 @@ interface LlamaProtocol {
   tvl?: number;
   change_7d?: number;
   listedAt?: number;
+  audits?: string | number;
 }
 
 const AIRDROP_CATEGORIES = new Set([
@@ -70,6 +70,7 @@ interface Seed {
   tvl?: number;
   about?: string;
   momentum?: number;
+  audits?: number;
   tokenStatus: 'none' | 'live';
   statusKind: Opportunity['statusKind'];
   airdropStatus: string;
@@ -107,6 +108,7 @@ async function fetchDefiLlamaSeeds(): Promise<Seed[]> {
       tvl: p.tvl,
       about: (p.description || '').slice(0, 180),
       momentum,
+      audits: Number(p.audits) || 0,
       tokenStatus: 'none' as const,
       statusKind: 'pre-token' as const,
       airdropStatus: isNew ? 'New · pre-token, farming live' : 'Pre-token · farming live',
@@ -142,20 +144,10 @@ async function fetchAirdropsIoSeeds(): Promise<Seed[]> {
   });
 }
 
-/* ------------------------------- AI scoring -------------------------------- */
+/* --------------------------- Deterministic scoring -------------------------- */
+// Scores come from REAL signals (TVL, audits, status, popularity, momentum), not an
+// LLM guess — so they're stable, defensible, and never collapse to identical values.
 
-interface GlmScore {
-  name: string;
-  category: OpportunityCategory;
-  ecosystem: string;
-  aiScore: number;
-  securityScore: number;
-  riskLevel: RiskLevel;
-  yieldPotential: YieldPotential;
-  aiSummary: string;
-}
-
-function clampYield(v: unknown): YieldPotential { const s = String(v).toLowerCase(); return s === 'high' || s === 'medium' || s === 'low' ? (s as YieldPotential) : 'medium'; }
 function clampCat(v: unknown): OpportunityCategory {
   const s = String(v).toLowerCase();
   return (['airdrop', 'testnet', 'ecosystem', 'incentive', 'points', 'rewards'] as string[]).includes(s) ? (s as OpportunityCategory) : 'airdrop';
@@ -165,47 +157,8 @@ function clampScore(v: unknown, fallback = 70): number { const n = Number(v); re
 /** Risk derived from the security score so the badge never contradicts the displayed score. */
 function deriveRisk(securityScore: number, statusKind: Opportunity['statusKind']): RiskLevel {
   let r: RiskLevel = securityScore >= 80 ? 'low' : securityScore >= 60 ? 'medium' : 'high';
-  // Pre-token plays carry extra uncertainty (no confirmed airdrop) — never label them "low".
   if (statusKind === 'pre-token' && r === 'low') r = 'medium';
   return r;
-}
-
-async function scoreWithGlm(seeds: Seed[]): Promise<GlmScore[]> {
-  const compact = seeds.map((s) => ({
-    name: s.name,
-    source: s.sourceType,
-    category: s.category,
-    ecosystem: s.ecosystem,
-    status: s.airdropStatus,
-    tvlUsd: s.tvl ? Math.round(s.tvl) : undefined,
-    change7dPct: s.momentum,
-    popularity: s.popularity,
-    requirements: s.requirements,
-    about: s.about,
-  }));
-  const system = `You are Titan Alpha, an AI Web3 airdrop-intelligence engine.
-The projects below are live airdrop / points / incentive opportunities (from DefiLlama pre-token protocols and the airdrops.io tracker).
-Judge each project's airdrop/alpha potential realistically and without hype.
-Return ONLY JSON: {"items":[{name, category (airdrop|testnet|points|incentive|ecosystem|rewards), ecosystem, aiScore (0-100, higher=stronger airdrop potential), securityScore (0-100, higher=safer), riskLevel (low|medium|high), yieldPotential (low|medium|high), aiSummary (<=20 words, the airdrop angle)}]}. Keep name identical to input.`;
-  const user = JSON.stringify({ projects: compact, instruction: 'Score every project. One item per input project.' });
-  const out = await glmJson<{ items: GlmScore[] }>(system, user, 8000);
-  return Array.isArray(out.items) ? out.items : [];
-}
-
-function heuristicScore(s: Seed): GlmScore {
-  const base = clampScore(58 + Math.round(s.preScore / 3));
-  return {
-    name: s.name,
-    category: 'airdrop',
-    ecosystem: s.ecosystem,
-    aiScore: base,
-    securityScore: clampScore(s.sourceType === 'defillama' && (s.tvl || 0) > 50_000_000 ? 80 : 68),
-    riskLevel: base >= 78 ? 'low' : base >= 60 ? 'medium' : 'high',
-    yieldPotential: s.preScore > 45 ? 'high' : s.preScore > 20 ? 'medium' : 'low',
-    aiSummary: s.sourceType === 'airdrops.io'
-      ? `${s.airdropStatus} airdrop in ${s.ecosystem}. Early participation may qualify for rewards.`
-      : `No token yet. ${s.category} on ${s.ecosystem} — early users may qualify for a future airdrop.`,
-  };
 }
 
 function formatUsd(n: number): string {
@@ -213,6 +166,64 @@ function formatUsd(n: number): string {
   if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
   if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
   return `${Math.round(n)}`;
+}
+
+interface ComputedScore {
+  aiScore: number;
+  securityScore: number;
+  yieldPotential: YieldPotential;
+  category: OpportunityCategory;
+  ecosystem: string;
+  aiSummary: string;
+}
+
+/** Security: how battle-tested / trustworthy (TVL, audits, status, community heat). */
+function computeSecurity(s: Seed): number {
+  if (s.sourceType === 'defillama') {
+    let sec = 50;
+    const tvl = s.tvl || 0;
+    if (tvl >= 1e9) sec += 30;
+    else if (tvl >= 2.5e8) sec += 24;
+    else if (tvl >= 5e7) sec += 17;
+    else if (tvl >= 1e7) sec += 10;
+    else sec += 4;
+    if ((s.audits || 0) >= 2) sec += 10; else if ((s.audits || 0) === 1) sec += 6;
+    return clampScore(sec);
+  }
+  // airdrops.io: no TVL — use vetting status + community popularity.
+  let sec = 50;
+  if (s.statusKind === 'confirmed' || s.statusKind === 'claim-live') sec += 15;
+  else if (s.statusKind === 'ongoing') sec += 6;
+  sec += Math.min(22, Math.round((s.popularity || 0) / 6)); // temp 132+ -> +22
+  return clampScore(sec);
+}
+
+/** AI Score: airdrop/alpha potential (status, hype, momentum, freshness). */
+function computeAi(s: Seed): number {
+  let ai = 50;
+  if (s.statusKind === 'claim-live') ai += 24;
+  else if (s.statusKind === 'confirmed') ai += 16;
+  else if (s.statusKind === 'ongoing') ai += 9;
+  else ai += 6; // pre-token
+  ai += Math.min(20, Math.round((s.popularity || 0) / 7));        // airdrops.io heat
+  ai += Math.max(-6, Math.min(12, Math.round((s.momentum || 0) / 3))); // DefiLlama TVL momentum
+  const tvl = s.tvl || 0;
+  if (tvl >= 1e8) ai += 6; else if (tvl >= 1e7) ai += 3;
+  if (s.isNew) ai += 4;
+  return clampScore(ai);
+}
+
+function computeScores(s: Seed): ComputedScore {
+  const securityScore = computeSecurity(s);
+  const aiScore = computeAi(s);
+  const yieldPotential: YieldPotential = aiScore >= 80 ? 'high' : aiScore >= 62 ? 'medium' : 'low';
+  const tvlTxt = s.tvl ? ` ($${formatUsd(s.tvl)} TVL)` : '';
+  const popTxt = s.popularity ? `, ${s.popularity}° trending` : '';
+  const reqTxt = s.requirements && s.requirements.length ? ` Tasks: ${s.requirements.join(', ')}.` : '';
+  const aiSummary = s.sourceType === 'airdrops.io'
+    ? `${s.airdropStatus} on ${s.ecosystem}${popTxt}.${reqTxt} Early participation may qualify for rewards.`
+    : `No token yet — ${s.ecosystem} ${s.category}${tvlTxt}. Early users may qualify for a future airdrop.`;
+  return { aiScore, securityScore, yieldPotential, category: clampCat('airdrop'), ecosystem: s.ecosystem, aiSummary };
 }
 
 /* --------------------------------- Engine ---------------------------------- */
@@ -319,21 +330,15 @@ export async function getOpportunities(force = false): Promise<Opportunity[]> {
   });
   const freshUsable = fresh.filter((s) => s.url || s.twitter);
 
-  let scores: GlmScore[] = [];
-  if (hasCerebras() && freshUsable.length) {
-    try { scores = await scoreWithGlm(freshUsable); } catch { scores = []; }
-  }
-  const scoreByName = new Map(scores.map((s) => [s.name, s]));
   for (const seed of freshUsable) {
-    const s = scoreByName.get(seed.name) || heuristicScore(seed);
-    const securityScore = clampScore(s.securityScore);
+    const s = computeScores(seed);
     db[keyOf(seed.name)] = {
-      aiScore: clampScore(s.aiScore),
-      securityScore,
-      yieldPotential: clampYield(s.yieldPotential),
-      aiSummary: s.aiSummary || heuristicScore(seed).aiSummary,
-      category: clampCat(s.category),
-      ecosystem: s.ecosystem || seed.ecosystem,
+      aiScore: s.aiScore,
+      securityScore: s.securityScore,
+      yieldPotential: s.yieldPotential,
+      aiSummary: s.aiSummary,
+      category: s.category,
+      ecosystem: s.ecosystem,
       url: seed.url,
       twitter: seed.twitter,
       firstSeen: new Date().toISOString(),
