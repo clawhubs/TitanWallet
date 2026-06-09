@@ -210,7 +210,7 @@ function formatUsd(n: number): string {
 
 const CHECK_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';
 
-/** Returns false only on definitive dead signals (DNS/timeout/refused, 404/410, 5xx). */
+/** Returns false on dead/blocked links (network error, 4xx except 429, 5xx). */
 async function linkAlive(url?: string): Promise<boolean> {
   if (!url) return false;
   const ctrl = new AbortController();
@@ -222,14 +222,27 @@ async function linkAlive(url?: string): Promise<boolean> {
       headers: { 'User-Agent': CHECK_UA, Accept: 'text/html,application/xhtml+xml,*/*' },
       signal: ctrl.signal,
     });
-    // Treat 404/410/5xx as dead. Keep 200/3xx and bot-blocked (401/403/405/429) as alive.
-    if (res.status === 404 || res.status === 410 || res.status >= 500) return false;
-    return true;
+    if (res.status === 429) return true;            // transient rate-limit, keep
+    return res.status >= 200 && res.status < 400;   // only 2xx/3xx are usable
   } catch {
-    return false; // network error / DNS failure / timeout
+    return false; // network error / DNS failure / timeout / connection refused
   } finally {
     clearTimeout(t);
   }
+}
+
+// Referral/exchange-invite hosts that are unreliable or region-locked — fall back to the project's X.
+const LINK_DENYLIST = [
+  'invite.kraken.com', 'kraken.com', 'accounts.binance.com', 'binance.com/en/register',
+  'coinbase.com/join', 'bybit.com/invite', 'okx.com', 'partner.', 'refer.',
+];
+function isDenied(url?: string): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    const full = (u.hostname + u.pathname).toLowerCase();
+    return LINK_DENYLIST.some((d) => full.includes(d));
+  } catch { return false; }
 }
 
 export async function getOpportunities(force = false): Promise<Opportunity[]> {
@@ -257,9 +270,9 @@ export async function getOpportunities(force = false): Promise<Opportunity[]> {
     if (twitter) seed.twitter = twitter;
   });
 
-  // Validate links — drop dead ones so users never hit a broken site.
+  // Validate links — drop denylisted referral hosts and dead links (fall back to X profile).
   await mapLimit(seeds.filter((s) => s.url), 8, async (seed) => {
-    if (!(await linkAlive(seed.url))) seed.url = undefined; // fall back to the project's X profile
+    if (isDenied(seed.url) || !(await linkAlive(seed.url))) seed.url = undefined;
   });
   // Keep only opportunities that have a working action link (official site or X profile).
   const usable = seeds.filter((s) => s.url || s.twitter).slice(0, MAX_ITEMS);

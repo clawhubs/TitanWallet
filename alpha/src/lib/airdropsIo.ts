@@ -135,8 +135,13 @@ export async function resolveOfficial(detailUrl: string): Promise<{ officialUrl?
 
     const handles = [...html.matchAll(/(?:x|twitter)\.com\/([A-Za-z0-9_]{2,30})/g)]
       .map((m) => m[1])
-      .filter((h) => !/^(airdrops_io|intent|share|home|hashtag|search)$/i.test(h));
-    const twitter = handles[0];
+      .filter((h) => !/^(airdrops_io|intent|share|home|hashtag|search|i)$/i.test(h));
+    // Prefer a handle that resembles the project slug (e.g. /polymarket/ -> @Polymarket),
+    // otherwise fall back to the first non-aggregator handle.
+    const slug = (detailUrl.match(/airdrops\.io\/([^/]+)\/?$/) || [])[1]?.replace(/-/g, '').toLowerCase() || '';
+    const norm = (h: string) => h.replace(/_/g, '').toLowerCase();
+    const matched = slug && handles.find((h) => norm(h).includes(slug) || slug.includes(norm(h)));
+    const twitter = matched || handles[0];
 
     const visit = (html.match(/href=["'](\/visit\/[a-z0-9]+\/?)["']/i) || [])[1];
     let officialUrl: string | undefined;

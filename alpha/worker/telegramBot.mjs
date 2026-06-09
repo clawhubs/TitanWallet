@@ -15,7 +15,7 @@
 //   STATE_FILE         (optional) — dedupe state path (default ./worker/.posted.json)
 // Flags: --loop (run forever, hourly), --once (single run, default), --dry (no Telegram send)
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 const CEREBRAS_BASE = process.env.CEREBRAS_BASE_URL || 'https://api.cerebras.ai/v1/chat/completions';
