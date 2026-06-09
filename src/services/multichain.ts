@@ -123,3 +123,56 @@ export async function getTonBalance(addr: string, rpcBase: string): Promise<stri
   const nano = Number(json?.result ?? 0);
   return (nano / 1e9).toFixed(6);
 }
+
+/* -------------------------------- Sending ---------------------------------- */
+
+function solanaSecretKey(mnemonic: string): Uint8Array {
+  const priv = slip10Ed25519(bip39Seed(mnemonic), [44, 501, 0, 0]);
+  const pub = ed25519.getPublicKey(priv);
+  const secret = new Uint8Array(64);
+  secret.set(priv, 0);
+  secret.set(pub, 32);
+  return secret;
+}
+
+/** Sends native SOL. Returns the transaction signature. */
+export async function sendSolana(input: { to: string; amountSol: string; mnemonic: string; rpcUrl: string }): Promise<string> {
+  const kit = await import('@solana/kit');
+  const sys = await import('@solana-program/system');
+  const signer = await kit.createKeyPairSignerFromBytes(solanaSecretKey(input.mnemonic));
+  const rpc = kit.createSolanaRpc(input.rpcUrl);
+  const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
+  const lamports = BigInt(Math.round(Number(input.amountSol) * 1e9));
+
+  const message = kit.pipe(
+    kit.createTransactionMessage({ version: 0 }),
+    (m) => kit.setTransactionMessageFeePayerSigner(signer, m),
+    (m) => kit.setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
+    (m) => kit.appendTransactionMessageInstruction(
+      sys.getTransferSolInstruction({ source: signer, destination: kit.address(input.to), amount: lamports }),
+      m,
+    ),
+  );
+  const signed = await kit.signTransactionMessageWithSigners(message);
+  const wire = kit.getBase64EncodedWireTransaction(signed);
+  const signature = await rpc.sendTransaction(wire, { encoding: 'base64', preflightCommitment: 'confirmed' }).send();
+  return signature;
+}
+
+/** Sends native TON. Returns a reference (seqno) — TON confirms asynchronously. */
+export async function sendTon(input: { to: string; amountTon: string; mnemonic: string; rpcBase: string }): Promise<string> {
+  const priv = slip10Ed25519(bip39Seed(input.mnemonic), [44, 607, 0, 0]);
+  const { keyPairFromSeed } = await import('@ton/crypto');
+  const { TonClient, WalletContractV4, internal, toNano } = await import('@ton/ton');
+  const kp = keyPairFromSeed(globalThis.Buffer.from(priv));
+  const client = new TonClient({ endpoint: `${input.rpcBase.replace(/\/$/, '')}/jsonRPC` });
+  const wallet = WalletContractV4.create({ workchain: 0, publicKey: kp.publicKey });
+  const contract = client.open(wallet);
+  const seqno = await contract.getSeqno();
+  await contract.sendTransfer({
+    secretKey: kp.secretKey,
+    seqno,
+    messages: [internal({ to: input.to, value: toNano(input.amountTon), bounce: false })],
+  });
+  return `seqno-${seqno}`;
+}

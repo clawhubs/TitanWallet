@@ -31,6 +31,7 @@ import { getHealth } from '../services/security';
 import { listRecords } from '../services/integrity';
 import { buildTitanSecurityLayersFromApi, countActiveTitanLayers, mapIntegrityRecordsToActivity, mapIntegrityRecordsToProofs } from '../utils/integrity';
 import SendTransactionModal from '../components/modals/SendTransactionModal';
+import NonEvmSendModal from '../components/modals/NonEvmSendModal';
 import ReceiveModal from '../components/modals/ReceiveModal';
 import { hasTitanSecurityAccess } from '../config/api';
 import ConnectAppModal from '../components/modals/ConnectAppModal';
@@ -197,6 +198,7 @@ const DashboardPage: React.FC = () => {
   const [showAddTokenModal, setShowAddTokenModal] = useState(false);
   const [showSwapPanel, setShowSwapPanel] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showNonEvmSend, setShowNonEvmSend] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showSignModal, setShowSignModal] = useState(false);
@@ -243,7 +245,13 @@ const DashboardPage: React.FC = () => {
           (token) => token.symbol === showcase.symbol && token.network === showcase.network,
         ),
     ),
-  ];
+  ].map((token) => {
+    // Inject the live native balance for the active Solana/TON network.
+    if (!isEvmNetwork && token.network === activeNetwork.name && token.symbol === activeNetwork.symbol) {
+      return { ...token, balance: balanceETH || '0', balanceUSD: balanceUSD || 0 };
+    }
+    return token;
+  });
   const sortedAssetCatalog = sortAssetCatalog(combinedAssetTokens);
   const dedupedPopularCatalog = dedupeAssetCatalog(sortedAssetCatalog);
   const assetNetworkNames = Array.from(
@@ -590,7 +598,7 @@ const DashboardPage: React.FC = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
             {[
-              { icon: Send, label: 'Send', onClick: () => setShowSendModal(true), disabled: !isEvmNetwork },
+              { icon: Send, label: 'Send', onClick: () => (isEvmNetwork ? setShowSendModal(true) : setShowNonEvmSend(true)), disabled: false },
               { icon: ArrowDownLeft, label: 'Receive', onClick: () => setShowReceiveModal(true), disabled: false },
               { icon: RefreshCw, label: 'Swap', onClick: () => setShowSwapPanel(true), disabled: !isEvmNetwork },
               { icon: ShieldCheck, label: 'Security', onClick: () => navigate('/security'), disabled: false },
@@ -603,7 +611,7 @@ const DashboardPage: React.FC = () => {
           </div>
           {!isEvmNetwork ? (
             <p className="mt-4 text-center text-[12px] text-titan-subtext relative z-10">
-              {activeNetwork.name} is view-only for now — your address and balance are live; Send &amp; Swap are coming soon.
+              {activeNetwork.name}: address, balance &amp; native send are live. Swap is coming soon.
             </p>
           ) : null}
         </section>
@@ -677,11 +685,10 @@ const DashboardPage: React.FC = () => {
                     <div className="px-4 pb-2">
                       {assetDisplayedTokens.length ? (
                         <div className="overflow-hidden rounded-[20px] border border-titan-border bg-titan-card">
-                          {assetDisplayedTokens.map((token, i) => (
+                          {assetDisplayedTokens.map((token) => (
                             <div
                               key={token.id}
-                              className="border-b border-titan-border last:border-0 hover:bg-white/[0.02] transition-colors duration-200 animate-stagger-up"
-                              style={{ animationDelay: `${i * 50 + 120}ms` }}
+                              className="border-b border-titan-border last:border-0 hover:bg-white/[0.02] transition-colors duration-200"
                             >
                               <TokenRow token={token} variant="wallet-compact" />
                             </div>
@@ -829,6 +836,9 @@ const DashboardPage: React.FC = () => {
       ) : null}
       {showReceiveModal ? (
         <ReceiveModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} address={chainAddress} />
+      ) : null}
+      {showNonEvmSend ? (
+        <NonEvmSendModal isOpen={showNonEvmSend} onClose={() => setShowNonEvmSend(false)} fromAddress={chainAddress} />
       ) : null}
       {showSwapPanel ? (
         <SwapPanel isOpen={showSwapPanel} onClose={() => setShowSwapPanel(false)} />

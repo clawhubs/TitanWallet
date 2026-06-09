@@ -383,6 +383,28 @@ export const popularTokenDefinitions: PopularTokenDefinition[] = [
     contractAddress: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8',
     decimals: 18,
   },
+  {
+    id: 'solana-native',
+    networkId: 'solana',
+    symbol: 'SOL',
+    name: 'Solana',
+    price: 150,
+    change24h: 2.4,
+    icon: 'S',
+    logoUrl: 'https://assets.coingecko.com/coins/images/4128/standard/solana.png',
+    isNative: true,
+  },
+  {
+    id: 'ton-native',
+    networkId: 'ton',
+    symbol: 'TON',
+    name: 'Toncoin',
+    price: 5.2,
+    change24h: 1.3,
+    icon: 'T',
+    logoUrl: 'https://assets.coingecko.com/coins/images/17980/standard/ton_symbol.png',
+    isNative: true,
+  },
 ];
 
 export function getPopularTokensForNetwork(networkId: string) {
