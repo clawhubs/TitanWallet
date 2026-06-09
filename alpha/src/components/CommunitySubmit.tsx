@@ -35,7 +35,7 @@ export default function CommunitySubmit() {
             Community Submission
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--xray-text)] tracking-tight">Found alpha? <span className="text-gradient-accent">Submit it.</span></h2>
-          <p className="mt-4 text-base text-[var(--xray-subtext)] leading-relaxed">Every submission runs through AI analysis and a GoPlus security check before review.</p>
+          <p className="mt-4 text-base text-[var(--xray-subtext)] leading-relaxed">Every submission runs through AI analysis and an automated security check before review.</p>
         </div>
 
         {result ? (
@@ -66,7 +66,7 @@ export default function CommunitySubmit() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="GitHub" value={form.github} onChange={set('github')} placeholder="github.com/org" />
-              <Field label="Token address (optional)" value={form.tokenAddress} onChange={set('tokenAddress')} placeholder="0x… for GoPlus check" />
+              <Field label="Token address (optional)" value={form.tokenAddress} onChange={set('tokenAddress')} placeholder="0x… for security check" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-[var(--xray-subtext)] uppercase tracking-wider mb-1.5">Description *</label>

@@ -30,17 +30,20 @@ export default function AlphaFeed() {
   const hiddenCount = unlocked ? 0 : Math.max(0, items.length - VISIBLE);
 
   return (
-    <section id="feed" className="py-20 sm:py-24 relative">
+    <section id="feed" className="pt-4 pb-16 sm:pt-6 sm:pb-20 relative">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full xray-eyebrow text-[10px] font-semibold text-[var(--xray-accent)] uppercase tracking-widest mb-4">
-            Live Alpha Feed
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--xray-success)] animate-pulse" /> Live Airdrop Feed
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--xray-text)] tracking-tight">
-            Opportunities, <span className="text-gradient-accent">scored by AI</span>
+            Airdrops &amp; alpha, <span className="text-gradient-accent">scored by AI</span>
           </h2>
           <p className="mt-4 text-base text-[var(--xray-subtext)] max-w-xl mx-auto leading-relaxed">
-            Real projects from live on-chain data, ranked for airdrop &amp; alpha potential by GLM-4.7 and checked with GoPlus.
+            Live pre-token protocols ranked for airdrop &amp; alpha potential by GLM-4.7 — updated continuously from on-chain data.
+          </p>
+          <p className="mt-3 text-xs font-medium text-[var(--xray-tertiary)]">
+            Updated {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
 
@@ -82,10 +85,10 @@ export default function AlphaFeed() {
                     <h3 className="text-lg font-bold text-[var(--xray-text)]">{hiddenCount} opportunities locked</h3>
                     <p className="mt-2 text-sm text-[var(--xray-subtext)]">Follow Titan to unlock the full real-time alpha feed.</p>
                     <div className="mt-5 flex flex-col sm:flex-row gap-2 justify-center">
-                      <a href="https://x.com/titanwallet" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--xray-card-border)] text-sm font-semibold text-[var(--xray-text)] hover:border-[var(--xray-accent)]/30" style={{ background: 'var(--xray-card-gradient)' }}>
+                      <a href="https://x.com/titan_wallet" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--xray-card-border)] text-sm font-semibold text-[var(--xray-text)] hover:border-[var(--xray-accent)]/30" style={{ background: 'var(--xray-card-gradient)' }}>
                         <AtSign size={15} /> Follow on X
                       </a>
-                      <a href="https://t.me/titanwallet" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--xray-card-border)] text-sm font-semibold text-[var(--xray-text)] hover:border-[var(--xray-accent)]/30" style={{ background: 'var(--xray-card-gradient)' }}>
+                      <a href="https://t.me/titanx_wallet" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--xray-card-border)] text-sm font-semibold text-[var(--xray-text)] hover:border-[var(--xray-accent)]/30" style={{ background: 'var(--xray-card-gradient)' }}>
                         <Send size={15} /> Join Telegram
                       </a>
                     </div>

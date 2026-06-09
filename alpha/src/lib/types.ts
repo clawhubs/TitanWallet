@@ -8,10 +8,14 @@ export interface Opportunity {
   ecosystem: string;
   category: OpportunityCategory;
   logo?: string;
-  url?: string;
+  url?: string;            // official website
+  twitter?: string;        // X / Twitter handle (without @)
   tvl?: number;
-  aiScore: number;        // 0-100
-  securityScore: number;  // 0-100
+  tokenStatus: 'none' | 'live'; // 'none' => no token yet (prime airdrop candidate)
+  airdropStatus: string;   // human-readable status, e.g. "Pre-token · farming live"
+  isNew: boolean;          // recently listed
+  aiScore: number;         // 0-100
+  securityScore: number;   // 0-100
   riskLevel: RiskLevel;
   yieldPotential: YieldPotential;
   aiSummary: string;

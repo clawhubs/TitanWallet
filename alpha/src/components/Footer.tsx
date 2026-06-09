@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Globe, Mail } from 'lucide-react';
+import { Globe, Mail, AtSign, Send } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -47,6 +47,12 @@ export default function Footer() {
             © 2026 Titan Alpha. Not financial advice. Always do your own research.
           </p>
           <div className="flex items-center gap-3">
+            <a href="https://x.com/titan_wallet" target="_blank" rel="noopener noreferrer" title="X (@titan_wallet)" aria-label="X" className="p-2 rounded-lg text-[var(--xray-tertiary)] hover:text-[var(--xray-accent)] hover:bg-[var(--xray-elevated)] transition-all">
+              <AtSign size={16} />
+            </a>
+            <a href="https://t.me/titanx_wallet" target="_blank" rel="noopener noreferrer" title="Telegram (titanx_wallet)" aria-label="Telegram" className="p-2 rounded-lg text-[var(--xray-tertiary)] hover:text-[var(--xray-accent)] hover:bg-[var(--xray-elevated)] transition-all">
+              <Send size={16} />
+            </a>
             <a href="mailto:hallo@titanwallet.net" title="Email" aria-label="Email" className="p-2 rounded-lg text-[var(--xray-tertiary)] hover:text-[var(--xray-accent)] hover:bg-[var(--xray-elevated)] transition-all">
               <Mail size={16} />
             </a>

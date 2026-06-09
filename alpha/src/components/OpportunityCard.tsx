@@ -1,6 +1,7 @@
 'use client';
 
-import { ShieldCheck, TrendingUp, Sparkles, ArrowUpRight } from 'lucide-react';
+import { useState } from 'react';
+import { ShieldCheck, TrendingUp, Sparkles, ArrowUpRight, Coins } from 'lucide-react';
 import type { Opportunity } from '@/lib/types';
 
 const riskStyle: Record<string, { color: string; bg: string; label: string }> = {
@@ -13,6 +14,22 @@ function scoreColor(s: number) {
   return s >= 80 ? 'var(--xray-success)' : s >= 55 ? 'var(--xray-warning)' : 'var(--xray-danger)';
 }
 
+function Logo({ op }: { op: Opportunity }) {
+  const [broken, setBroken] = useState(false);
+  if (op.logo && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={op.logo}
+        alt={op.name}
+        className="w-full h-full object-cover"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+  return <span className="text-sm font-bold text-[var(--xray-accent)]">{op.name.slice(0, 2).toUpperCase()}</span>;
+}
+
 export default function OpportunityCard({ op, onOpen }: { op: Opportunity; onOpen: (op: Opportunity) => void }) {
   const risk = riskStyle[op.riskLevel] || riskStyle.medium;
   return (
@@ -20,11 +37,13 @@ export default function OpportunityCard({ op, onOpen }: { op: Opportunity; onOpe
       onClick={() => onOpen(op)}
       className="group relative p-5 text-left xray-card xray-card-interactive xray-card-accentbar flex flex-col"
     >
-      <div className="flex items-start gap-3 mb-4">
+      {op.isNew && (
+        <span className="absolute top-3 right-3 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-[var(--xray-accent)] text-white uppercase tracking-wide">New</span>
+      )}
+
+      <div className="flex items-start gap-3 mb-3">
         <div className="w-11 h-11 rounded-xl overflow-hidden bg-[var(--xray-elevated)] flex items-center justify-center shrink-0 border border-[var(--xray-card-border)]">
-          {op.logo
-            ? <img src={op.logo} alt={op.name} className="w-full h-full object-cover" /> /* eslint-disable-line @next/next/no-img-element */
-            : <span className="text-sm font-bold text-[var(--xray-accent)]">{op.name.slice(0, 2).toUpperCase()}</span>}
+          <Logo op={op} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -36,6 +55,11 @@ export default function OpportunityCard({ op, onOpen }: { op: Opportunity; onOpe
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[rgba(78,205,196,0.12)] text-[var(--xray-accent)] uppercase tracking-wide">{op.category}</span>
           </div>
         </div>
+      </div>
+
+      {/* Airdrop status */}
+      <div className="inline-flex items-center gap-1.5 self-start text-[10px] font-semibold px-2 py-1 rounded-lg mb-3 bg-[rgba(78,205,196,0.1)] text-[var(--xray-accent)]">
+        <Coins size={11} /> No token yet · airdrop potential
       </div>
 
       <p className="text-sm text-[var(--xray-subtext)] leading-relaxed mb-4 line-clamp-3 flex-1">{op.aiSummary}</p>

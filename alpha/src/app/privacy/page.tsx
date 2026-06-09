@@ -16,7 +16,7 @@ export default function Privacy() {
         <p>We do not take custody of funds, request private keys or seed phrases, or sell your data.</p>
       </LegalSection>
       <LegalSection heading="4. Third-party services">
-        <p>Security checks may use the GoPlus API and AI analysis uses a third-party model provider. These services receive only the data necessary to return a result (e.g. a public token address or submission text).</p>
+        <p>Security checks may use a third-party security API and AI analysis uses a third-party model provider. These services receive only the data necessary to return a result (e.g. a public token address or submission text).</p>
       </LegalSection>
       <LegalSection heading="5. Contact">
         <p>Questions? Email <a href="mailto:hallo@titanwallet.net" className="text-[var(--xray-accent)] hover:underline">hallo@titanwallet.net</a>.</p>

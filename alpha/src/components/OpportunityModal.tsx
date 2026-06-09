@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { X, Sparkles, Target, AlertTriangle, CheckCircle2, ShieldCheck, ExternalLink, Loader2 } from 'lucide-react';
+import { X, Sparkles, Target, AlertTriangle, CheckCircle2, ShieldCheck, ExternalLink, Loader2, Coins, AtSign } from 'lucide-react';
 import type { Opportunity } from '@/lib/types';
 
 interface Narrative {
@@ -10,6 +10,14 @@ interface Narrative {
   risk: string;
   recommendedAction: string;
   confidence: number;
+}
+
+function ModalLogo({ op }: { op: Opportunity }) {
+  const [broken, setBroken] = useState(false);
+  if (op.logo && !broken) {
+    return <img src={op.logo} alt={op.name} className="w-full h-full object-cover" onError={() => setBroken(true)} />; /* eslint-disable-line @next/next/no-img-element */
+  }
+  return <span className="text-sm font-bold text-[var(--xray-accent)]">{op.name.slice(0, 2).toUpperCase()}</span>;
 }
 
 export default function OpportunityModal({ op, onClose }: { op: Opportunity; onClose: () => void }) {
@@ -44,7 +52,7 @@ export default function OpportunityModal({ op, onClose }: { op: Opportunity; onC
         <div className="flex items-start justify-between p-5 border-b border-[var(--xray-border)]">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-[var(--xray-elevated)] flex items-center justify-center shrink-0">
-              {op.logo ? <img src={op.logo} alt={op.name} className="w-full h-full object-cover" /> /* eslint-disable-line @next/next/no-img-element */ : <span className="text-sm font-bold text-[var(--xray-accent)]">{op.name.slice(0, 2).toUpperCase()}</span>}
+              <ModalLogo op={op} />
             </div>
             <div className="min-w-0">
               <h3 className="text-lg font-bold text-[var(--xray-text)] truncate">{op.name}</h3>
@@ -62,6 +70,15 @@ export default function OpportunityModal({ op, onClose }: { op: Opportunity; onC
                 <div className="text-[10px] uppercase tracking-wider text-[var(--xray-subtext)]">{k as string}</div>
               </div>
             ))}
+          </div>
+
+          {/* Airdrop status */}
+          <div className="flex items-center gap-2 rounded-xl border border-[rgba(78,205,196,0.25)] bg-[rgba(78,205,196,0.08)] px-3 py-2.5">
+            <Coins size={16} className="text-[var(--xray-accent)] shrink-0" />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-[var(--xray-text)]">No token yet — airdrop potential</div>
+              <div className="text-[11px] text-[var(--xray-subtext)]">{op.airdropStatus}. Date unconfirmed — early activity may qualify.</div>
+            </div>
           </div>
 
           {loading ? (
@@ -86,6 +103,11 @@ export default function OpportunityModal({ op, onClose }: { op: Opportunity; onC
             {op.url && (
               <a href={op.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--xray-card-border)] text-[var(--xray-text)] font-semibold text-sm hover:border-[var(--xray-accent)]/30 transition-all" style={{ background: 'var(--xray-card-gradient)' }}>
                 Website <ExternalLink size={14} />
+              </a>
+            )}
+            {op.twitter && (
+              <a href={`https://x.com/${op.twitter}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--xray-card-border)] text-[var(--xray-text)] font-semibold text-sm hover:border-[var(--xray-accent)]/30 transition-all" style={{ background: 'var(--xray-card-gradient)' }} aria-label="Project X account">
+                <AtSign size={14} />
               </a>
             )}
           </div>
