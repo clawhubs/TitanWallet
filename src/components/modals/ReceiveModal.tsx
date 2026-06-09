@@ -10,11 +10,13 @@ import { formatAddress } from '../../utils/cn';
 interface ReceiveModalProps {
   isOpen: boolean;
   onClose: () => void;
+  address?: string | null;
 }
 
-const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose }) => {
-  const walletAddress = useWalletStore((state) => state.address);
+const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose, address }) => {
+  const sessionAddress = useWalletStore((state) => state.address);
   const activeNetwork = useNetworkStore((state) => state.activeNetwork);
+  const walletAddress = address ?? sessionAddress;
   const [copied, setCopied] = useState(false);
 
   const copyAddress = async () => {
@@ -27,9 +29,13 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ isOpen, onClose }) => {
     window.setTimeout(() => setCopied(false), 2000);
   };
 
-  const addressExplorerUrl = walletAddress
-    ? `${activeNetwork.explorerUrl.replace(/\/$/, '')}/address/${walletAddress}`
-    : null;
+  const explorerBase = activeNetwork.explorerUrl.replace(/\/$/, '');
+  const explorerPath = activeNetwork.kind === 'solana'
+    ? `/account/${walletAddress}`
+    : activeNetwork.kind === 'ton'
+      ? `/${walletAddress}`
+      : `/address/${walletAddress}`;
+  const addressExplorerUrl = walletAddress ? `${explorerBase}${explorerPath}` : null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Receive Assets" size="md">

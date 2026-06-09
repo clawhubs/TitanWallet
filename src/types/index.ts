@@ -85,6 +85,8 @@ export interface TrustedApp {
 }
 
 // Network types
+export type NetworkKind = 'evm' | 'solana' | 'ton';
+
 export interface Network {
   id: string;
   name: string;
@@ -95,6 +97,7 @@ export interface Network {
   isTestnet: boolean;
   isActive: boolean;
   isDefault?: boolean;
+  kind?: NetworkKind; // defaults to 'evm' when omitted
 }
 
 // Wallet state

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import PortfolioBar from '../components/dashboard/PortfolioBar';
 import { useBalance } from '../hooks/useBalance';
+import { useActiveChainAddress } from '../hooks/useActiveChainAddress';
 import { useTokenStore } from '../store/useTokenStore';
 import { useWalletStore } from '../store/useWalletStore';
 import { useNetworkStore } from '../store/useNetworkStore';
@@ -214,6 +215,8 @@ const DashboardPage: React.FC = () => {
   const isDetecting = useTokenStore((state) => state.isDetecting);
   const runAutoDetect = useTokenStore((state) => state.runAutoDetect);
   const { balanceETH, balanceUSD, isLoading: balanceLoading } = useBalance();
+  const { address: chainAddress, kind: chainKind, deriving: chainDeriving } = useActiveChainAddress();
+  const isEvmNetwork = chainKind === 'evm';
   const [marketPrices, setMarketPrices] = useState<MarketPriceMap>({});
   const rawShowcaseTokens = buildShowcaseTokens();
   const marketPriceRequestTokens = [...tokens, ...rawShowcaseTokens];
@@ -270,12 +273,12 @@ const DashboardPage: React.FC = () => {
   }, [proofFeed.length]);
 
   useEffect(() => {
-    if (!walletAddress) {
+    if (!walletAddress || !isEvmNetwork) {
       return;
     }
 
     void runAutoDetect();
-  }, [activeNetwork.id, runAutoDetect, walletAddress]);
+  }, [activeNetwork.id, isEvmNetwork, runAutoDetect, walletAddress]);
 
   useEffect(() => {
     let disposed = false;
@@ -564,9 +567,13 @@ const DashboardPage: React.FC = () => {
                 </span>
               </div>
               <p className="mt-3 text-[13px] text-titan-subtext">
-                {walletAddress
-                  ? `${activeNetwork.name} wallet ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}${balanceLoading ? ' • syncing balance' : ''}`
-                  : 'Import or create a wallet to load live balances and proof records.'}
+                {chainAddress
+                  ? `${activeNetwork.name} wallet ${chainAddress.slice(0, 6)}...${chainAddress.slice(-4)}${balanceLoading ? ' • syncing balance' : ''}`
+                  : chainDeriving
+                    ? `Deriving your ${activeNetwork.name} address…`
+                    : walletAddress
+                      ? `Add a seed-phrase wallet to use ${activeNetwork.name}.`
+                      : 'Import or create a wallet to load live balances and proof records.'}
               </p>
             </div>
             
@@ -583,17 +590,22 @@ const DashboardPage: React.FC = () => {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 relative z-10">
             {[
-              { icon: Send, label: 'Send', onClick: () => setShowSendModal(true) },
-              { icon: ArrowDownLeft, label: 'Receive', onClick: () => setShowReceiveModal(true) },
-              { icon: RefreshCw, label: 'Swap', onClick: () => setShowSwapPanel(true) },
-              { icon: ShieldCheck, label: 'Security', onClick: () => navigate('/security') },
+              { icon: Send, label: 'Send', onClick: () => setShowSendModal(true), disabled: !isEvmNetwork },
+              { icon: ArrowDownLeft, label: 'Receive', onClick: () => setShowReceiveModal(true), disabled: false },
+              { icon: RefreshCw, label: 'Swap', onClick: () => setShowSwapPanel(true), disabled: !isEvmNetwork },
+              { icon: ShieldCheck, label: 'Security', onClick: () => navigate('/security'), disabled: false },
             ].map(action => (
-              <button key={action.label} onClick={action.onClick} className="bg-titan-card border border-titan-border hover:bg-titan-elevated hover:border-titan-accent/30 transition-all duration-200 py-4 rounded-xl flex flex-col items-center justify-center gap-2.5 group">
+              <button key={action.label} onClick={action.onClick} disabled={action.disabled} title={action.disabled ? `${action.label} on ${activeNetwork.name} is coming soon — view & receive only for now.` : undefined} className="bg-titan-card border border-titan-border hover:bg-titan-elevated hover:border-titan-accent/30 transition-all duration-200 py-4 rounded-xl flex flex-col items-center justify-center gap-2.5 group disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-titan-card disabled:hover:border-titan-border">
                 <action.icon size={18} className="text-titan-text group-hover:text-titan-accent transition-colors duration-200" />
                 <span className="text-[13px] font-semibold text-titan-text tracking-wide">{action.label}</span>
               </button>
             ))}
           </div>
+          {!isEvmNetwork ? (
+            <p className="mt-4 text-center text-[12px] text-titan-subtext relative z-10">
+              {activeNetwork.name} is view-only for now — your address and balance are live; Send &amp; Swap are coming soon.
+            </p>
+          ) : null}
         </section>
 
         {/* ── 2-Column Layout for Desktop ───────────────────────────────── */}
@@ -816,7 +828,7 @@ const DashboardPage: React.FC = () => {
         <SendTransactionModal isOpen={showSendModal} onClose={() => setShowSendModal(false)} />
       ) : null}
       {showReceiveModal ? (
-        <ReceiveModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} />
+        <ReceiveModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} address={chainAddress} />
       ) : null}
       {showSwapPanel ? (
         <SwapPanel isOpen={showSwapPanel} onClose={() => setShowSwapPanel(false)} />
