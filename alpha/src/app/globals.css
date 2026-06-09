@@ -1,0 +1,494 @@
+@import "tailwindcss";
+
+/* ===== TITAN X-RAY DESIGN TOKENS ===== */
+:root {
+  color-scheme: light dark;
+
+  /* Brand constants */
+  --xray-accent: #4ECDC4;
+  --xray-accent-dark: #3AA89F;
+  --xray-accent-rgb: 78, 205, 196;
+  --xray-gold: #B8985A;
+  --xray-danger: #E0544E;
+  --xray-danger-rgb: 224, 84, 78;
+  --xray-success: #3EBD7A;
+  --xray-success-rgb: 62, 189, 122;
+  --xray-warning: #D4943A;
+  --xray-warning-rgb: 212, 148, 58;
+}
+
+/* ===== LIGHT THEME ===== */
+:root[data-theme="light"],
+:root:not([data-theme]) {
+  --xray-bg: #F8F9FC;
+  --xray-bg-rgb: 248, 249, 252;
+  --xray-surface: #FFFFFF;
+  --xray-surface-rgb: 255, 255, 255;
+  --xray-card: #FFFFFF;
+  --xray-elevated: #F0F2F7;
+  --xray-border: #E2E6EF;
+  --xray-border-rgb: 226, 230, 239;
+  --xray-muted: #E2E6EF;
+  --xray-text: #0F1729;
+  --xray-subtext: #6B7A90;
+  --xray-tertiary: #9AACBF;
+  --xray-hero-bg: linear-gradient(135deg, #F8F9FC 0%, #EDF0F8 50%, #F0F4FA 100%);
+  --xray-glass-bg: rgba(255, 255, 255, 0.72);
+  --xray-glass-border: rgba(226, 230, 239, 0.6);
+  --xray-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --xray-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --xray-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --xray-shadow-xl: 0 24px 60px -12px rgba(15, 23, 41, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  /* Card surface gradient — gives boxes real dimension instead of flat fills */
+  --xray-card-gradient: linear-gradient(160deg, #FFFFFF 0%, #F4F7FC 100%);
+  --xray-card-border: rgba(226, 230, 239, 0.9);
+  --xray-card-border-hover: rgba(var(--xray-accent-rgb), 0.45);
+  --xray-card-highlight: rgba(255, 255, 255, 0.9);
+  --xray-glow: rgba(78, 205, 196, 0.1);
+  --xray-glow-strong: rgba(78, 205, 196, 0.2);
+  --xray-glow-soft: rgba(78, 205, 196, 0.14);
+  --xray-input-bg: #F3F5F9;
+  --xray-code-bg: #F3F5F9;
+  --xray-modal-backdrop: rgba(15, 23, 41, 0.4);
+}
+
+/* ===== DARK THEME ===== */
+:root[data-theme="dark"] {
+  --xray-bg: #06080C;
+  --xray-bg-rgb: 6, 8, 12;
+  --xray-surface: #0C1017;
+  --xray-surface-rgb: 12, 16, 23;
+  --xray-card: #131821;
+  --xray-elevated: #182030;
+  --xray-border: #1A2233;
+  --xray-border-rgb: 26, 34, 51;
+  --xray-muted: #1A2233;
+  --xray-text: #E8ECF4;
+  --xray-subtext: #6B7A90;
+  --xray-tertiary: #3D4A5C;
+  --xray-hero-bg: linear-gradient(135deg, #06080C 0%, #0A0F18 50%, #0C1220 100%);
+  --xray-glass-bg: rgba(12, 16, 23, 0.72);
+  --xray-glass-border: rgba(26, 34, 51, 0.6);
+  --xray-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --xray-shadow-md: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(78, 205, 196, 0.07);
+  --xray-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.65), 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(78, 205, 196, 0.1);
+  --xray-shadow-xl: 0 32px 70px -10px rgba(0, 0, 0, 0.75), 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 0 0 1px rgba(78, 205, 196, 0.12);
+  /* Card surface gradient — lifts boxes off the near-black page background */
+  --xray-card-gradient: linear-gradient(160deg, #1B2333 0%, #11161F 100%);
+  --xray-card-border: rgba(46, 58, 82, 0.9);
+  --xray-card-border-hover: rgba(var(--xray-accent-rgb), 0.5);
+  --xray-card-highlight: rgba(255, 255, 255, 0.06);
+  --xray-glow: rgba(78, 205, 196, 0.06);
+  --xray-glow-strong: rgba(78, 205, 196, 0.12);
+  --xray-glow-soft: rgba(78, 205, 196, 0.16);
+  --xray-input-bg: #0C1017;
+  --xray-code-bg: #0A0E15;
+  --xray-modal-backdrop: rgba(6, 8, 12, 0.85);
+}
+
+/* System preference fallback */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --xray-bg: #06080C;
+    --xray-bg-rgb: 6, 8, 12;
+    --xray-surface: #0C1017;
+    --xray-surface-rgb: 12, 16, 23;
+    --xray-card: #131821;
+    --xray-elevated: #182030;
+    --xray-border: #1A2233;
+    --xray-border-rgb: 26, 34, 51;
+    --xray-muted: #1A2233;
+    --xray-text: #E8ECF4;
+    --xray-subtext: #6B7A90;
+    --xray-tertiary: #3D4A5C;
+    --xray-hero-bg: linear-gradient(135deg, #06080C 0%, #0A0F18 50%, #0C1220 100%);
+    --xray-glass-bg: rgba(12, 16, 23, 0.72);
+    --xray-glass-border: rgba(26, 34, 51, 0.6);
+    --xray-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --xray-shadow-md: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(78, 205, 196, 0.07);
+    --xray-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.65), 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(78, 205, 196, 0.1);
+    --xray-shadow-xl: 0 32px 70px -10px rgba(0, 0, 0, 0.75), 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 0 0 1px rgba(78, 205, 196, 0.12);
+    --xray-card-gradient: linear-gradient(160deg, #1B2333 0%, #11161F 100%);
+    --xray-card-border: rgba(46, 58, 82, 0.9);
+    --xray-card-border-hover: rgba(var(--xray-accent-rgb), 0.5);
+    --xray-card-highlight: rgba(255, 255, 255, 0.06);
+    --xray-glow: rgba(78, 205, 196, 0.06);
+    --xray-glow-strong: rgba(78, 205, 196, 0.12);
+    --xray-glow-soft: rgba(78, 205, 196, 0.16);
+    --xray-input-bg: #0C1017;
+    --xray-code-bg: #0A0E15;
+    --xray-modal-backdrop: rgba(6, 8, 12, 0.85);
+  }
+}
+
+/* ===== TAILWIND v4 THEME ===== */
+@theme inline {
+  --color-xray-bg: var(--xray-bg);
+  --color-xray-surface: var(--xray-surface);
+  --color-xray-card: var(--xray-card);
+  --color-xray-elevated: var(--xray-elevated);
+  --color-xray-border: var(--xray-border);
+  --color-xray-muted: var(--xray-muted);
+  --color-xray-text: var(--xray-text);
+  --color-xray-subtext: var(--xray-subtext);
+  --color-xray-tertiary: var(--xray-tertiary);
+  --color-xray-accent: var(--xray-accent);
+  --color-xray-accent-dark: var(--xray-accent-dark);
+  --color-xray-gold: var(--xray-gold);
+  --color-xray-danger: var(--xray-danger);
+  --color-xray-success: var(--xray-success);
+  --color-xray-warning: var(--xray-warning);
+  --color-xray-input-bg: var(--xray-input-bg);
+  --color-xray-code-bg: var(--xray-code-bg);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Animations */
+  --animate-fade-in: fadeIn 0.6s ease-out forwards;
+  --animate-slide-up: slideUp 0.6s ease-out forwards;
+  --animate-slide-down: slideDown 0.4s ease-out forwards;
+  --animate-scale-in: scaleIn 0.3s ease-out forwards;
+  --animate-pulse-glow: pulseGlow 2s ease-in-out infinite alternate;
+  --animate-scan-line: scanLine 2s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-spin-slow: spin 8s linear infinite;
+}
+
+/* ===== BASE STYLES ===== */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--xray-bg);
+  color: var(--xray-text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* GoPlus-style ambient glow — strongest at the bottom + corners, teal brand tint */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 55% at 50% 100%, rgba(var(--xray-accent-rgb), 0.12), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgba(var(--xray-accent-rgb), 0.10), transparent 72%),
+    radial-gradient(45% 45% at 100% 0%, rgba(var(--xray-accent-rgb), 0.07), transparent 70%);
+}
+:root[data-theme="light"] body::before,
+:root:not([data-theme]) body::before {
+  opacity: 0.5;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--xray-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--xray-muted);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--xray-subtext);
+}
+
+::selection {
+  background: rgba(var(--xray-accent-rgb), 0.2);
+  color: var(--xray-accent);
+}
+
+/* ===== KEYFRAMES ===== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 8px rgba(var(--xray-accent-rgb), 0.15); }
+  100% { box-shadow: 0 0 24px rgba(var(--xray-accent-rgb), 0.3); }
+}
+@keyframes scanLine {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes progressPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes scannerSweep {
+  0% { left: -30%; }
+  100% { left: 130%; }
+}
+@keyframes ringPulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+@keyframes dotBlink {
+  0%, 20% { opacity: 0.3; }
+  40% { opacity: 1; }
+  60%, 100% { opacity: 0.3; }
+}
+
+/* ===== ANIMATION DELAYS ===== */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+
+/* ===== OPACITY START ===== */
+.opacity-0-start { opacity: 0; }
+
+/* ===== GLASSMORPHISM ===== */
+.xray-glass {
+  background: var(--xray-glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--xray-glass-border);
+}
+
+/* ===== GRADIENT TEXT ===== */
+.text-gradient-accent {
+  background: linear-gradient(135deg, var(--xray-accent) 0%, var(--xray-accent-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== GLOW EFFECTS ===== */
+.border-glow {
+  box-shadow: 0 0 0 1px rgba(var(--xray-accent-rgb), 0.3), 0 0 20px rgba(var(--xray-accent-rgb), 0.05);
+}
+.border-glow-strong {
+  box-shadow: 0 0 0 1px rgba(var(--xray-accent-rgb), 0.4), 0 0 40px rgba(var(--xray-accent-rgb), 0.1);
+}
+
+/* ===== SHIMMER SKELETON ===== */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--xray-elevated) 25%,
+    var(--xray-muted) 50%,
+    var(--xray-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ===== SCAN PROGRESS BAR ===== */
+.scan-progress-bar {
+  position: relative;
+  overflow: hidden;
+}
+.scan-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(var(--xray-accent-rgb), 0.3), transparent);
+  animation: scannerSweep 1.5s ease-in-out infinite;
+}
+
+/* ===== MODAL BACKDROP ===== */
+.modal-backdrop {
+  background: var(--xray-modal-backdrop);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ===== SCORE RING ===== */
+.score-ring {
+  filter: drop-shadow(0 0 12px rgba(var(--xray-accent-rgb), 0.25));
+}
+
+/* ===== CUSTOM FOCUS ===== */
+:focus-visible {
+  outline: 2px solid var(--xray-accent);
+  outline-offset: 2px;
+}
+
+/* The hero search shows focus via its shell glow (.xray-search:focus-within),
+   so suppress the default outline rectangle on the input itself.
+   Uses an unlayered, id-specificity rule so it beats the global :focus-visible
+   above (Tailwind's focus:outline-none lives in @layer and would otherwise lose
+   to this unlayered rule). */
+#wallet-address-input:focus,
+#wallet-address-input:focus-visible {
+  outline: none;
+}
+
+/* ===== PREMIUM CARD SYSTEM ===== */
+/* Gradient surface + layered shadow so boxes have real depth, not flat fills */
+.xray-card {
+  position: relative;
+  background: var(--xray-card-gradient);
+  border: 1px solid var(--xray-card-border);
+  border-radius: 1rem;
+  box-shadow: var(--xray-shadow-md);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+/* Subtle top highlight line — catches light like a real surface edge */
+.xray-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding-top: 1px;
+  background: linear-gradient(180deg, var(--xray-card-highlight), transparent 40%);
+  -webkit-mask: linear-gradient(#000, #000);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Hover: lift up, glow accent, brighten border */
+.xray-card-interactive:hover {
+  transform: translateY(-6px);
+  border-color: var(--xray-card-border-hover);
+  box-shadow: var(--xray-shadow-xl),
+    0 18px 40px -16px rgba(var(--xray-accent-rgb), 0.45);
+}
+
+/* Accent top bar that grows in on hover */
+.xray-card-accentbar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, var(--xray-accent), transparent);
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.xray-card-accentbar:hover::after {
+  width: 70%;
+}
+
+/* Accent icon tile with gradient + glow */
+.xray-icon-tile {
+  background: linear-gradient(150deg, rgba(var(--xray-accent-rgb), 0.22), rgba(var(--xray-accent-rgb), 0.06));
+  box-shadow: inset 0 0 0 1px rgba(var(--xray-accent-rgb), 0.25), 0 6px 16px -6px rgba(var(--xray-accent-rgb), 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.group:hover .xray-icon-tile {
+  transform: scale(1.06) rotate(-3deg);
+  box-shadow: inset 0 0 0 1px rgba(var(--xray-accent-rgb), 0.4), 0 10px 24px -6px rgba(var(--xray-accent-rgb), 0.55);
+}
+
+/* ===== SECTION EYEBROW BADGE ===== */
+.xray-eyebrow {
+  background: linear-gradient(180deg, rgba(var(--xray-accent-rgb), 0.12), rgba(var(--xray-accent-rgb), 0.04));
+  box-shadow: inset 0 0 0 1px rgba(var(--xray-accent-rgb), 0.3);
+}
+
+/* Featured stat card — makes the AI engine stat stand out */
+.xray-stat-featured {
+  border-color: rgba(var(--xray-accent-rgb), 0.4);
+  box-shadow: var(--xray-shadow-md), 0 0 28px -6px rgba(var(--xray-accent-rgb), 0.4);
+}
+.xray-stat-featured::before {
+  opacity: 1;
+}
+
+/* ===== HERO AURORA / MESH BACKDROP ===== */
+.xray-hero-aurora {
+  background:
+    radial-gradient(60% 60% at 50% 0%, rgba(var(--xray-accent-rgb), 0.18) 0%, transparent 60%),
+    radial-gradient(40% 50% at 85% 20%, rgba(var(--xray-accent-rgb), 0.1) 0%, transparent 55%),
+    radial-gradient(45% 50% at 15% 30%, rgba(184, 152, 90, 0.08) 0%, transparent 55%);
+  animation: auroraDrift 14s ease-in-out infinite alternate;
+}
+@keyframes auroraDrift {
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.9; }
+  100% { transform: translate3d(0, -2%, 0) scale(1.08); opacity: 1; }
+}
+
+/* Hero search shell — clean, even glow on focus (no harsh beams/rings) */
+.xray-search {
+  background: var(--xray-card-gradient);
+  border: 1px solid var(--xray-card-border);
+  box-shadow: var(--xray-shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.xray-search:focus-within {
+  border-color: rgba(var(--xray-accent-rgb), 0.65);
+  box-shadow:
+    var(--xray-shadow-lg),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 50px -14px rgba(var(--xray-accent-rgb), 0.5);
+}
+/* Inner field "well" so the input reads as a real control, not a hollow box */
+.xray-search-field {
+  background: rgba(var(--xray-bg-rgb), 0.55);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  caret-color: var(--xray-accent);
+}
+
+/* ===== GRADIENT DIVIDER ===== */
+.xray-divider {
+  background: linear-gradient(90deg, transparent, var(--xray-border) 20%, var(--xray-border) 80%, transparent);
+  height: 1px;
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .opacity-0-start { opacity: 1 !important; }
+  .xray-card-interactive:hover { transform: none; }
+}
