@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { glmJson, hasCerebras } from './cerebras';
 import { fetchAirdropsIo, resolveOfficial } from './airdropsIo';
 import type { Opportunity, OpportunityCategory, RiskLevel, YieldPotential } from './types';
@@ -252,6 +254,39 @@ function isDenied(url?: string): boolean {
   } catch { return false; }
 }
 
+/* ------------------- Persistent per-token analysis store ------------------- */
+// Each token is analysed ONCE (scores + summary + resolved link) the first time it
+// appears, then reused — so scores never drift on refresh. Only the live status,
+// popularity, and link-health are kept fresh.
+
+interface AnalysisRecord {
+  aiScore: number;
+  securityScore: number;
+  yieldPotential: YieldPotential;
+  aiSummary: string;
+  category: OpportunityCategory;
+  ecosystem: string;
+  url?: string;
+  twitter?: string;
+  firstSeen: string;
+  lastValidated: number;
+}
+
+const STORE_PATH = join(process.cwd(), '.data', 'alpha-analysis.json');
+const REVALIDATE_MS = 6 * 60 * 60 * 1000; // re-check a known link's health every 6h
+let store: Record<string, AnalysisRecord> | null = null;
+
+function keyOf(name: string): string { return name.toLowerCase().trim(); }
+function loadStore(): Record<string, AnalysisRecord> {
+  if (!store) {
+    try { store = JSON.parse(readFileSync(STORE_PATH, 'utf8')); } catch { store = {}; }
+  }
+  return store!;
+}
+function persistStore(): void {
+  try { mkdirSync(dirname(STORE_PATH), { recursive: true }); writeFileSync(STORE_PATH, JSON.stringify(store)); } catch { /* ignore */ }
+}
+
 export async function getOpportunities(force = false): Promise<Opportunity[]> {
   if (!force && cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.data;
 
@@ -262,63 +297,90 @@ export async function getOpportunities(force = false): Promise<Opportunity[]> {
   // Merge + dedupe by name (prefer the higher preScore entry).
   const byName = new Map<string, Seed>();
   for (const s of [...airdrops, ...llama]) {
-    const key = s.name.toLowerCase().trim();
-    const existing = byName.get(key);
-    if (!existing || s.preScore > existing.preScore) byName.set(key, s);
+    const k = keyOf(s.name);
+    const existing = byName.get(k);
+    if (!existing || s.preScore > existing.preScore) byName.set(k, s);
   }
   const seeds = [...byName.values()].sort((a, b) => b.preScore - a.preScore).slice(0, POOL);
-
   if (!seeds.length) return cache?.data || [];
 
-  // Resolve official project links for airdrops.io items (bounded concurrency, never link to airdrops.io).
-  await mapLimit(seeds.filter((s) => s.sourceType === 'airdrops.io' && s.detailUrl), 5, async (seed) => {
+  const db = loadStore();
+  const now = Date.now();
+  const fresh = seeds.filter((s) => !db[keyOf(s.name)]); // never analysed before
+
+  // --- NEW tokens only: resolve official link, validate, then analyse once ---
+  await mapLimit(fresh.filter((s) => s.sourceType === 'airdrops.io' && s.detailUrl), 5, async (seed) => {
     const { officialUrl, twitter } = await resolveOfficial(seed.detailUrl!);
     if (officialUrl) seed.url = officialUrl;
     if (twitter) seed.twitter = twitter;
   });
-
-  // Validate links — drop denylisted referral hosts and dead links (fall back to X profile).
-  await mapLimit(seeds.filter((s) => s.url), 8, async (seed) => {
+  await mapLimit(fresh.filter((s) => s.url), 8, async (seed) => {
     if (isDenied(seed.url) || !(await linkAlive(seed.url))) seed.url = undefined;
   });
-  // Keep only opportunities that have a working action link (official site or X profile).
-  const usable = seeds.filter((s) => s.url || s.twitter).slice(0, MAX_ITEMS);
+  const freshUsable = fresh.filter((s) => s.url || s.twitter);
 
   let scores: GlmScore[] = [];
-  if (hasCerebras()) {
-    try { scores = await scoreWithGlm(usable); } catch { scores = []; }
+  if (hasCerebras() && freshUsable.length) {
+    try { scores = await scoreWithGlm(freshUsable); } catch { scores = []; }
   }
   const scoreByName = new Map(scores.map((s) => [s.name, s]));
-
-  const data: Opportunity[] = usable.map((seed, i) => {
+  for (const seed of freshUsable) {
     const s = scoreByName.get(seed.name) || heuristicScore(seed);
     const securityScore = clampScore(s.securityScore);
-    return {
-      id: `${seed.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${i}`,
-      name: seed.name,
-      ecosystem: s.ecosystem || seed.ecosystem,
-      category: clampCat(s.category),
-      logo: seed.logo,
-      url: seed.url,
-      twitter: seed.twitter,
-      tvl: seed.tvl,
-      tokenStatus: seed.tokenStatus,
-      airdropStatus: seed.airdropStatus,
-      statusKind: seed.statusKind,
-      popularity: seed.popularity,
-      requirements: seed.requirements,
-      isNew: seed.isNew,
+    db[keyOf(seed.name)] = {
       aiScore: clampScore(s.aiScore),
       securityScore,
-      riskLevel: deriveRisk(securityScore, seed.statusKind),
       yieldPotential: clampYield(s.yieldPotential),
       aiSummary: s.aiSummary || heuristicScore(seed).aiSummary,
-      narrative: { whyItMatters: '', opportunity: '', risk: '', recommendedAction: '', confidence: clampScore(s.aiScore) },
+      category: clampCat(s.category),
+      ecosystem: s.ecosystem || seed.ecosystem,
+      url: seed.url,
+      twitter: seed.twitter,
+      firstSeen: new Date().toISOString(),
+      lastValidated: now,
+    };
+  }
+
+  // --- KNOWN tokens: reuse stored analysis; only re-check link health every 6h ---
+  await mapLimit(seeds.filter((s) => db[keyOf(s.name)] && (now - db[keyOf(s.name)].lastValidated) > REVALIDATE_MS), 8, async (seed) => {
+    const rec = db[keyOf(seed.name)];
+    if (rec.url && (isDenied(rec.url) || !(await linkAlive(rec.url)))) rec.url = undefined;
+    rec.lastValidated = now;
+  });
+
+  persistStore();
+
+  // --- Assemble: frozen analysis numbers + live status/popularity/link ---
+  const data: Opportunity[] = seeds
+    .map((seed) => ({ seed, rec: db[keyOf(seed.name)] }))
+    .filter(({ rec }) => rec && (rec.url || rec.twitter))
+    .slice(0, MAX_ITEMS)
+    .map(({ seed, rec }, i) => ({
+      id: `${keyOf(seed.name).replace(/[^a-z0-9]+/g, '-')}-${i}`,
+      name: seed.name,
+      ecosystem: rec.ecosystem || seed.ecosystem,
+      category: rec.category,
+      logo: seed.logo,
+      url: rec.url,
+      twitter: rec.twitter || seed.twitter,
+      tvl: seed.tvl,
+      tokenStatus: seed.tokenStatus,
+      airdropStatus: seed.airdropStatus,   // live
+      statusKind: seed.statusKind,         // live
+      popularity: seed.popularity,         // live
+      requirements: seed.requirements,
+      isNew: seed.isNew,
+      aiScore: rec.aiScore,                // frozen at first analysis
+      securityScore: rec.securityScore,    // frozen
+      riskLevel: deriveRisk(rec.securityScore, seed.statusKind),
+      yieldPotential: rec.yieldPotential,  // frozen
+      aiSummary: rec.aiSummary,            // frozen
+      narrative: { whyItMatters: '', opportunity: '', risk: '', recommendedAction: '', confidence: rec.aiScore },
       source: seed.source,
       sourceType: seed.sourceType,
-      updatedAt: new Date().toISOString(),
-    };
-  }).sort((a, b) => b.aiScore - a.aiScore);
+      updatedAt: rec.firstSeen,
+    }))
+    .sort((a, b) => b.aiScore - a.aiScore);
 
   cache = { at: Date.now(), data };
   return data;

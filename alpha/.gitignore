@@ -46,3 +46,6 @@ CLAUDE.md
 
 # worker state
 worker/.posted.json
+
+# persistent analysis store
+.data/
